@@ -1,0 +1,9 @@
+---
+/** One text block inside <Scrolly>. `n` is the 1-based flow step it shows. */
+interface Props { n: number; tag?: string }
+const { n, tag } = Astro.props;
+---
+<div class="scrolly-step" data-scrolly-step={n - 1}>
+  <p class="step-tag">F{n}{tag ? ` · ${tag}` : ''}</p>
+  <slot />
+</div>

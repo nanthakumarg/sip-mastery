@@ -1,0 +1,132 @@
+id: invite-407-ack-new-branch
+title: "Broken: ACK for the 407 with a new branch"
+summary: Alice ACKs the 407 with a new branch. Proxy A cannot match the ACK to the INVITE transaction.
+credentials: { username: alice, password: wonderland-2026 }
+broken: true
+breaks: [ack-non2xx-branch]
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+steps:
+  - from: alice
+    to: proxyA
+    label: INVITE
+    caption: Alice sends an INVITE. It has no credentials.
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b43
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+  - from: proxyA
+    to: alice
+    label: 407 Proxy Auth Required
+    caption: Proxy A rejects the INVITE with 407 and a challenge.
+    message: |
+      SIP/2.0 407 Proxy Authentication Required
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b43
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=3flal12sf
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Proxy-Authenticate: Digest realm="atlanta.example", qop="auth", nonce="f84f1cec41e6cbe5aea9c8e88d359", algorithm=MD5
+      Content-Length: {auto}
+  - from: alice
+    to: proxyA
+    label: ACK (new branch)
+    caption: Alice sends ACK with a new branch value.
+    rfc: rfc3261-17.1.1.3-ack-via
+    warn: The branch does not match the INVITE. Proxy A cannot match this ACK to the transaction.
+    message: |
+      ACK sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b55
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=3flal12sf
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+  - from: alice
+    to: proxyA
+    label: INVITE (credentials)
+    caption: Alice sends a new INVITE with Proxy-Authorization. CSeq is 2 and the branch is new.
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 2 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Proxy-Authorization: Digest username="alice", realm="atlanta.example", nonce="f84f1cec41e6cbe5aea9c8e88d359", uri="sip:bob@biloxi.example", response="{digest}", algorithm=MD5, qop=auth, nc=00000001, cnonce="6a4b1c2d"
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+  - from: proxyA
+    to: alice
+    label: 100 Trying
+    caption: Proxy A accepts the credentials and continues with the call.
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 2 INVITE
+      Content-Length: {auto}
+  - from: proxyA
+    to: alice
+    label: 407 (retransmission)
+    caption: Timer G fires, so Proxy A sends the same 407 again.
+    rfc: rfc3261-17.2.1-timer-g
+    warn: Proxy A retransmits the 407 because it has no matching ACK.
+    message: |
+      SIP/2.0 407 Proxy Authentication Required
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b43
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=3flal12sf
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Proxy-Authenticate: Digest realm="atlanta.example", qop="auth", nonce="f84f1cec41e6cbe5aea9c8e88d359", algorithm=MD5
+      Content-Length: {auto}
+  - from: alice
+    to: proxyA
+    label: ACK (new branch)
+    caption: Alice ACKs the retransmitted 407 with the same wrong branch. The loop continues until Timer H fires.
+    warn: Proxy A never matches these ACKs, so Timer H ends the transaction with a failure.
+    message: |
+      ACK sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b55
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=3flal12sf
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}

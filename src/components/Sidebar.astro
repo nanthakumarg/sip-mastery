@@ -1,0 +1,25 @@
+---
+import { getCollection } from 'astro:content';
+import { OUTLINE, pad2 } from '../lib/outline.ts';
+import { url } from '../lib/url.ts';
+
+interface Props { current?: number }
+const { current } = Astro.props;
+const live = new Map((await getCollection('modules')).map(m => [m.data.module, m.id]));
+---
+<nav class="sidebar" id="sidebar" aria-label="Course modules">
+  {OUTLINE.map(part => (
+    <div class="part">
+      <p class="part-title">Part {part.n} · {part.title}</p>
+      <ul>
+        {part.modules.map(m => (
+          <li>
+            {live.has(m.n)
+              ? <a href={url(`modules/${live.get(m.n)}/`)} aria-current={m.n === current ? 'page' : undefined}><span class="mnum">{pad2(m.n)}</span>{m.title}</a>
+              : <span title="Coming soon"><span class="mnum">{pad2(m.n)}</span>{m.title}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</nav>

@@ -1,0 +1,189 @@
+/**
+ * Protocol checks for call flows (TECH_DESIGN §6.1).
+ * Each rule follows RFC 3261. A flow marked `broken: true` must break exactly
+ * the rules it lists in `breaks`; every other flow must break none.
+ */
+import type { PreparedFlow, PreparedStep } from './flow.ts';
+import {
+  byteLength, cseq, getHeader, getHeaders, headerParam, isRequest, isResponse, tagOf, topVia,
+  type SipMessage,
+} from './parse.ts';
+
+export interface LintIssue {
+  rule: string;
+  severity: 'error' | 'warn';
+  step: number;
+  message: string;
+}
+
+const REQ_HEADERS = ['Via', 'From', 'To', 'Call-ID', 'CSeq', 'Max-Forwards'];
+const RESP_HEADERS = ['Via', 'From', 'To', 'Call-ID', 'CSeq'];
+
+type MsgStep = PreparedStep & { parsed: SipMessage };
+
+export function lintFlow(flow: PreparedFlow): LintIssue[] {
+  const issues: LintIssue[] = [];
+  const add = (rule: string, step: number, message: string, severity: LintIssue['severity'] = 'error') =>
+    issues.push({ rule, severity, step, message });
+
+  for (const s of flow.steps) {
+    if (s.message && s.parseError) add('parse', s.index, s.parseError);
+  }
+  const msgs = flow.steps.filter((s): s is MsgStep => !!s.parsed);
+
+  for (const s of msgs) {
+    const m = s.parsed;
+    // mandatory-headers (RFC 3261 §8.1.1, §8.1.1.8)
+    const need = m.kind === 'request' ? [...REQ_HEADERS, ...(m.method === 'INVITE' ? ['Contact'] : [])] : RESP_HEADERS;
+    for (const h of need) {
+      if (!getHeader(m, h)) add('mandatory-headers', s.index, `${describe(m)} has no ${h} header`);
+    }
+    // cseq-method (RFC 3261 §8.1.1.5)
+    const cs = cseq(m);
+    if (m.kind === 'request' && cs && cs.method !== m.method) {
+      add('cseq-method', s.index, `CSeq method is ${cs.method}, but the request method is ${m.method}`);
+    }
+    // branch-cookie (RFC 3261 §8.1.1.7)
+    for (const via of getHeaders(m, 'Via').flatMap(h => h.value.split(','))) {
+      const b = headerParam(via, 'branch');
+      if (!b || !b.startsWith('z9hG4bK')) add('branch-cookie', s.index, `Via branch "${b ?? ''}" does not start with z9hG4bK`);
+    }
+    // content-length (RFC 3261 §20.14)
+    const cl = getHeader(m, 'Content-Length');
+    const len = byteLength(m.body);
+    if (cl !== undefined && Number(cl) !== len) {
+      add('content-length', s.index, `Content-Length is ${cl}, but the body is ${len} bytes`);
+    } else if (cl === undefined && len > 0) {
+      add('content-length', s.index, 'The message has a body but no Content-Length', 'warn');
+    }
+  }
+
+  checkAcks(msgs, add);
+  checkAuthRetries(msgs, add);
+  checkInviteAcked(msgs, add);
+  checkDialogTags(msgs, add);
+  return issues;
+}
+
+type Add = (rule: string, step: number, message: string, severity?: LintIssue['severity']) => void;
+
+const sameHop = (a: PreparedStep, b: PreparedStep) => a.from === b.from && a.to === b.to;
+const reverseHop = (a: PreparedStep, b: PreparedStep) => a.from === b.to && a.to === b.from;
+const callId = (m: SipMessage) => getHeader(m, 'Call-ID');
+
+function describe(m: SipMessage): string {
+  return m.kind === 'request' ? m.method! : `${m.status} response`;
+}
+
+/** Finds the INVITE request on this hop that a response or ACK belongs to. */
+function findInvite(msgs: MsgStep[], before: number, hop: (s: PreparedStep) => boolean, cid: string | undefined, seq: number) {
+  for (let i = before - 1; i >= 0; i--) {
+    const s = msgs[i]!;
+    if (hop(s) && isRequest(s.parsed, 'INVITE') && callId(s.parsed) === cid && cseq(s.parsed)?.seq === seq) return s;
+  }
+  return undefined;
+}
+
+/** ack-non2xx-branch, ack-2xx-branch (RFC 3261 §17.1.1.3, §13.2.2.4) */
+function checkAcks(msgs: MsgStep[], add: Add) {
+  msgs.forEach((s, i) => {
+    if (!isRequest(s.parsed, 'ACK')) return;
+    const ack = s.parsed;
+    const seq = cseq(ack)?.seq;
+    const cid = callId(ack);
+    // The final response this ACK answers: latest final INVITE response on the reverse hop.
+    let resp: MsgStep | undefined;
+    for (let j = i - 1; j >= 0; j--) {
+      const r = msgs[j]!;
+      const rc = cseq(r.parsed);
+      if (reverseHop(r, s) && isResponse(r.parsed) && r.parsed.status! >= 200 && rc?.method === 'INVITE' && callId(r.parsed) === cid) {
+        resp = r;
+        break;
+      }
+    }
+    if (!resp) return;
+    const invite = findInvite(msgs, msgs.indexOf(resp), x => sameHop(x, s), cid, cseq(resp.parsed)!.seq);
+    const inviteBranch = invite ? topVia(invite.parsed)?.branch : topVia(resp.parsed)?.branch;
+    const ackBranch = topVia(ack)?.branch;
+    if (resp.parsed.status! >= 300) {
+      if (ackBranch !== inviteBranch) {
+        add('ack-non2xx-branch', s.index, `ACK for ${resp.parsed.status} must reuse the INVITE branch (${inviteBranch}), but has ${ackBranch}`);
+      }
+      if (seq !== cseq(resp.parsed)?.seq) {
+        add('ack-non2xx-branch', s.index, `ACK for ${resp.parsed.status} must reuse the INVITE CSeq number`);
+      }
+    } else if (ackBranch === inviteBranch) {
+      add('ack-2xx-branch', s.index, `ACK for a 2xx is a new transaction and needs a new branch, but reuses ${ackBranch}`);
+    }
+  });
+}
+
+/** auth-retry (RFC 3261 §8.1.3.5, §22.2, §22.3) */
+function checkAuthRetries(msgs: MsgStep[], add: Add) {
+  msgs.forEach((ch, i) => {
+    if (!isResponse(ch.parsed) || (ch.parsed.status !== 401 && ch.parsed.status !== 407)) return;
+    const method = cseq(ch.parsed)?.method;
+    // The challenged request on the same hop.
+    let orig: MsgStep | undefined;
+    for (let j = i - 1; j >= 0; j--) {
+      const r = msgs[j]!;
+      if (reverseHop(r, ch) && isRequest(r.parsed, method) && topVia(r.parsed)?.branch === topVia(ch.parsed)?.branch) { orig = r; break; }
+    }
+    if (!orig) return;
+    // The retry: next request with the same method on the same hop.
+    const retry = msgs.slice(i + 1).find(r => sameHop(r, orig) && isRequest(r.parsed, method));
+    if (!retry) return;
+    const o = orig.parsed;
+    const r = retry.parsed;
+    const credHeader = ch.parsed.status === 401 ? 'Authorization' : 'Proxy-Authorization';
+    if (!getHeader(r, credHeader)) add('auth-retry', retry.index, `Retry after ${ch.parsed.status} has no ${credHeader} header`);
+    if (cseq(r)?.seq !== (cseq(o)?.seq ?? 0) + 1) add('auth-retry', retry.index, `Retry after ${ch.parsed.status} must use CSeq ${(cseq(o)?.seq ?? 0) + 1}, but uses ${cseq(r)?.seq}`);
+    if (callId(r) !== callId(o)) add('auth-retry', retry.index, 'Retry must keep the same Call-ID');
+    if (tagOf(r, 'From') !== tagOf(o, 'From')) add('auth-retry', retry.index, 'Retry must keep the same From tag');
+    if (topVia(r)?.branch === topVia(o)?.branch) add('auth-retry', retry.index, 'Retry is a new transaction and needs a new branch');
+  });
+}
+
+/** invite-final-ack (RFC 3261 §17.1.1.3, §13.2.2.4): every final INVITE response is ACKed on its hop. */
+function checkInviteAcked(msgs: MsgStep[], add: Add) {
+  msgs.forEach((r, i) => {
+    const rc = cseq(r.parsed);
+    if (!isResponse(r.parsed) || r.parsed.status! < 200 || rc?.method !== 'INVITE') return;
+    const acked = msgs.slice(i + 1).some(a =>
+      reverseHop(a, r) && isRequest(a.parsed, 'ACK') && callId(a.parsed) === callId(r.parsed) && cseq(a.parsed)?.seq === rc.seq);
+    if (!acked) add('invite-final-ack', r.index, `${r.parsed.status} to INVITE is never ACKed on this hop`);
+  });
+}
+
+/** dialog-tags (RFC 3261 §12.2.1.1): in-dialog requests use the tags of the dialog. */
+function checkDialogTags(msgs: MsgStep[], add: Add) {
+  const dialogs: { cid: string; a: string; b: string }[] = [];
+  for (const s of msgs) {
+    const m = s.parsed;
+    const cid = callId(m) ?? '';
+    const from = tagOf(m, 'From');
+    const to = tagOf(m, 'To');
+    if (isResponse(m, 2) && cseq(m)?.method === 'INVITE' && from && to) {
+      if (!dialogs.some(d => d.cid === cid && d.a === from && d.b === to)) dialogs.push({ cid, a: from, b: to });
+    } else if (m.kind === 'request' && to && m.method !== 'ACK' && m.method !== 'CANCEL') {
+      const known = dialogs.filter(d => d.cid === cid);
+      const ok = known.length === 0 || known.some(d => (d.a === from && d.b === to) || (d.a === to && d.b === from));
+      if (!ok) add('dialog-tags', s.index, `${m.method} uses tags ${from}/${to}, which match no dialog on this Call-ID`);
+    } else if (m.kind === 'request' && m.method === 'ACK' && to && isAckFor2xx(msgs, s)) {
+      const known = dialogs.filter(d => d.cid === cid);
+      const ok = known.length === 0 || known.some(d => d.a === from && d.b === to);
+      if (!ok) add('dialog-tags', s.index, `ACK uses tags ${from}/${to}, which match no dialog on this Call-ID`);
+    }
+  }
+}
+
+function isAckFor2xx(msgs: MsgStep[], ack: MsgStep): boolean {
+  const i = msgs.indexOf(ack);
+  for (let j = i - 1; j >= 0; j--) {
+    const r = msgs[j]!;
+    if (reverseHop(r, ack) && isResponse(r.parsed) && r.parsed.status! >= 200 && cseq(r.parsed)?.method === 'INVITE') {
+      return r.parsed.status! < 300;
+    }
+  }
+  return false;
+}

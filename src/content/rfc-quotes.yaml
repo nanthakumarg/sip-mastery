@@ -1,0 +1,146 @@
+# Exact RFC quotes. `npm run verify:rfc` checks each `text` word for word
+# against the cited section at rfc-editor.org. Line breaks and spacing are
+# normalised; words and punctuation must match.
+
+- id: rfc3261-22.2-challenge-401
+  rfc: 3261
+  section: "22.2"
+  title: User-to-User Authentication
+  text: >-
+    If no credentials (in the Authorization header field) are provided in the
+    request, the UAS can challenge the originator to provide credentials by
+    rejecting the request with a 401 (Unauthorized) status code.
+
+- id: rfc3261-22.2-www-authenticate
+  rfc: 3261
+  section: "22.2"
+  title: User-to-User Authentication
+  text: >-
+    The WWW-Authenticate response-header field MUST be included in 401
+    (Unauthorized) response messages.
+
+- id: rfc3261-22.2-cseq-increment
+  rfc: 3261
+  section: "22.2"
+  title: User-to-User Authentication
+  text: >-
+    When a UAC resubmits a request with its credentials after receiving a 401
+    (Unauthorized) or 407 (Proxy Authentication Required) response, it MUST
+    increment the CSeq header field value as it would normally when sending an
+    updated request.
+
+- id: rfc3261-22.3-challenge-407
+  rfc: 3261
+  section: "22.3"
+  title: Proxy-to-User Authentication
+  text: >-
+    The proxy MUST populate the 407 (Proxy Authentication Required) message
+    with a Proxy-Authenticate header field value applicable to the proxy for
+    the requested resource.
+
+- id: rfc3261-22.3-uac-adds
+  rfc: 3261
+  section: "22.3"
+  title: Proxy-to-User Authentication
+  text: >-
+    Proxies MUST NOT add values to the Proxy-Authorization header field.
+
+- id: rfc3261-22.3-consume-realm
+  rfc: 3261
+  section: "22.3"
+  title: Proxy-to-User Authentication
+  text: >-
+    When multiple proxies are used in a chain, a Proxy-Authorization header
+    field value MUST NOT be consumed by any proxy whose realm does not match
+    the "realm" parameter specified in that value.
+
+- id: rfc3261-22.1-ack-credentials
+  rfc: 3261
+  section: "22.1"
+  title: Framework
+  text: >-
+    UACs creating an ACK message will duplicate all of the Authorization and
+    Proxy-Authorization header field values that appeared in the INVITE to
+    which the ACK corresponds.  Servers MUST NOT attempt to challenge an ACK.
+
+- id: rfc3261-22.1-cancel
+  rfc: 3261
+  section: "22.1"
+  title: Framework
+  text: >-
+    Although the CANCEL method does take a response (a 2xx), servers MUST NOT
+    attempt to challenge CANCEL requests since these requests cannot be
+    resubmitted.
+
+- id: rfc3261-22.4-qop
+  rfc: 3261
+  section: "22.4"
+  title: The Digest Authentication Scheme
+  text: >-
+    However, servers MUST always send a "qop" parameter in WWW-Authenticate and
+    Proxy-Authenticate header field values.  If a client receives a "qop"
+    parameter in a challenge header field, it MUST send the "qop" parameter in
+    any resulting authorization header field.
+
+- id: rfc3261-22.4-basic
+  rfc: 3261
+  section: "22.4"
+  title: The Digest Authentication Scheme
+  text: >-
+    Note, however, that SIP servers MUST NOT accept or request Basic
+    authentication.
+
+- id: rfc3261-22.4-uri-check
+  rfc: 3261
+  section: "22.4"
+  title: The Digest Authentication Scheme
+  text: >-
+    Therefore, in SIP, a server MAY check that the Request-URI in the
+    Authorization header field value corresponds to a user for whom the server
+    is willing to accept forwarded or direct requests, but it is not
+    necessarily a failure if the two fields are not equivalent.
+
+- id: rfc3261-17.1.1.3-ack-via
+  rfc: 3261
+  section: "17.1.1.3"
+  title: Construction of the ACK Request
+  text: >-
+    The ACK MUST contain a single Via header field, and this MUST be equal to
+    the top Via header field of the original request.  The CSeq header field in
+    the ACK MUST contain the same value for the sequence number as was present
+    in the original request, but the method parameter MUST be equal to "ACK".
+
+- id: rfc3261-17.2.1-timer-g
+  rfc: 3261
+  section: "17.2.1"
+  title: INVITE Server Transaction
+  text: >-
+    If timer G fires, the response is passed to the transport layer once more
+    for retransmission, and timer G is set to fire in MIN(2*T1, T2) seconds.
+
+- id: rfc3261-17.2.1-timer-h
+  rfc: 3261
+  section: "17.2.1"
+  title: INVITE Server Transaction
+  text: >-
+    If timer H fires while in the "Completed" state, it implies that the ACK
+    was never received.
+
+- id: rfc8760-2.4-topmost
+  rfc: 8760
+  section: "2.4"
+  title: UAC Behavior
+  text: >-
+    When the UAC receives a response with multiple
+    WWW-Authenticate/Proxy-Authenticate header fields with the same realm, it SHOULD use the
+    topmost header field that it supports unless a local policy dictates
+    otherwise.
+
+- id: rfc8760-2.3-order
+  rfc: 8760
+  section: "2.3"
+  title: UAS Behavior
+  text: >-
+    The UAS MUST add these header fields to the response in the order in which
+    it would prefer to see them used, starting with the most preferred
+    algorithm at the top.

@@ -1,0 +1,19 @@
+---
+/**
+ * <Scrolly flow="invite-407"> <Step n={1}>…</Step> … </Scrolly>
+ * Text steps scroll past a pinned ladder; each Step moves the ladder.
+ */
+import ScrollyLadder from '../diagrams/ScrollyLadder.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+
+interface Props { flow: string }
+const { flow } = Astro.props;
+const [bundle] = await flowBundle(flow);
+const uid = `scrolly-${flow}`;
+---
+<div class="scrolly wide" id={uid}>
+  <div class="scrolly-text"><slot /></div>
+  <div class="scrolly-sticky">
+    <ScrollyLadder client:visible flow={bundle!.flow} container={uid} />
+  </div>
+</div>

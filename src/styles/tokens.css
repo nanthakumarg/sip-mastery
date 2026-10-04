@@ -1,0 +1,42 @@
+/* ===========================================================
+   DESIGN TOKENS
+   From presentations/: a dark signalling console. Colour always
+   names the protocol on the wire (COURSE_STRUCTURE §4, §5.2).
+   =========================================================== */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg-deep: #090a0c;
+  --bg: #0E1013;
+  --panel: #15181d;
+  --panel-2: #1b1f26;
+  --line: #2a3039;
+  --line-2: #20252c;
+
+  /* Text */
+  --text: #ECE7DC;
+  --dim: #BEB8AC;
+  --muted: #8a929d;
+
+  /* Protocol map: one colour, one meaning */
+  --sip: #FFB000;   /* SIP signaling */
+  --sdp: #E3D6B8;   /* SDP body */
+  --rtp: #3FD0C9;   /* RTP media (always dashed) */
+  --rtcp: #7BD88F;  /* RTCP and keepalives */
+  --dns: #7FA6FF;   /* DNS, STUN, ICE */
+  --err: #FF6B5A;   /* errors, failed paths, warnings */
+  --down: #FF4F6A;  /* lost packets, elements down */
+
+  /* Type */
+  --display: 'Bricolage Grotesque Variable', 'Avenir Next', 'Segoe UI', sans-serif;
+  --mono: 'Martian Mono', 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Motion */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --gutter: clamp(16px, 4vw, 48px);
+  --measure: 72ch;
+  --sidebar: 280px;
+}

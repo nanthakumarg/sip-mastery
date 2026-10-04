@@ -1,0 +1,71 @@
+id: register-401
+title: REGISTER with a 401 challenge
+summary: Alice registers. The Registrar challenges, Alice answers with credentials, and the Registrar stores the binding.
+credentials: { username: alice, password: wonderland-2026 }
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: registrar, label: Registrar, kind: registrar, sub: atlanta.example }
+steps:
+  - from: alice
+    to: registrar
+    label: REGISTER
+    caption: Alice asks the Registrar to bind the AOR to a Contact. The request has no credentials.
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKnashds7
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=a73kszlfl
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: 1j9FpLxk3uxtm8tn@192.0.2.10
+      CSeq: 1 REGISTER
+      Contact: <sip:alice@192.0.2.10:5060>
+      Expires: 3600
+      Content-Length: {auto}
+
+  - from: registrar
+    to: alice
+    label: 401 Unauthorized
+    caption: The Registrar rejects the request with 401. WWW-Authenticate carries the realm and a fresh nonce.
+    rfc: rfc3261-22.2-challenge-401
+    message: |
+      SIP/2.0 401 Unauthorized
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKnashds7
+      From: Alice <sip:alice@atlanta.example>;tag=a73kszlfl
+      To: Alice <sip:alice@atlanta.example>;tag=1410948204
+      Call-ID: 1j9FpLxk3uxtm8tn@192.0.2.10
+      CSeq: 1 REGISTER
+      WWW-Authenticate: Digest realm="atlanta.example", qop="auth", nonce="ea9c8e88df84f1cec4341ae6cbe5a359", algorithm=MD5
+      Content-Length: {auto}
+
+  - from: alice
+    to: registrar
+    label: REGISTER (credentials)
+    caption: Alice sends REGISTER again with an Authorization header. CSeq is now 2 and the branch is new.
+    rfc: rfc3261-22.2-cseq-increment
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKnashd92
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=a73kszlfl
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: 1j9FpLxk3uxtm8tn@192.0.2.10
+      CSeq: 2 REGISTER
+      Contact: <sip:alice@192.0.2.10:5060>
+      Expires: 3600
+      Authorization: Digest username="alice", realm="atlanta.example", nonce="ea9c8e88df84f1cec4341ae6cbe5a359", uri="sip:atlanta.example", response="{digest}", algorithm=MD5, qop=auth, nc=00000001, cnonce="0a4f113b"
+      Content-Length: {auto}
+
+  - from: registrar
+    to: alice
+    label: 200 OK
+    caption: The Registrar calculates the same response value and stores the binding. The 200 OK lists the active Contact.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKnashd92
+      From: Alice <sip:alice@atlanta.example>;tag=a73kszlfl
+      To: Alice <sip:alice@atlanta.example>;tag=37GkEhwl6
+      Call-ID: 1j9FpLxk3uxtm8tn@192.0.2.10
+      CSeq: 2 REGISTER
+      Contact: <sip:alice@192.0.2.10:5060>;expires=3600
+      Date: Sat, 03 Oct 2026 10:00:00 GMT
+      Content-Length: {auto}

@@ -1,0 +1,11 @@
+---
+/** <Term t="nonce" /> or <Term t="nonce">nonces</Term> : glossary hover definition */
+import { loadGlossary } from '../lib/data.ts';
+
+interface Props { t: string }
+const want = Astro.props.t.toLowerCase();
+const entry = loadGlossary().find(g => g.term.toLowerCase() === want || g.aliases?.some(a => a.toLowerCase() === want));
+if (!entry) throw new Error(`<Term t="${Astro.props.t}"> is not in src/content/glossary.yaml`);
+const hasSlot = Astro.slots.has('default');
+---
+<span class="term" tabindex="0">{hasSlot ? <slot /> : Astro.props.t}<span class="term-pop" role="tooltip"><b>{entry.term}.</b> {entry.definition}</span></span>

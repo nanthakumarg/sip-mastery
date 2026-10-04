@@ -1,0 +1,98 @@
+# Controlled vocabulary for the whole course (COURSE_STRUCTURE §5.1).
+# Every lane label and every non-method diagram label must start with one of
+# these terms or aliases. Use one term for one concept everywhere.
+
+# --- The cast -------------------------------------------------------------
+- term: Alice
+  definition: The caller in every example. A user at atlanta.example.
+- term: Bob
+  definition: The callee in every example. A user at biloxi.example.
+- term: Proxy A
+  definition: The outbound proxy and authentication point for atlanta.example.
+- term: Proxy B
+  definition: The inbound proxy for biloxi.example. It finds Bob through its location service.
+- term: Registrar
+  definition: The server that accepts REGISTER requests for atlanta.example and stores bindings.
+- term: SBC
+  definition: Session Border Controller. A B2BUA at the edge of a network that protects and normalises SIP.
+- term: NAT router
+  definition: The home router that translates private addresses to a public address.
+- term: Carrier gateway
+  definition: The gateway between SIP and the public telephone network.
+
+# --- Elements and roles ----------------------------------------------------
+- term: UAC
+  aliases: [user agent client]
+  definition: The user agent role that sends a request.
+- term: UAS
+  aliases: [user agent server]
+  definition: The user agent role that receives a request and sends the responses.
+- term: proxy
+  definition: An element that forwards requests and responses. It does not start or end calls.
+- term: B2BUA
+  aliases: [back-to-back user agent]
+  definition: An element that ends one call leg as a UAS and starts a new leg as a UAC.
+- term: location service
+  definition: The database of bindings from AORs to Contact addresses.
+
+# --- Addresses -------------------------------------------------------------
+- term: AOR
+  aliases: [address of record]
+  definition: The public SIP address of a user, such as sip:alice@atlanta.example.
+- term: Contact
+  definition: The address where a user agent can be reached directly at this time.
+- term: binding
+  definition: One entry in the location service that maps an AOR to a Contact.
+
+# --- Message structure ------------------------------------------------------
+- term: branch
+  definition: The Via parameter that identifies a transaction. It starts with z9hG4bK.
+- term: tag
+  definition: A random value in From or To that identifies one side of a dialog.
+- term: transaction
+  definition: One request and all its responses. An ACK for a non-2xx response is part of the INVITE transaction.
+- term: dialog
+  definition: A peer-to-peer SIP relationship identified by Call-ID, local tag, and remote tag.
+- term: route set
+  definition: The list of proxies that in-dialog requests must visit, built from Record-Route.
+
+# --- Authentication --------------------------------------------------------
+- term: challenge
+  definition: A 401 or 407 response that asks the UAC for credentials.
+- term: credentials
+  definition: The Authorization or Proxy-Authorization header that answers a challenge.
+- term: realm
+  definition: The name of the protection domain. It tells the UAC which username and password to use.
+- term: nonce
+  definition: A one-time value from the server. It stops an attacker from reusing an old response.
+- term: cnonce
+  definition: A one-time value from the client, used when qop is present.
+- term: nonce count
+  aliases: [nc]
+  definition: The number of requests sent with the same nonce, as 8 hexadecimal digits.
+- term: qop
+  aliases: [quality of protection]
+  definition: The protection level. "auth" protects the request method and URI.
+- term: HA1
+  definition: The hash of username, realm, and password.
+- term: HA2
+  definition: The hash of the request method and the digest URI.
+- term: digest response
+  aliases: [response]
+  definition: The final hash that proves the UAC knows the password.
+
+# --- Timers ----------------------------------------------------------------
+- term: Timer G
+  definition: The timer for retransmitting a final INVITE response over UDP until an ACK arrives.
+- term: Timer H
+  definition: The limit, 64×T1 (32 seconds), for receiving an ACK for a final INVITE response.
+- term: T1
+  definition: The round-trip time estimate. The default is 500 ms.
+
+# --- Media -----------------------------------------------------------------
+- term: RTP
+  definition: The protocol that carries audio and video.
+- term: RTCP
+  definition: The control protocol that reports RTP quality.
+- term: SDP
+  definition: The body format that describes media sessions.

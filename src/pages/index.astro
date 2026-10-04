@@ -1,0 +1,115 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import HeroLadder from '../diagrams/HeroLadder.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+import { LEVEL_LABEL, OUTLINE, pad2 } from '../lib/outline.ts';
+import { url } from '../lib/url.ts';
+
+const live = new Map((await getCollection('modules')).map(m => [m.data.module, m.id]));
+const [hero] = await flowBundle('invite-407');
+const heroFlow = { ...hero!.flow, steps: hero!.flow.steps.slice(0, 14) };
+const total = OUTLINE.reduce((n, p) => n + p.modules.length, 0);
+---
+<Base title="SIP Mastery" description="A free, interactive course on the Session Initiation Protocol: messages, transactions, dialogs, authentication, SDP, RTP, NAT, and real call flows.">
+  <main id="content" class="home">
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">A free, open course · <b>{total} modules</b></p>
+        <h1>Learn SIP by <em>watching it work</em></h1>
+        <p class="lede">From the first REGISTER to one-way audio behind NAT. Every concept is an interactive call flow you can step through, message by message, with the RFC sentence that defines it.</p>
+        <div class="hero-cta">
+          {live.has(13) && <a class="btn primary" href={url(`modules/${live.get(13)}/`)}>Start with the preview module →</a>}
+          <a class="btn" href="#map">See the course map</a>
+        </div>
+        <ul class="legend hero-legend" aria-label="Colour key">
+          <li><i class="lg-sip" />SIP</li><li><i class="lg-sdp" />SDP</li><li><i class="lg-rtp" />RTP media</li>
+          <li><i class="lg-rtcp" />RTCP</li><li><i class="lg-dns" />DNS / ICE</li><li><i class="lg-err" />Error</li>
+        </ul>
+      </div>
+      <div class="hero-ladder" aria-hidden="true">
+        <HeroLadder client:idle flow={heroFlow} />
+      </div>
+    </section>
+
+    <section class="paths">
+      <div class="path">
+        <p class="eyebrow">Path · Support and NOC</p>
+        <h2>Read a trace. <em>Find the fault.</em></h2>
+        <p>Header meanings, call flows, response codes, NAT, and media faults. Every common mistake is a diagram you can switch between broken and fixed.</p>
+      </div>
+      <div class="path">
+        <p class="eyebrow">Path · Developers</p>
+        <h2>Build SIP that <em>follows the RFC.</em></h2>
+        <p>Transaction and dialog state machines, matching rules, timers, and message construction, with the exact RFC text for every rule.</p>
+      </div>
+    </section>
+
+    <section class="map" id="map">
+      <h2>Course map</h2>
+      <p class="lede">Twelve parts, from basics to advanced. The preview module is live; the others follow.</p>
+      <div class="parts">
+        {OUTLINE.map(part => (
+          <section class="part-card">
+            <p class="eyebrow">Part {part.n}</p>
+            <h3>{part.title}</h3>
+            <ol>
+              {part.modules.map(m => (
+                <li class={live.has(m.n) ? 'is-live' : ''}>
+                  {live.has(m.n)
+                    ? <a href={url(`modules/${live.get(m.n)}/`)}><span class="mnum">{pad2(m.n)}</span><span class="mt">{m.title}</span><span class="lvl">{m.levels.map(l => LEVEL_LABEL[l]).join(' → ')}</span></a>
+                    : <span class="row"><span class="mnum">{pad2(m.n)}</span><span class="mt">{m.title}</span><span class="lvl">soon</span></span>}
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
+      </div>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .home { max-width: 1400px; margin: 0 auto; padding: 0 var(--gutter) 120px; }
+  .hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 48px; align-items: center; min-height: calc(100vh - 64px); padding: 48px 0; position: relative; }
+  .hero::before { content: ''; position: absolute; inset: 0 -20vw; z-index: -1; background: radial-gradient(900px 600px at 78% 45%, rgba(255,176,0,.07), transparent 60%); }
+  .hero h1 { margin-top: 18px; font-size: clamp(44px, 6.4vw, 96px); line-height: .96; }
+  .hero .lede { margin-top: 24px; }
+  .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+  .btn { display: inline-flex; align-items: center; height: 46px; padding: 0 20px; border: 1px solid var(--line); border-radius: 6px; color: var(--text); text-decoration: none; font-weight: 600; }
+  .btn:hover { border-color: var(--dim); }
+  .btn.primary { background: var(--sip); border-color: var(--sip); color: var(--bg); }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .hero-legend { margin-top: 36px; }
+  .hero-ladder { background: var(--bg-deep); border: 1px solid var(--line); border-radius: 12px; padding: 22px 18px; }
+  .hero-ladder :global(.step) { cursor: default; }
+  .hero-ladder :global(svg.ladder) { min-width: 0; }
+
+  .paths { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+  .path { padding: 28px 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .path h2 { margin-top: 10px; font-size: clamp(26px, 2.6vw, 34px); }
+  .path p:last-child { margin-top: 12px; color: var(--dim); }
+
+  .map { margin-top: 110px; }
+  .map .lede { margin-top: 12px; }
+  .parts { margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+  .part-card { padding: 20px 20px 14px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--bg); }
+  .part-card h3 { margin-top: 6px; font-size: 20px; }
+  .part-card ol { list-style: none; margin-top: 12px; }
+  .part-card li a, .part-card li .row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 7px 8px; margin: 0 -8px; border-radius: 5px; text-decoration: none; font-size: 15px; }
+  .part-card li .row { color: #6b727c; }
+  .part-card li a { color: var(--text); }
+  .part-card li a:hover { background: var(--panel-2); }
+  .part-card li.is-live a { box-shadow: inset 2px 0 0 var(--sip); }
+  .mnum { font: 400 11.5px var(--mono); color: var(--muted); }
+  .is-live .mnum { color: var(--sip); }
+  .lvl { font: 400 10.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; padding-top: 40px; }
+    .paths { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .hero-ladder { overflow-x: auto; padding: 12px; }
+  }
+</style>

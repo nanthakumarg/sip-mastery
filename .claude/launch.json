@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sip-course",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "source ~/.nvm/nvm.sh >/dev/null && nvm use >/dev/null && npx astro dev --port 4321"],
+      "port": 4321
+    }
+  ]
+}

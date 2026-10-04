@@ -1,0 +1,42 @@
+{
+  "name": "sip-course",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SIP Mastery: an interactive, open course on the Session Initiation Protocol.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "vitest run",
+    "check:content": "node scripts/check-content.ts",
+    "verify:rfc": "node scripts/verify-rfc-quotes.ts",
+    "prebuild": "npm run check:content",
+    "verify": "npm run check:content && npm run verify:rfc && npm test"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^8.0.2",
+    "@astrojs/react": "^7.0.0",
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource/martian-mono": "^5.3.0",
+    "astro": "^7.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "spark-md5": "^3.0.2",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^24.19.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/spark-md5": "^3.0.5",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
+  }
+}

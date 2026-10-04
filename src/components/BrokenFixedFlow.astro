@@ -1,0 +1,12 @@
+---
+/** <BrokenFixedFlow broken="flow-id" fixed="flow-id" /> */
+import BrokenFixed from '../diagrams/BrokenFixed.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+
+interface Props { broken: string; fixed: string }
+const { broken, fixed } = Astro.props;
+const [b, f] = await flowBundle(broken, fixed);
+---
+<div class="wide">
+  <BrokenFixed client:visible broken={b!} fixed={f!} />
+</div>

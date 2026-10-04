@@ -1,0 +1,19 @@
+Course content licence
+======================
+
+The course text, call-flow data, and diagrams in src/content/ are licensed under
+the Creative Commons Attribution 4.0 International licence (CC BY 4.0).
+
+  Summary:   https://creativecommons.org/licenses/by/4.0/
+  Full text: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Copyright (c) 2026 SIP Mastery contributors
+
+Exceptions
+----------
+- RFC excerpts are quoted from IETF documents under the IETF Trust Legal
+  Provisions (BCP 78). Each excerpt names its RFC and section and links to the
+  original at rfc-editor.org. They are not covered by CC BY 4.0.
+- Fonts (Bricolage Grotesque, Martian Mono) are under the SIL Open Font License.
+
+Source code (everything outside src/content/) is under the MIT licence; see LICENSE.

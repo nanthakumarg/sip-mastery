@@ -1,0 +1,115 @@
+# Header reference for the message inspector.
+# `summary` is one or two short sentences in controlled English.
+# `rfc` and `section` build the "Read the RFC" link.
+
+headers:
+  Via:
+    summary: Records the path of the request. Responses follow the Via headers back, and the top branch identifies the transaction.
+    rfc: 3261
+    section: "20.42"
+    who: Each element that sends a request adds one. Each element removes its own from the response.
+  Max-Forwards:
+    summary: Limits the number of hops. Each proxy subtracts 1. At 0 the request is rejected with 483.
+    rfc: 3261
+    section: "20.22"
+    who: The UAC sets 70. Each proxy decrements it.
+  Route:
+    summary: Forces the request through the listed proxies, in order. Each proxy removes its own entry.
+    rfc: 3261
+    section: "20.34"
+    who: The UAC adds it (outbound proxy or route set). Each listed proxy removes its own entry.
+  Record-Route:
+    summary: A proxy adds itself here to stay in the path of later requests in the dialog.
+    rfc: 3261
+    section: "20.30"
+    who: Each proxy that wants to stay in the path. The UAC reverses the list to build the route set.
+  From:
+    summary: The logical sender of the request. The From tag identifies the UAC side of the dialog.
+    rfc: 3261
+    section: "20.20"
+    who: The UAC. It never changes in the dialog.
+  To:
+    summary: The logical target of the request. The UAS adds a To tag in its responses.
+    rfc: 3261
+    section: "20.39"
+    who: The UAC sets the URI. The UAS adds the tag.
+  Call-ID:
+    summary: A unique ID for all messages of one call or one registration.
+    rfc: 3261
+    section: "20.8"
+    who: The UAC. A retry after a challenge keeps the same Call-ID.
+  CSeq:
+    summary: A sequence number and a method. It orders requests and matches responses to requests.
+    rfc: 3261
+    section: "20.16"
+    who: The UAC. A retry after a challenge adds 1. An ACK for a non-2xx response keeps the INVITE number.
+  Contact:
+    summary: The address where this user agent can be reached directly.
+    rfc: 3261
+    section: "20.10"
+    who: The UAC in requests, the UAS in responses. A registrar returns all active bindings.
+  Expires:
+    summary: How many seconds a registration or subscription stays valid.
+    rfc: 3261
+    section: "20.19"
+    who: The UAC requests a value. The registrar can return a shorter value.
+  WWW-Authenticate:
+    summary: The challenge in a 401. It gives the realm, a nonce, the qop, and the algorithm.
+    rfc: 3261
+    section: "20.44"
+    who: A registrar or UAS.
+  Authorization:
+    summary: The credentials that answer a 401. The response value proves the UAC knows the password.
+    rfc: 3261
+    section: "20.7"
+    who: The UAC, after a 401 or from a cached challenge.
+  Proxy-Authenticate:
+    summary: The challenge in a 407. It gives the realm, a nonce, the qop, and the algorithm.
+    rfc: 3261
+    section: "20.27"
+    who: A proxy.
+  Proxy-Authorization:
+    summary: The credentials that answer a 407. Only the proxy with the matching realm consumes them.
+    rfc: 3261
+    section: "20.28"
+    who: The UAC. Proxies never add it.
+  Content-Type:
+    summary: The type of the body, for example application/sdp.
+    rfc: 3261
+    section: "20.15"
+  Content-Length:
+    summary: The size of the body in bytes. The value is 0 when there is no body.
+    rfc: 3261
+    section: "20.14"
+  Date:
+    summary: The date and time the message was sent. Phones without a clock can set their time from a registrar's 200 OK.
+    rfc: 3261
+    section: "20.17"
+  User-Agent:
+    summary: The software of the UAC. Useful for troubleshooting.
+    rfc: 3261
+    section: "20.41"
+  Server:
+    summary: The software of the UAS.
+    rfc: 3261
+    section: "20.35"
+
+startLines:
+  request:
+    summary: The request line. It has the method, the Request-URI (the current target), and the SIP version.
+    rfc: 3261
+    section: "7.1"
+  response:
+    summary: The status line. It has the SIP version, the status code, and a reason phrase. Only the code matters to software.
+    rfc: 3261
+    section: "7.2"
+
+sdp:
+  v: { summary: SDP version. Always 0. }
+  o: { summary: "Origin: user, session ID, session version, network type, address type, and address. The version goes up with each new offer." }
+  s: { summary: Session name. Often "-". }
+  c: { summary: Connection data. The IP address that receives the media. }
+  t: { summary: Timing. "0 0" means the session has no fixed start or end. }
+  m: { summary: "Media description: media type, port, profile, and payload types in order of preference." }
+  a: { summary: An attribute, such as a codec mapping (rtpmap) or a direction (sendrecv). }
+  b: { summary: Bandwidth information. }

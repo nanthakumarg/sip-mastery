@@ -1,0 +1,255 @@
+---
+module: 13
+title: Digest authentication
+part: 4
+level: [intermediate, advanced]
+paths: { noc: core, dev: core }
+summary: How SIP proves who you are without sending the password. Follow a 401 challenge on REGISTER and a 407 challenge on INVITE, message by message.
+objectives:
+  - Explain why the password never travels in SIP digest authentication.
+  - Tell a 401 challenge from a 407 challenge, and name the headers each one uses.
+  - Follow the REGISTER and INVITE challenge flows and predict every CSeq, branch, and tag.
+  - Calculate HA1, HA2, and the digest response by hand.
+  - Find the five most common authentication mistakes in a trace.
+status: draft
+---
+
+## 13.1 Challenge and response
+
+A SIP server must know who sends a request before it accepts a registration or connects a call. SIP does not send the password to prove this. It uses **digest authentication**, the same method as HTTP.
+
+The idea is simple:
+
+1. The server sends a <Term t="challenge" />: a random value called a <Term t="nonce" />.
+2. The client mixes the nonce with the password and makes a hash.
+3. The client sends only the hash, called the <Term t="digest response" />.
+4. The server makes the same hash with its copy of the password. If the two hashes are equal, the client knows the password.
+
+An attacker who captures the request sees the hash, but cannot get the password back from it. The nonce changes, so an old hash does not work again.
+
+<Stats>
+  <Stat value="401" label="challenge from a registrar or UAS" />
+  <Stat value="407" label="challenge from a proxy" />
+  <Stat value="0" label="passwords sent on the wire" />
+  <Stat value="+1" label="CSeq on every retry with credentials" />
+</Stats>
+
+## 13.2 Two challenges: 401 and 407
+
+SIP has two challenge responses. They work the same way, but they use different headers. A trace with the wrong pair is a common source of failures.
+
+| | **401 Unauthorized** | **407 Proxy Authentication Required** |
+|---|---|---|
+| Who sends it | A registrar or a UAS | A proxy |
+| Challenge header | `WWW-Authenticate` | `Proxy-Authenticate` |
+| Credentials header | `Authorization` | `Proxy-Authorization` |
+| Typical request | REGISTER | INVITE, and other requests through a proxy |
+| RFC 3261 section | §22.2 | §22.3 |
+
+<RfcQuote id="rfc3261-22.2-challenge-401" />
+
+<RfcQuote id="rfc3261-22.3-challenge-407" />
+
+<Note kind="tip">
+A server that works as a proxy for calls usually sends 407 to an INVITE and 401 to a REGISTER. A B2BUA, such as many PBXs, often sends 401 to both, because it is the UAS for the call. Both are correct. The pair of headers must match the code.
+</Note>
+
+## 13.3 The parameters
+
+A challenge and its credentials carry these parameters. The calculator in 13.6 uses all of them.
+
+| Parameter | In | Meaning |
+|---|---|---|
+| `realm` | challenge, credentials | The protection domain. It tells the UAC which username and password to use. |
+| `nonce` | challenge, credentials | A one-time value from the server. The UAC copies it back. |
+| `qop` | challenge, credentials | Quality of protection. Use `auth`. When the challenge has `qop`, the credentials must have it too. |
+| `algorithm` | challenge, credentials | `MD5` (default), or `SHA-256` and `SHA-512-256` from RFC 8760. |
+| `opaque` | challenge, credentials | Optional server data. The UAC copies it back unchanged. |
+| `stale` | challenge | `true` means the nonce is old but the password was correct. The UAC retries without asking the user. |
+| `username` | credentials | The authentication username. It is not always the user part of From. |
+| `uri` | credentials | The digest URI: the Request-URI of the request. It must be in quotation marks. |
+| `response` | credentials | The digest response: the final hash. |
+| `nc`, `cnonce` | credentials | The nonce count and a client nonce. Both are needed when `qop` is present. |
+
+<RfcQuote id="rfc3261-22.4-qop" />
+
+## 13.4 The REGISTER challenge
+
+Alice turns on her phone. The phone sends REGISTER to the Registrar for `atlanta.example`. Step through the flow, then select a line in the inspector to see what it means. The inspector also marks every line that changed since the previous message of the same kind.
+
+<Flow id="register-401" eyebrow="Call flow · REGISTER with 401" />
+
+Look at F3 and compare it with F1:
+
+- **CSeq** goes from `1 REGISTER` to `2 REGISTER`. The retry is a new request.
+- The Via **branch** is new. The retry is a new transaction.
+- **Call-ID** and the **From tag** do not change. The Registrar can link the two requests.
+- The **Authorization** header is new. It is the only proof of identity.
+
+<RfcQuote id="rfc3261-22.2-cseq-increment" />
+
+## 13.5 The INVITE challenge, step by step
+
+Now Alice calls Bob. Proxy A, the outbound proxy for `atlanta.example`, wants to know who Alice is before it connects the call. This flow follows RFC 3665 §3.2, with two corrections that RFC 3261 requires (see the note after the flow).
+
+Scroll through the story. The ladder follows the text.
+
+<Scrolly flow="invite-407">
+  <Step n={1} tag="INVITE">
+    Alice sends an INVITE for `sip:bob@biloxi.example`. A pre-loaded **Route** header sends it to Proxy A first. It has no credentials yet.
+  </Step>
+  <Step n={2} tag="407">
+    Proxy A rejects the INVITE with **407 Proxy Authentication Required**. The **Proxy-Authenticate** header carries the realm `atlanta.example`, a fresh nonce, and `qop="auth"`.
+
+    A 407 is a final response. It ends the INVITE transaction on the Proxy A side, but only after an ACK arrives.
+  </Step>
+  <Step n={3} tag="ACK">
+    Alice sends **ACK** for the 407. This ACK belongs to the first INVITE transaction, so it reuses the INVITE **branch** and the CSeq number `1`. Only the method changes to `ACK`.
+  </Step>
+  <Step n={4} tag="INVITE + credentials">
+    Alice sends a **new INVITE** with **Proxy-Authorization**. Three things change: CSeq is now `2`, the branch is new, and the credentials are added. Call-ID and the From tag stay the same.
+  </Step>
+  <Step n={5} tag="100 Trying">
+    Proxy A checks the digest response and accepts it. The **100 Trying** tells Alice to stop retransmitting the INVITE. A 100 Trying never travels further than one hop.
+  </Step>
+  <Step n={6} tag="forward">
+    Proxy A forwards the INVITE to Proxy B. It adds its own **Via** and a **Record-Route**, decrements **Max-Forwards**, removes its own **Route** entry, and consumes the **Proxy-Authorization** for its realm.
+  </Step>
+  <Step n={8} tag="Proxy B → Bob">
+    Proxy B finds Bob's Contact in its location service and forwards the INVITE there. The Request-URI is now Bob's Contact address. Now there are three Via headers, one for each hop.
+  </Step>
+  <Step n={9} tag="180 Ringing">
+    Bob's phone rings. The **180 Ringing** adds a **To tag**, which creates an early dialog. Each proxy removes its own Via on the way back.
+  </Step>
+  <Step n={12} tag="200 OK">
+    Bob answers. The **200 OK** carries Bob's SDP answer and confirms the dialog. Both Record-Route headers travel back to Alice.
+  </Step>
+  <Step n={15} tag="ACK for 2xx">
+    Alice sends **ACK** for the 200 OK. This ACK is a **new transaction** with a new branch. It follows the route set, and it **copies the Proxy-Authorization** from the INVITE.
+  </Step>
+  <Step n={18} tag="media">
+    The call is up. RTP audio flows directly between Alice and Bob. Proxy A and Proxy B see only the signaling.
+  </Step>
+</Scrolly>
+
+### Explore every message
+
+The same flow, with the full inspector. Use ← and → on your keyboard, or select any arrow.
+
+<Flow id="invite-407" eyebrow="Call flow · INVITE with 407 through two proxies" />
+
+<Note title="Corrections to RFC 3665 §3.2">
+RFC 3665 is an informational collection of examples, and some of its messages have errors. This course follows the normative text of RFC 3261:
+
+- **F2** has the reason phrase "Proxy Authentication Required" (RFC 3665 writes "Proxy Authorization Required"). Only the code matters to software, but traces should be correct.
+- **F4** sends `qop=auth`, `nc`, and `cnonce`, because the challenge has `qop` (RFC 3261 §22.4).
+- **F15** copies the Proxy-Authorization header from the INVITE (RFC 3261 §22.1).
+- **F16** and **F17** use new branch values. An ACK for a 2xx is a new transaction at each hop.
+</Note>
+
+<RfcQuote id="rfc3261-22.1-ack-credentials" />
+
+## 13.6 The calculation
+
+The digest response is three hashes. For MD5 with `qop=auth`:
+
+```
+HA1      = MD5( username : realm : password )
+HA2      = MD5( method : digest-uri )
+response = MD5( HA1 : nonce : nc : cnonce : qop : HA2 )
+```
+
+The calculator starts with the values from F4 of the INVITE flow. Change any value and watch the response change. Point at a field to see where it is used.
+
+<Digest flow="invite-407" step={4} />
+
+Things to try:
+
+- Change the **method** to `ACK`. The response changes. An ACK copies the INVITE credentials unchanged, so its response was calculated with `INVITE`, not `ACK`. RFC 3261 tells the server to accept it anyway.
+- Change one letter of the **password**. Every hash after HA1 changes completely.
+- Switch the **algorithm** to SHA-256. The response is longer: 64 hexadecimal digits.
+
+<Note>
+A server does not need the plain password. It can store HA1, because HA1 is all it needs to check the response. HA1 is still a secret: anyone with HA1 can authenticate in that realm.
+</Note>
+
+## 13.7 Nonces, nonce count, and stale
+
+- The server chooses a new **nonce** for each challenge. Many servers put a timestamp in it, so they can reject old nonces.
+- The client can reuse a nonce for more requests. Each time, it increments **nc** (`00000001`, `00000002`, …). A server that remembers the last nc can detect a replayed request.
+- When a nonce is too old, the server sends a new challenge with `stale=true`. This means "the password was correct, the nonce was not". The client retries at once and does not ask the user for the password again.
+
+## 13.8 Algorithms: MD5, SHA-256, SHA-512-256
+
+RFC 3261 uses MD5 only. RFC 8760 adds **SHA-256** and **SHA-512-256** for SIP. A server can offer more than one algorithm by sending more than one challenge header for the same realm. It puts them in order of preference.
+
+<RfcQuote id="rfc8760-2.3-order" />
+
+<RfcQuote id="rfc8760-2.4-topmost" />
+
+Many devices still support only MD5. If a server offers only SHA-256 and the phone supports only MD5, the phone cannot answer the challenge, and registration fails.
+
+## 13.9 More than one challenge
+
+A request can pass through more than one proxy that wants credentials. Proxy A can accept Alice's credentials, and then Proxy B can challenge too. Proxy A forwards that 407 to Alice. Alice retries with two Proxy-Authorization headers, one for each realm. Each proxy uses only the credentials with its own realm.
+
+<RfcQuote id="rfc3261-22.3-consume-realm" />
+
+<RfcQuote id="rfc3261-22.3-uac-adds" />
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="No ACK for the 407">
+    The UAC sends the new INVITE but never ACKs the 407. The 407 is a final response to an INVITE, so it needs an ACK, like any other final response. Over UDP, Proxy A retransmits the 407 until Timer H gives up after 32 seconds.
+
+    <BrokenFixedFlow broken="invite-407-no-ack" fixed="invite-407-ack" />
+
+    <p class="fix"><b>Fix:</b> ACK every final response to an INVITE, including 401, 407, 486, and 487.</p>
+  </Mistake>
+
+  <Mistake title="ACK for the 407 with a new branch">
+    The UAC sends the ACK, but with a new branch value. The proxy matches requests to transactions by the branch, so it cannot match this ACK to the INVITE. It keeps retransmitting the 407.
+
+    <BrokenFixedFlow broken="invite-407-ack-new-branch" fixed="invite-407-ack" />
+
+    <p class="fix"><b>Fix:</b> An ACK for a non-2xx response uses the branch and CSeq number of the INVITE. Only an ACK for a 2xx gets a new branch.</p>
+    <RfcQuote id="rfc3261-17.1.1.3-ack-via" />
+  </Mistake>
+
+  <Mistake title="The retry keeps the same CSeq">
+    The UAC adds credentials but sends CSeq `1` again. This breaks a MUST in RFC 3261 §22.2. What happens next depends on the server: some accept the request, some reject it. A failure that depends on the server is hard to find.
+
+    <p class="fix"><b>Fix:</b> A retry with credentials is a new request. Increment CSeq by one, and keep Call-ID and the From tag.</p>
+  </Mistake>
+
+  <Mistake title="The wrong username or realm">
+    Many SIP trunks use an authentication username that is not the user part of the From URI. A phone that uses the From user as the digest username calculates the wrong HA1. The server answers every retry with a new 401 or 407: an authentication loop.
+
+    <p class="fix"><b>Fix:</b> Configure the authentication username and the realm separately. In a trace, compare the `username` and `realm` in the credentials with the values the provider gave you.</p>
+  </Mistake>
+
+  <Mistake title="The digest URI is not the Request-URI">
+    HA2 uses the `uri` parameter. Some clients put the To URI or the AOR in `uri`, but send the request to another Request-URI. Many servers check that the two match, and RFC 3261 allows that check.
+
+    <RfcQuote id="rfc3261-22.4-uri-check" />
+
+    <p class="fix"><b>Fix:</b> Put the Request-URI, exactly as sent, in `uri`, and use the same value in HA2.</p>
+  </Mistake>
+
+  <Mistake title="Challenging ACK or CANCEL">
+    A server sends 401 or 407 to an ACK or a CANCEL. ACK has no response, and a CANCEL cannot be sent again, so the UAC cannot answer the challenge. The call cannot end cleanly.
+
+    <RfcQuote id="rfc3261-22.1-cancel" />
+
+    <p class="fix"><b>Fix:</b> Never challenge ACK or CANCEL. Accept an ACK with the credentials of its INVITE, and accept a CANCEL from the hop that sent the INVITE.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- Digest authentication proves that the UAC knows the password. The password is never sent.
+- **401** + `WWW-Authenticate` / `Authorization` comes from a registrar or UAS. **407** + `Proxy-Authenticate` / `Proxy-Authorization` comes from a proxy.
+- After a challenge, the UAC sends a new request: **CSeq + 1**, a **new branch**, the **same Call-ID and From tag**, and the credentials.
+- Every final response to an INVITE needs an **ACK**. The ACK for a 401 or 407 reuses the INVITE branch.
+- response = H(HA1 : nonce : nc : cnonce : qop : HA2), with HA1 = H(username : realm : password) and HA2 = H(method : uri).

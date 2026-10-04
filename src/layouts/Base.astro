@@ -1,0 +1,60 @@
+---
+import '@fontsource-variable/bricolage-grotesque/opsz.css';
+import '@fontsource/martian-mono/400.css';
+import '@fontsource/martian-mono/500.css';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/site.css';
+import '../styles/diagram.css';
+import BrandMark from '../components/BrandMark.astro';
+import { url } from '../lib/url.ts';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Show the course sidebar toggle in the header */
+  withSidebar?: boolean;
+}
+const { title, description, withSidebar = false } = Astro.props;
+const pageTitle = title === 'SIP Mastery' ? title : `${title} · SIP Mastery`;
+const path = Astro.url.pathname;
+const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0E1013" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
+    <link rel="canonical" href={new URL(path, Astro.site)} />
+  </head>
+  <body>
+    <a class="sr-only" href="#content">Skip to content</a>
+    <header class="site-head">
+      <a class="brand" href={url()}><BrandMark />SIP <em>Mastery</em></a>
+      <nav class="site-nav" aria-label="Site">
+        <a href={url()} aria-current={path === url() || path === url().replace(/\/$/, '') ? 'page' : undefined}>Course map</a>
+        {repoUrl && <a href={repoUrl} rel="noopener">Source</a>}
+      </nav>
+      {withSidebar && <button class="menu-btn" type="button" aria-expanded="false" aria-controls="sidebar" id="menu-btn">Modules</button>}
+    </header>
+    <slot />
+    <footer class="site-foot">
+      <p>SIP Mastery is free and open source. Course text and diagrams: <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener">CC BY 4.0</a>. Code: MIT.</p>
+      <p>RFC excerpts are quoted from IETF documents under the IETF Trust Legal Provisions, with links to <a href="https://www.rfc-editor.org/" rel="noopener">rfc-editor.org</a>.</p>
+    </footer>
+    <script>
+      const btn = document.getElementById('menu-btn');
+      btn?.addEventListener('click', () => {
+        const open = document.body.classList.toggle('nav-open');
+        btn.setAttribute('aria-expanded', String(open));
+      });
+    </script>
+  </body>
+</html>

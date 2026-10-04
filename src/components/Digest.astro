@@ -1,0 +1,27 @@
+---
+/**
+ * <Digest flow="invite-407" step={4} /> : digest calculator pre-filled from the
+ * credentials in one step of a flow, and checked against that step's response.
+ */
+import DigestCalculator from '../diagrams/DigestCalculator.tsx';
+import { loadFlow, loadFlowData } from '../lib/data.ts';
+import { getHeader, parseAuthParams } from '../sip/parse.ts';
+import type { DigestInput } from '../sip/digest.ts';
+
+interface Props { flow: string; step: number }
+const { flow: id, step: n } = Astro.props;
+const flow = await loadFlow(id);
+const s = flow.steps[n - 1];
+const header = s?.parsed && (getHeader(s.parsed, 'Proxy-Authorization') ? 'Proxy-Authorization' : 'Authorization');
+if (!s?.parsed || !header) throw new Error(`<Digest flow="${id}" step={${n}}>: that step has no credentials`);
+const p = parseAuthParams(getHeader(s.parsed, header));
+const initial: DigestInput = {
+  algorithm: (p.algorithm?.toUpperCase() === 'SHA-256' ? 'SHA-256' : 'MD5'),
+  username: p.username ?? '', realm: p.realm ?? '', password: loadFlowData(id).credentials?.password ?? '',
+  method: s.parsed.method ?? '', uri: p.uri ?? '', nonce: p.nonce ?? '',
+  qop: p.qop === 'auth' ? 'auth' : '', nc: p.nc ?? '', cnonce: p.cnonce ?? '',
+};
+---
+<div class="wide">
+  <DigestCalculator client:visible initial={initial} header={header} expected={{ response: p.response ?? '', label: `F${n} in the call flow` }} />
+</div>

@@ -1,0 +1,12 @@
+---
+/** <Flow id="invite-407" /> : full interactive stage (ladder + inspector + player). */
+import FlowStage from '../diagrams/FlowStage.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+
+interface Props { id: string; eyebrow?: string }
+const { id, eyebrow } = Astro.props;
+const [bundle] = await flowBundle(id);
+---
+<div class="wide">
+  <FlowStage client:visible {...bundle!} eyebrow={eyebrow} />
+</div>

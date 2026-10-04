@@ -1,0 +1,72 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import Flow from '../../components/Flow.astro';
+import BrokenFixedFlow from '../../components/BrokenFixedFlow.astro';
+import Scrolly from '../../components/Scrolly.astro';
+import Step from '../../components/Step.astro';
+import RfcQuote from '../../components/RfcQuote.astro';
+import Note from '../../components/Note.astro';
+import Mistakes from '../../components/Mistakes.astro';
+import Mistake from '../../components/Mistake.astro';
+import Term from '../../components/Term.astro';
+import Stats from '../../components/Stats.astro';
+import Stat from '../../components/Stat.astro';
+import Digest from '../../components/Digest.astro';
+import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
+import { url } from '../../lib/url.ts';
+
+export async function getStaticPaths() {
+  const modules = await getCollection('modules');
+  return modules.map(entry => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+const part = OUTLINE.find(p => p.n === d.part)!;
+
+// Previous / next live modules
+const all = (await getCollection('modules')).sort((a, b) => a.data.module - b.data.module);
+const i = all.findIndex(m => m.id === entry.id);
+const prev = all[i - 1];
+const next = all[i + 1];
+const flat = OUTLINE.flatMap(p => p.modules);
+const nextPlanned = flat.find(m => m.n === d.module + 1);
+
+const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mistakes, Mistake, Term, Stats, Stat, Digest };
+---
+<Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
+  <div class="shell">
+    <Sidebar current={d.module} />
+    <main class="main" id="content">
+      <header class="mod-head">
+        <p class="crumbs">Part {part.n} · {part.title} / <b>Module {pad2(d.module)}</b></p>
+        <h1>{d.title}</h1>
+        <p class="lede">{d.summary}</p>
+        <div class="badges">
+          {d.level.map(l => <span class="badge">{LEVEL_LABEL[l]}</span>)}
+          <span class={`badge ${d.paths.noc}`}>NOC {d.paths.noc}</span>
+          <span class={`badge ${d.paths.dev}`}>DEV {d.paths.dev}</span>
+          {d.status !== 'published' && <span class="badge draft">{d.status}</span>}
+        </div>
+        <section class="objectives" aria-label="Objectives">
+          <p class="eyebrow">After this module, you can</p>
+          <ul>{d.objectives.map(o => <li>{o}</li>)}</ul>
+        </section>
+      </header>
+
+      <article class="prose">
+        <Content components={components} />
+      </article>
+
+      <nav class="mod-foot" aria-label="Module navigation">
+        {prev && <a href={url(`modules/${prev.id}/`)}><small>← Module {pad2(prev.data.module)}</small><span>{prev.data.title}</span></a>}
+        {next
+          ? <a class="next" href={url(`modules/${next.id}/`)}><small>Module {pad2(next.data.module)} →</small><span>{next.data.title}</span></a>
+          : nextPlanned && <a class="next soon" aria-disabled="true"><small>Module {pad2(nextPlanned.n)} · coming soon</small><span>{nextPlanned.title}</span></a>}
+      </nav>
+    </main>
+  </div>
+</Base>

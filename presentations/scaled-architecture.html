@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Scaled Signal Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Martian+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout concept: a signalling console. One live topology (SVG) with a player under it
+   and an inspector beside it; colour always names the protocol on the wire.
+   The page commits to one dark look on purpose. */
+:root {
+  color-scheme: dark;
+  --bg: #0E1013;
+  --bg-deep: #090a0c;
+  --panel: #15181d;
+  --panel-2: #1b1f26;
+  --line: #2a3039;
+  --line-2: #20252c;
+  --text: #ECE7DC;
+  --dim: #BEB8AC;
+  --muted: #858d98;
+  --sip: #FFB000;
+  --ctl: #7BD88F;
+  --grpc: #FF6B5A;
+  --rtp: #3FD0C9;
+  --sql: #7FA6FF;
+  --http: #E3D6B8;
+  --down: #FF4F6A;
+  --display: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', sans-serif;
+  --mono: 'Martian Mono', 'SF Mono', Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg-deep); }
+body { background: var(--bg); color: var(--text); font-family: var(--display); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+.wrap { max-width: 1600px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 40px); padding-block: 28px 64px; }
+a { color: var(--sip); }
+code, .mono { font-family: var(--mono); font-size: .86em; color: var(--text); letter-spacing: -.01em; }
+:focus-visible { outline: 2px solid var(--sip); outline-offset: 2px; }
+button { font: inherit; color: inherit; }
+
+/* ---------- Header ---------- */
+.eyebrow { font: 400 13px/1.4 var(--mono); color: var(--muted); letter-spacing: .04em; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.eyebrow b { color: var(--sip); font-weight: 500; }
+h1 { margin-top: 14px; font: 800 clamp(30px, 4.2vw, 60px)/1.02 var(--display); letter-spacing: -.03em; text-wrap: balance; max-width: 1200px; }
+h1 em { font-style: normal; color: var(--sip); }
+.lede { margin-top: 14px; max-width: 72ch; color: var(--dim); font-size: clamp(16px, 1.4vw, 19px); }
+.legend { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px 22px; font: 400 12.5px/1 var(--mono); color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 9px; }
+.legend i { display: inline-block; width: 26px; height: 3px; background: var(--c); }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--c) 0 6px, transparent 6px 10px); }
+
+/* ---------- Toolbar ---------- */
+.toolbar { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-start; }
+.tgroup { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tlabel { font: 500 11.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { cursor: pointer; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 7px 11px; font: 400 13.5px/1.2 var(--display); color: var(--dim); transition: border-color .15s, color .15s, background .15s; }
+.chip:hover { color: var(--text); border-color: #3a414c; }
+.chip[aria-pressed="true"] { color: var(--bg); background: var(--sip); border-color: var(--sip); font-weight: 600; }
+.chip.fail[aria-pressed="true"] { background: var(--down); border-color: var(--down); }
+.chip .k { font: 500 11px var(--mono); opacity: .7; margin-right: 6px; }
+.chip:disabled { opacity: .35; cursor: not-allowed; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { background: var(--panel); border: 0; padding: 7px 14px; cursor: pointer; color: var(--dim); font-size: 13.5px; }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); font-weight: 600; }
+
+/* ---------- Main grid ---------- */
+.main { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.stagebox { background: var(--bg-deep); border: 1px solid var(--line); border-radius: 8px; padding: 10px; position: relative; min-width: 0; overflow-x: auto; }
+.stagebox::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 8px; background: repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 4px); }
+svg#stage { display: block; width: 100%; height: auto; }
+svg#stage text { font-family: var(--mono); }
+
+/* SVG elements */
+.grp rect { fill: var(--panel); fill-opacity: .35; stroke: var(--line); stroke-width: 1.4; stroke-dasharray: 6 6; }
+.grp text { font-size: 13.5px; fill: var(--muted); }
+.node { cursor: pointer; }
+.node .box { fill: var(--panel-2); stroke: var(--line); stroke-width: 1.6; transition: stroke .2s, opacity .2s; }
+.node .t { font-family: var(--display) !important; font-weight: 700; font-size: 19px; fill: var(--text); }
+.node .s { font-family: var(--display) !important; font-size: 14.5px; fill: var(--dim); opacity: .8; }
+.node:hover .box, .node.sel .box { stroke: var(--text); }
+.node:focus-visible { outline: none; }
+.node:focus-visible .box { stroke: var(--sip); stroke-width: 3; }
+.node.k-sip .box { stroke: rgba(255,176,0,.6); } .node.k-ctl .box { stroke: rgba(123,216,143,.6); }
+.node.k-grpc .box { stroke: rgba(255,107,90,.6); } .node.k-rtp .box { stroke: rgba(63,208,201,.6); } .node.k-sql .box { stroke: rgba(127,166,255,.6); }
+.node .badge { font-size: 11px; font-weight: 500; letter-spacing: .06em; }
+.node .badge-bg { rx: 3; }
+.node.is-down .box { stroke: var(--down); stroke-width: 2.5; fill: url(#hatch-down); }
+.node.is-down .t, .node.is-down .s { opacity: .55; }
+.node.is-inactive .box { stroke: var(--sip); stroke-width: 2.5; stroke-dasharray: 5 4; }
+.node.hot .box { stroke: var(--text); stroke-width: 2.4; }
+.link .w { fill: none; stroke-width: 2.2; transition: opacity .2s, stroke-width .2s; }
+.link .hit { fill: none; stroke: transparent; stroke-width: 14; cursor: pointer; }
+.link.p-sip .w { stroke: var(--sip); } .link.p-ctl .w { stroke: var(--ctl); } .link.p-grpc .w { stroke: var(--grpc); }
+.link.p-rtp .w { stroke: var(--rtp); stroke-dasharray: 7 6; } .link.p-sql .w { stroke: var(--sql); } .link.p-http .w { stroke: var(--http); }
+.link.dashed .w { stroke-dasharray: 3 5; }
+.link .lt { font-size: 13px; fill: var(--muted); paint-order: stroke; stroke: var(--bg-deep); stroke-width: 5px; pointer-events: none; }
+.link:hover .w, .link.sel .w { stroke-width: 4; }
+.link:focus-visible { outline: none; }
+.link:focus-visible .w { stroke-width: 5; }
+.link.is-cut .w { stroke: var(--down) !important; stroke-dasharray: 2 6; opacity: .7; }
+svg.playing .link .w { opacity: .22; }
+svg.playing .link.hot .w { opacity: 1; stroke-width: 3.4; }
+svg.playing .node { opacity: .55; }
+svg.playing .node.hot, svg.playing .node.is-down, svg.playing .node.is-inactive { opacity: 1; }
+.mode-small .scaled-only { opacity: .07; pointer-events: none; }
+.small-only { display: none; }
+.mode-small .small-only { display: inline; }
+.trail { fill: none; stroke-width: 3.6; stroke-linecap: round; pointer-events: none; }
+.packet { pointer-events: none; }
+.packet-label { font-size: 14px; font-weight: 500; pointer-events: none; }
+.pill { fill: #050607; stroke-width: 1.2; pointer-events: none; }
+.pulse { fill: none; stroke-width: 3; pointer-events: none; }
+.lost { font-size: 22px; font-weight: 500; fill: var(--down); pointer-events: none; }
+
+/* ---------- Player ---------- */
+.player { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.ctl { cursor: pointer; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; height: 38px; min-width: 42px; padding: 0 12px; font: 500 13px var(--mono); color: var(--text); }
+.ctl:hover { border-color: #3d4450; }
+.ctl.primary { background: var(--sip); color: var(--bg); border-color: var(--sip); min-width: 96px; }
+.ctl:disabled { opacity: .35; cursor: not-allowed; }
+.speed { display: inline-flex; align-items: center; gap: 8px; font: 400 12.5px var(--mono); color: var(--muted); }
+.speed select { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; height: 38px; padding: 0 8px; font: 400 13px var(--mono); }
+.counter { font: 400 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.keys { font: 400 12px var(--mono); color: var(--muted); margin-left: auto; }
+.caption { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--c, var(--sip)); border-radius: 6px; padding: 14px 18px; min-height: 92px; }
+.caption .cm { font: 500 15px/1.3 var(--mono); color: var(--c, var(--sip)); }
+.caption .ct { margin-top: 6px; font-size: 17px; color: var(--text); max-width: 80ch; }
+.caption .cw { margin-top: 6px; font: 400 12px var(--mono); color: var(--muted); }
+.flowintro { font-size: 15px; color: var(--dim); max-width: 90ch; }
+.log { list-style: none; max-height: 330px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-deep); }
+.log li { display: grid; grid-template-columns: 38px minmax(0, 15em) minmax(0, 1fr); gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--line-2); cursor: pointer; align-items: baseline; }
+.log li:hover { background: var(--panel); }
+.log li.cur { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--c, var(--sip)); }
+.log li.done { opacity: .62; }
+.log .n { font: 400 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.log .m { font: 500 13px/1.35 var(--mono); color: var(--c, var(--sip)); overflow-wrap: anywhere; }
+.log .x { font-size: 15px; color: var(--dim); }
+.msg { border-bottom: 1px dotted currentColor; cursor: help; }
+
+/* ---------- Inspector ---------- */
+.inspector { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; position: sticky; top: calc(14px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 28px); overflow-y: auto; min-width: 0; }
+.inspector h2 { font: 800 24px/1.1 var(--display); letter-spacing: -.02em; }
+.inspector .kind { font: 500 11.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.inspector .kind i { width: 18px; height: 3px; background: var(--c, var(--muted)); display: inline-block; }
+.inspector h3 { margin-top: 18px; font: 500 11.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.inspector ul { list-style: none; margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.inspector li { position: relative; padding-left: 18px; font-size: 15px; color: var(--dim); }
+.inspector li::before { content: '—'; position: absolute; left: 0; color: var(--muted); }
+.kv { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+.kv td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line-2); vertical-align: top; color: var(--dim); }
+.kv td:first-child { color: var(--text); font-weight: 600; width: 42%; }
+.close { float: right; background: none; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); cursor: pointer; padding: 3px 8px; font: 400 12px var(--mono); }
+.hint { font-size: 15px; color: var(--dim); }
+.hint + .hint { margin-top: 10px; }
+
+/* ---------- Tooltip ---------- */
+.tip { position: fixed; z-index: 50; max-width: min(440px, calc(100vw - 24px)); background: #050607; border: 1px solid var(--line); border-top: 2px solid var(--c, var(--sip)); border-radius: 6px; padding: 12px 14px; pointer-events: none; opacity: 0; transition: opacity .12s; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.tip.on { opacity: 1; }
+.tip .tn { font: 500 13px var(--mono); color: var(--c, var(--sip)); }
+.tip .td { margin-top: 3px; font: 400 11.5px var(--mono); color: var(--muted); }
+.tip .tf { margin-top: 8px; font: 400 12.5px/1.6 var(--mono); color: var(--dim); white-space: pre-wrap; }
+
+/* ---------- Knowledge sections ---------- */
+section.k { margin-top: 56px; }
+section.k > h2 { font: 800 clamp(24px, 2.6vw, 36px)/1.1 var(--display); letter-spacing: -.02em; text-wrap: balance; }
+section.k > h2 .q { font: 500 14px var(--mono); color: var(--sip); display: block; letter-spacing: .06em; margin-bottom: 8px; }
+section.k > p { margin-top: 10px; color: var(--dim); max-width: 78ch; }
+.tablewrap { margin-top: 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 760px; }
+.tbl th { text-align: left; font: 500 11.5px var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.tbl td { padding: 11px 14px; border-bottom: 1px solid var(--line-2); vertical-align: top; color: var(--dim); }
+.tbl td:first-child { color: var(--text); font-weight: 600; }
+.tbl tr:last-child td { border-bottom: 0; }
+.pchip { display: inline-block; font: 500 11px/1 var(--mono); letter-spacing: .05em; padding: 4px 6px 3px; border: 1px solid currentColor; border-radius: 3px; white-space: nowrap; }
+.cols { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 18px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; min-width: 0; }
+.card h4 { font: 700 17px var(--display); }
+.card p, .card li { font-size: 15px; color: var(--dim); }
+.card p { margin-top: 6px; }
+ol.steps { list-style: none; counter-reset: s; margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px 22px; }
+ol.steps li { counter-increment: s; position: relative; padding-left: 44px; color: var(--dim); font-size: 15.5px; }
+ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%; font: 500 13px/28px var(--mono); text-align: center; color: var(--sip); }
+ol.steps b { color: var(--text); }
+dl.gloss { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 4px 28px; }
+dl.gloss div { padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+dl.gloss dt { font: 500 13.5px var(--mono); color: var(--text); }
+dl.gloss dd { margin-top: 3px; font-size: 15px; color: var(--dim); }
+footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font: 400 12.5px/1.7 var(--mono); color: var(--muted); }
+
+@media (max-width: 1180px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .inspector { position: static; max-height: none; }
+  .keys { display: none; }
+}
+@media (max-width: 640px) {
+  svg#stage { min-width: 860px; }
+  .log li { grid-template-columns: 30px minmax(0, 1fr); }
+  .log .x { grid-column: 2; }
+  .caption .ct { font-size: 15.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow"><span><b>●</b> kamailio-billing-project</span><span>scaled deployment</span><span>Phases 41–42</span></div>
+  <h1>Kamailio <em>executes</em>. The backend <em>decides</em>. The LB tier only <em>routes signalling</em>.</h1>
+  <p class="lede">This page shows every component of the scaled deployment and every link between them. Play a flow to see each message move. Break a component to see how the platform reacts. Click any box or line for its details.</p>
+  <div class="legend" aria-label="Protocol colours">
+    <span><i style="--c:var(--sip)"></i>SIP</span>
+    <span><i style="--c:var(--ctl)"></i>evapi · JSON-RPC · ng (local control)</span>
+    <span><i style="--c:var(--grpc)"></i>gRPC mTLS</span>
+    <span><i class="dash" style="--c:var(--rtp)"></i>RTP media</span>
+    <span><i style="--c:var(--sql)"></i>SQL · NOTIFY</span>
+    <span><i style="--c:var(--http)"></i>HTTPS</span>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="tgroup">
+    <span class="tlabel" id="lbl-mode">Deployment</span>
+    <div class="seg" role="group" aria-labelledby="lbl-mode">
+      <button type="button" id="mode-scaled" aria-pressed="true">Scaled</button>
+      <button type="button" id="mode-small" aria-pressed="false">Small</button>
+    </div>
+  </div>
+  <div class="tgroup">
+    <span class="tlabel" id="lbl-flow">Play a flow</span>
+    <div class="chips" id="flowChips" role="group" aria-labelledby="lbl-flow"></div>
+  </div>
+  <div class="tgroup">
+    <span class="tlabel" id="lbl-fail">Break a component</span>
+    <div class="chips" id="failChips" role="group" aria-labelledby="lbl-fail"></div>
+  </div>
+</div>
+
+<div class="main">
+  <div style="min-width:0">
+    <div class="stagebox">
+      <svg id="stage" viewBox="0 0 1500 830" role="img" aria-label="Topology of the scaled deployment">
+        <defs>
+          <pattern id="hatch-down" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="8" height="8" style="fill:var(--panel-2)"/>
+            <line x1="0" y1="0" x2="0" y2="8" style="stroke:rgba(255,79,106,.28);stroke-width:3"/>
+          </pattern>
+          <marker id="arr-sip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--sip)"/></marker><marker id="arr-ctl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--ctl)"/></marker><marker id="arr-grpc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--grpc)"/></marker><marker id="arr-rtp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--rtp)"/></marker><marker id="arr-sql" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--sql)"/></marker><marker id="arr-http" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--http)"/></marker><marker id="arr-mut" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--muted)"/></marker>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <g id="g-groups"></g>
+        <g id="g-links"></g>
+        <g id="g-nodes"></g>
+        <g id="g-fx"></g>
+      </svg>
+    </div>
+
+    <div class="player">
+      <div class="controls">
+        <button type="button" class="ctl" id="btnFirst" title="First step (Home)" aria-label="First step">⏮</button>
+        <button type="button" class="ctl" id="btnPrev" title="Step back (←)" aria-label="Step back">◀</button>
+        <button type="button" class="ctl primary" id="btnPlay" title="Play or pause (Space)">▶ Play</button>
+        <button type="button" class="ctl" id="btnNext" title="Step forward (→)" aria-label="Step forward">▶▏</button>
+        <label class="speed" for="speed">Speed
+          <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.6">1.6×</option><option value="2.5">2.5×</option></select>
+        </label>
+        <span class="counter" id="counter" aria-live="polite"></span>
+        <span class="keys">← → step · Space play · Esc close panel</span>
+      </div>
+      <p class="flowintro" id="flowIntro"></p>
+      <div class="caption" id="caption" aria-live="polite"></div>
+      <ol class="log" id="log" aria-label="Step log"></ol>
+    </div>
+  </div>
+
+  <aside class="inspector" id="inspector" aria-live="polite"></aside>
+</div>
+
+<!-- ======================= Q1 ======================= -->
+<section class="k" id="q1">
+  <h2><span class="q">Question 1</span>Who decides, and who only executes?</h2>
+  <p>The backend owns policy, credit and records. The core node runs SIP, dialogs and media control. The LB tier makes only routing choices: which core node gets a request, and nothing about the call itself.</p>
+  <div class="tablewrap"><table class="tbl" id="tbl-decide">
+    <thead><tr><th>Decision</th><th>Decided by</th><th>Executed by</th></tr></thead>
+    <tbody>
+      <tr><td>Accept a REGISTER</td><td>Backend: <span class="msg" data-k="VerifyDigest">VerifyDigest</span> checks the full digest</td><td>Kamailio saves the contact in MySQL and replies 200</td></tr>
+      <tr><td>Issue a nonce</td><td>Sidecar: an HMAC nonce, no backend call</td><td>Kamailio sends 401 or 407</td></tr>
+      <tr><td>Identify the caller</td><td>Backend: <span class="msg" data-k="IdentifyOrigin">IdentifyOrigin</span> or <span class="msg" data-k="VerifyDigest">VerifyDigest</span></td><td>Kamailio rewrites the R-URI user and checks "registered from the same IP" in MySQL</td></tr>
+      <tr><td>Where the call goes</td><td>Kamailio: a registered callee first (location lookup). Otherwise the backend: <span class="msg" data-k="GetRoutes">GetRoutes</span></td><td>Kamailio forks to contacts, or relays serial routes (rtjson) with failover</td></tr>
+      <tr><td>May the call run, and for how long</td><td>Backend: <span class="msg" data-k="Authorize">Authorize</span> and <span class="msg" data-k="Reauthorize">Reauthorize</span></td><td>The sidecar schedules re-authorization; the dialog timer ends the call at T</td></tr>
+      <tr><td>End a call now</td><td>Backend (DENIED, admin EndCall) or the allowance timer</td><td>Sidecar: <span class="msg" data-k="dlg.end_dlg">dlg.end_dlg</span>; Kamailio sends BYE to both parties</td></tr>
+      <tr><td>Record a call</td><td>Backend: the <code>record</code> flag in <span class="msg" data-k="call.setup">call.setup</span></td><td>RTPEngine writes the file</td></tr>
+      <tr><td>Which core node gets a request</td><td>LB node: dispatcher hash of the From URI, healthy core nodes only</td><td>LB node relays it</td></tr>
+      <tr><td>Which LB node carries egress</td><td>Core node: dispatcher set 2, round-robin over healthy LB nodes</td><td>LB node relays it to the gateway</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ======================= Q2 ======================= -->
+<section class="k" id="q2">
+  <h2><span class="q">Question 2</span>What crosses each link?</h2>
+  <p>Generated from the same data as the diagram. Click a row to select the link above.</p>
+  <div class="tablewrap"><table class="tbl" id="tbl-links">
+    <thead><tr><th>Link</th><th>Protocol</th><th>Port / transport</th><th>Important messages</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</section>
+
+<!-- ======================= Q3 ======================= -->
+<section class="k" id="q3">
+  <h2><span class="q">Question 3</span>How does a subscriber stay on one core node, and how do calls find a NAT'd client?</h2>
+  <ol class="steps">
+    <li><b>Hash on the From URI.</b> Each LB node selects the core node with <code>ds_select_dst("1","1")</code>. A subscriber's REGISTERs and INVITEs land on the same core node, through either LB node.</li>
+    <li><b>Path with the received address.</b> The LB node adds <code>Path: &lt;sip:LB;lr;received=sip:client&gt;</code>. The received address is the client's NAT address.</li>
+    <li><b>REGISTER goes to the core node over UDP.</b> nathelper sends keepalives only over UDP, so the Path must name UDP. Larger requests on that Path switch to TCP (<code>udp_mtu 1300</code>).</li>
+    <li><b>One shared location table.</b> The core node saves the contact and its Path in MySQL. Any core node can find any subscriber.</li>
+    <li><b>Calls follow the Path back.</b> The callee's core node sends the INVITE to the LB node in the Path. That LB node sends it to the received address (<code>use_received</code>).</li>
+    <li><b>Keepalives from the owner only.</b> Every 30 s the owning core node sends OPTIONS through the Path. Other core nodes skip the contact (<code>filter_server_id</code>).</li>
+    <li><b>The hash moves when a core node fails.</b> The LB node skips an inactive core node. The subscriber's next REGISTER re-homes it on another core node.</li>
+  </ol>
+</section>
+
+<!-- ======================= Q4 ======================= -->
+<section class="k" id="q4">
+  <h2><span class="q">Question 4</span>What happens when a component fails?</h2>
+  <p>The platform fails closed. Without a backend decision, no registration or call starts. No call outlives its allowance.</p>
+  <div class="tablewrap"><table class="tbl">
+    <thead><tr><th>Down</th><th>Detected by</th><th>New registrations</th><th>New calls</th><th>Calls in progress</th></tr></thead>
+    <tbody>
+      <tr><td>Sidecar on a core node</td><td>Health OPTIONS → 503; the LB node marks the core node inactive within one probe</td><td>Go to another core node</td><td>Go to another core node</td><td>Continue; end at their allowance (Kamailio's dialog timer)</td></tr>
+      <tr><td>RTPEngine on a core node</td><td><code>rtpengine.ping</code> fails → <code>node.health 0</code> → OPTIONS 503</td><td>Go to another core node</td><td>503 on that node, never un-anchored; then drained</td><td>Media is lost; the allowance timer ends them</td></tr>
+      <tr><td>LB node as egress</td><td>The branch times out (408 after 5 s)</td><td>Not affected</td><td><code>ds_mark_dst</code>; the next route leaves through another LB node</td><td>In-dialog requests follow their Route set</td></tr>
+      <tr><td>LB node as ingress</td><td>The LB node answers OPTIONS to itself: 200 while any core node is active</td><td colspan="3">The sources do not describe how clients move between LB nodes. They use a DNS name with SRV records (decision 44). A hung LB node must be restarted, not resumed: it forwards queued INVITEs (ghost calls).</td></tr>
+      <tr><td>A whole core node</td><td>Probe timeout (5 s) → inactive</td><td>CORE_FAIL retries the next core node</td><td>Served by other core nodes</td><td>Lost; the backend sweeper settles them at allowance + 60 s</td></tr>
+      <tr><td>MySQL location</td><td><code>route[DB_CHECK]</code> every 2 s</td><td>503 at once</td><td>To and from subscribers fail; gateway calls continue</td><td>Not affected</td></tr>
+      <tr><td>Backend decisions</td><td>gRPC deadline or UNAVAILABLE</td><td>503</td><td>503</td><td>End at their allowance if re-authorization fails</td></tr>
+      <tr><td>Backend IPDR ingest</td><td>Event stream down</td><td>Not affected</td><td>Not affected</td><td>Not affected; IPDRs wait in the sidecar's disk spool</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ======================= Glossary ======================= -->
+<section class="k" id="glossary">
+  <h2>Glossary</h2>
+  <p>This page uses one term for one thing.</p>
+  <dl class="gloss" id="gloss"></dl>
+</section>
+
+<footer>
+  Sources: sip/docs/Kamailio Decision Platform – Requirements Understanding; Technical Design v2 (LB tier, core node, protocol, gRPC API, control API, failure handling) · billing/docs/Billing Backend – Technical Design (Architecture, Control commands, Failure handling) · sip/kamailio-load-balancer/CLAUDE.md · sip/ROADMAP.md Phases 41–42.<br>
+  Lab timings (drain 2–9 s, re-home 6–7 s) come from <code>sip/tests/scaled.sh</code> on one machine.
+</footer>
+</div>
+
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+/* ==========================================================================
+   MODEL: every node, link, flow, failure reaction and message on this page.
+   Check it against the sources listed in the footer; edit it here.
+   Node ids: ua nat ogw lb1 lb2 ka sa ra kb sb rb mysql cc pg admin browser tgw
+   Protocols: sip ctl grpc rtp sql http
+   ========================================================================== */
+const MODEL = {
+  groups: [
+    { id: 'gA', x: 516, y: 20, w: 392, h: 340, label: 'core node A', scaled: false },
+    { id: 'gB', x: 516, y: 400, w: 392, h: 340, label: 'core node B', scaled: true },
+    { id: 'gBE', x: 1116, y: 20, w: 368, h: 492, label: 'billing backend · stateless roles' }
+  ],
+
+  nodes: {
+    ua: { x: 20, y: 60, w: 170, h: 86, t: 'Subscriber A', s: 'UDP · TCP · TLS', k: '', role: 'Endpoint',
+      job: ['Registers, then makes and receives calls.', 'Usually sits behind NAT.', 'Sends media straight to an RTPEngine public IP.'],
+      ports: [['SIP', 'LB node: UDP/TCP 5060, TLS 5061'], ['RTP', 'RTPEngine public IP, port range']],
+      trusts: 'Nothing. It is authenticated with MD5 digest (qop=auth).',
+      scales: 'Register expiry 60–3600 s; 600 s suggested.' },
+    nat: { x: 214, y: 78, w: 62, h: 50, t: 'NAT', s: '', role: 'Network',
+      job: ['Changes the source address and port of the subscriber.', 'The LB node records the changed address as "received".', 'Keepalives every 30 s keep its binding open.'],
+      ports: [], trusts: 'n/a', scales: 'n/a' },
+    ogw: { x: 20, y: 250, w: 170, h: 86, t: 'Origination GW', s: 'trusted by IP:port', role: 'Carrier',
+      job: ['Sends INVITEs without credentials.', 'The backend trusts it by source IP, port and transport.', 'Its real source reaches the core node in X-Src-* headers.'],
+      ports: [['SIP', 'LB node: UDP/TCP 5060']], trusts: 'n/a', scales: 'Exempt from pike on the core node in small mode (trustedsrc).' },
+
+    lb1: { x: 306, y: 40, w: 160, h: 270, t: 'LB node 1', s: 'dispatcher · TLS\npike · Path\nX-Src-*', k: 'sip', role: 'LB tier', scaled: true,
+      job: ['Terminates TLS. Runs pike (200 requests per 2 s per source) and sanity checks.', 'Removes X-Src-* from outside, then adds X-Src-IP/Port/Proto from the socket.', 'REGISTER: adds Path with the received address. Others: Record-Route.', 'Selects a core node by a hash of the From URI (dispatcher set 1).', 'Relays egress INVITEs from core nodes to gateways.', 'Has no database and no sidecar.'],
+      ports: [['Public', 'UDP/TCP 5060, TLS 5061'], ['Internal', 'UDP/TCP 5060 to core nodes'], ['Probes', 'OPTIONS to each core node every 5 s']],
+      trusts: 'Nothing from outside. Requests from CORE_SUBNET take the FROM_CORE route.',
+      scales: 'Add LB nodes. State is per transaction only. fr_timer is 5 s, so a dead core node is retried quickly.' },
+    lb2: { x: 306, y: 400, w: 160, h: 270, t: 'LB node 2', s: 'same script\nsame lists\negress (set 2)', k: 'sip', role: 'LB tier', scaled: true,
+      job: ['Runs the same script and lists as LB node 1.', 'Both LB nodes are in each core node\'s set 2, so gateway calls alternate between them.', 'Through LB node 2, the hash still selects the same core node for a subscriber.'],
+      ports: [['Public', 'UDP/TCP 5060, TLS 5061'], ['Internal', 'UDP/TCP 5060 to core nodes']],
+      trusts: 'Nothing from outside.', scales: 'Add LB nodes.' },
+
+    ka: { x: 534, y: 56, w: 172, h: 284, t: 'Kamailio', s: 'core node A\nregistrar\ndialogs · timers\nrtjson routing', k: 'sip', role: 'Core node',
+      job: ['Registrar: saves contacts with their Path in shared MySQL.', 'Sends call.identify and call.setup to its sidecar, and suspends the transaction while it waits.', 'Looks up local callees; relays gateway routes with failover.', 'Holds dialogs; its dialog timer always ends at the allowance end.', 'Controls its RTPEngine (offer, answer, delete).', 'Answers LB OPTIONS: 200, or 503 when its sidecar or RTPEngine is down.'],
+      ports: [['SIP', 'internal UDP/TCP 5060 (from LB nodes)'], ['evapi', '127.0.0.1:8448'], ['HTTP', '5071: JSON-RPC /RPC, XML-RPC /RPC2'], ['ng', 'UDP 2223 to RTPEngine'], ['MySQL', 'TCP 3306']],
+      trusts: 'X-Src-* only from LB_SUBNET. SIP from any other source is dropped ("non-LB source").',
+      scales: 'Add core nodes to the LB nodes\' dispatcher set 1. Egress: set 2, round-robin over healthy LB nodes.' },
+    sa: { x: 734, y: 56, w: 156, h: 96, t: 'Sidecar A', s: 'Java 25 · spool', k: 'ctl', role: 'Core node',
+      job: ['Issues HMAC nonces locally.', 'Makes every backend call (250 ms deadlines).', 'Owns call sessions and re-authorization timers.', 'Tracks registrations and their expiry.', 'Builds IPDRs and spools them to disk before sending.'],
+      ports: [['evapi', 'client of 127.0.0.1:8448'], ['JSON-RPC', 'to Kamailio :5071/RPC'], ['gRPC', 'TCP 443, mTLS'], ['Metrics', '127.0.0.1:9464']],
+      trusts: 'Reaches the backend only with mTLS and a per-node certificate.',
+      scales: 'One per core node. Answers every async request within 380 ms.' },
+    ra: { x: 734, y: 236, w: 156, h: 96, t: 'RTPEngine A', s: 'anchor · record', k: 'rtp', role: 'Core node',
+      job: ['Anchors all media of core node A.', 'Learns NAT\'d media addresses from received packets.', 'Ends calls with no RTP: 60 s active, 1 h on hold.', 'Records calls the backend marks (stereo WAV, local disk).'],
+      ports: [['ng', 'UDP 2223 from Kamailio'], ['RTP', 'public IP, port range'], ['XML-RPC', 'to Kamailio :5071/RPC2 (teardown)']],
+      trusts: 'Control only from its core node.', scales: 'One per core node; same host or a separate host.' },
+
+    kb: { x: 534, y: 436, w: 172, h: 284, t: 'Kamailio', s: 'core node B\nregistrar\ndialogs · timers\nrtjson routing', k: 'sip', role: 'Core node', scaled: true, same: 'ka' },
+    sb: { x: 734, y: 436, w: 156, h: 96, t: 'Sidecar B', s: 'Java 25 · spool', k: 'ctl', role: 'Core node', scaled: true, same: 'sa' },
+    rb: { x: 734, y: 616, w: 156, h: 96, t: 'RTPEngine B', s: 'anchor · record', k: 'rtp', role: 'Core node', scaled: true, same: 'ra' },
+
+    mysql: { x: 952, y: 318, w: 128, h: 104, t: 'MySQL', s: 'shared\nlocation', k: 'sql', role: 'Shared store',
+      job: ['Holds the location table for every core node (usrloc DB-only).', 'Each row has a server_id, so only the owning core node sends keepalives.', 'Each core node checks it every 2 s (route DB_CHECK).'],
+      ports: [['MySQL', 'TCP 3306']], trusts: 'The Kamailio account has rights on the kamailio schema only.', scales: 'MySQL 8. Its high availability is outside this project.' },
+
+    cc: { x: 1134, y: 56, w: 332, h: 110, t: 'call-control × N', s: 'Identity · Routing\nCallAuthorization · EventIngest', k: 'grpc', role: 'Backend',
+      job: ['Serves the four gRPC services to sidecars.', 'Holds rating and routing config in memory; reloads on NOTIFY.', 'Delivers admin commands on the Control stream it holds.'],
+      ports: [['gRPC', 'TCP 443, mTLS'], ['PostgreSQL', 'pool + 1 LISTEN connection']],
+      trusts: 'Sidecars by per-node client certificate.', scales: 'Stateless. Sidecars balance with client-side round-robin over DNS. Scales with call rate.' },
+    pg: { x: 1134, y: 232, w: 332, h: 96, t: 'PostgreSQL', s: 'money · sessions · commands', k: 'sql', role: 'Backend',
+      job: ['Holds balances, sessions, CDRs, config and control commands.', 'NOTIFY channels: config_changed and control.'],
+      ports: [['PostgreSQL', '5432 + LISTEN/NOTIFY']], trusts: 'Application roles only.', scales: 'Primary with a synchronous standby. Scale vertically; add a read replica for reports.' },
+    admin: { x: 1134, y: 396, w: 332, h: 96, t: 'admin-app × M', s: 'REST · jobs · reports', role: 'Backend',
+      job: ['Serves the REST API and the React UI.', 'Writes config and control-command rows.', 'Runs jobs: sweeper, reconciliation, command retry.'],
+      ports: [['HTTPS', 'behind a plain HTTP load balancer'], ['PostgreSQL', 'pool']], trusts: 'Admin users (bcrypt, ADMIN / VIEWER).', scales: 'Stateless; HTTP sessions in PostgreSQL.' },
+    browser: { x: 1134, y: 552, w: 332, h: 64, t: 'Admin UI', s: 'browser', role: 'Operator',
+      job: ['Shows active calls; an ADMIN can disconnect one.'], ports: [['HTTPS', 'REST to admin-app']], trusts: 'n/a', scales: 'n/a' },
+    tgw: { x: 1134, y: 668, w: 332, h: 86, t: 'Termination GWs', s: 'gw1 · gw2 (carriers)', role: 'Carrier',
+      job: ['Receive INVITEs only from LB node addresses.', 'The R-URI and the To header carry the same URI.'],
+      ports: [['SIP', 'from LB nodes'], ['RTP', 'to the handling core node\'s RTPEngine']], trusts: 'n/a', scales: 'Carriers allow a small, fixed set of LB IPs.' }
+  },
+
+  // d = SVG path from a to b. mode: 'scaled' (default for LB links), 'small', or 'both'.
+  links: {
+    'ua-nat':   { a: 'ua', b: 'nat', p: 'sip', d: 'M190 103 H214', mode: 'both', port: 'UDP/TCP 5060, TLS 5061', msgs: 'REGISTER, INVITE, BYE', note: 'Real client address is lost here; the next hop sees the NAT address.' },
+    'nat-lb1':  { a: 'nat', b: 'lb1', p: 'sip', d: 'M276 103 H306', mode: 'scaled', port: 'UDP/TCP 5060, TLS 5061 (public)', msgs: 'REGISTER, INVITE, keepalive OPTIONS', note: 'LB node 1 records the received address in the Path.' },
+    'ogw-lb1':  { a: 'ogw', b: 'lb1', p: 'sip', d: 'M190 293 H306', mode: 'scaled', port: 'UDP/TCP 5060 (public)', msgs: 'INVITE without credentials', note: 'The gateway\'s real source goes on in X-Src-*.' },
+    'lb1-ka':   { a: 'lb1', b: 'ka', p: 'sip', d: 'M466 120 H534', label: 'X-Src-*', lx: 500, ly: 112, port: 'TCP 5060 internal; REGISTER over UDP', msgs: 'REGISTER + Path, INVITE + Record-Route, OPTIONS probes every 5 s', note: 'Dispatcher set 1; From-URI hash.' },
+    'lb1-kb':   { same: true, a: 'lb1', b: 'kb', p: 'sip', d: 'M466 270 L534 470', port: 'TCP 5060 internal; REGISTER over UDP', msgs: 'as LB node 1 → core node A', note: 'Any LB node can reach any core node.' },
+    'lb2-ka':   { a: 'lb2', b: 'ka', p: 'sip', d: 'M466 440 L534 300', port: 'TCP 5060 internal', msgs: 'egress INVITEs from core node A; OPTIONS probes', note: 'Core nodes probe set 2 (the LB nodes) too.' },
+    'lb2-kb':   { same: true, a: 'lb2', b: 'kb', p: 'sip', d: 'M466 560 H534', port: 'TCP 5060 internal', msgs: 'egress INVITEs; OPTIONS probes', note: '' },
+    'ka-sa':    { a: 'ka', b: 'sa', p: 'ctl', d: 'M706 104 H734', mode: 'both', port: 'evapi 127.0.0.1:8448; JSON-RPC :5071/RPC', msgs: 'auth.challenge, reg.verify, call.identify, call.setup, call.* events, dialog.timeout, node.health; dlg.end_dlg, rtpengine.ping', note: 'Netstring-framed JSON. Localhost only.' },
+    'ka-ra':    { a: 'ka', b: 'ra', p: 'ctl', d: 'M706 284 H734', mode: 'both', port: 'ng UDP 2223; XML-RPC :5071/RPC2', msgs: 'offer, answer, delete; dlg.terminate_dlg (media timeout)', note: '500 ms × 2 tries; a refused offer drops the branch.' },
+    'kb-sb':    { same: true, a: 'kb', b: 'sb', p: 'ctl', d: 'M706 484 H734', port: 'evapi 127.0.0.1:8448', msgs: 'as core node A', note: '' },
+    'kb-rb':    { same: true, a: 'kb', b: 'rb', p: 'ctl', d: 'M706 664 H734', port: 'ng UDP 2223', msgs: 'offer, answer, delete', note: '' },
+    'ka-mysql': { a: 'ka', b: 'mysql', p: 'sql', d: 'M650 340 V378 H952', mode: 'both', port: 'TCP 3306', msgs: 'save("location"), lookup, registered(), DB_CHECK every 2 s', note: '' },
+    'kb-mysql': { same: true, a: 'kb', b: 'mysql', p: 'sql', d: 'M650 436 V392 H952', port: 'TCP 3306', msgs: 'as core node A', note: '' },
+    'sa-cc':    { a: 'sa', b: 'cc', p: 'grpc', d: 'M890 90 H1134', label: 'gRPC mTLS', lx: 1010, ly: 82, mode: 'both', port: 'TCP 443, mTLS', msgs: 'IdentifyOrigin, VerifyDigest, GetRoutes, Authorize, Reauthorize, Terminate; Control and EventIngest streams', note: 'Client-side round-robin; 250 ms deadlines on the hot path.' },
+    'sb-cc':    { same: true, a: 'sb', b: 'cc', p: 'grpc', d: 'M890 470 H1100 V130 H1134', port: 'TCP 443, mTLS', msgs: 'as sidecar A', note: '' },
+    'cc-pg':    { a: 'cc', b: 'pg', p: 'sql', d: 'M1260 166 V232', mode: 'both', port: '5432', msgs: 'reservations, sessions, settlements, CDRs, command claims', note: 'Short row-locked transactions.' },
+    'pg-cc-notify': { a: 'pg', b: 'cc', p: 'sql', d: 'M1380 232 V166', dashed: true, label: 'NOTIFY', lx: 1390, ly: 204, mode: 'both', port: 'LISTEN connection', msgs: 'config_changed, control', note: '' },
+    'admin-pg': { a: 'admin', b: 'pg', p: 'sql', d: 'M1300 396 V328', mode: 'both', port: '5432', msgs: 'config, recharges, control_command rows', note: '' },
+    'browser-admin': { a: 'browser', b: 'admin', p: 'http', d: 'M1300 552 V492', mode: 'both', port: 'HTTPS', msgs: 'REST: e.g. DELETE /active-calls/{sessionId}', note: '' },
+    'lb1-tgw':  { a: 'lb1', b: 'tgw', p: 'sip', d: 'M306 286 H290 V800 H1300 V754', port: 'UDP/TCP 5060', msgs: 'egress INVITE, BYE', note: 'Gateways see only LB addresses.' },
+    'lb2-tgw':  { a: 'lb2', b: 'tgw', p: 'sip', d: 'M386 670 V800 H1300 V754', label: 'egress through the LB tier', lx: 700, ly: 792, port: 'UDP/TCP 5060', msgs: 'egress INVITE, BYE', note: 'Gateways see only LB addresses.' },
+    // media: dashed, straight to RTPEngine public IPs, never through the LB tier
+    'ua-ra':    { a: 'ua', b: 'ra', p: 'rtp', d: 'M105 60 V14 H922 V284 H890', label: 'RTP bypasses the LB tier', lx: 560, ly: 10, mode: 'both', port: 'RTPEngine public IP', msgs: 'RTP', note: '' },
+    'ua-rb':    { a: 'ua', b: 'rb', p: 'rtp', d: 'M105 60 V14 H922 V664 H890', port: 'RTPEngine public IP', msgs: 'RTP', note: '' },
+    'tgw-ra':   { a: 'tgw', b: 'ra', p: 'rtp', d: 'M1134 700 H936 V300 H890', mode: 'both', port: 'RTPEngine public IP', msgs: 'RTP', note: '' },
+    'tgw-rb':   { a: 'tgw', b: 'rb', p: 'rtp', d: 'M1134 712 H936 V680 H890', port: 'RTPEngine public IP', msgs: 'RTP', note: '' },
+    'ogw-rb':   { a: 'ogw', b: 'rb', p: 'rtp', d: 'M105 336 V818 H950 V696 H890', port: 'RTPEngine public IP', msgs: 'RTP', note: '' },
+    // small mode: the core node faces the internet itself
+    'nat-ka-s': { a: 'nat', b: 'ka', p: 'sip', d: 'M276 103 H534', mode: 'small', port: 'UDP/TCP 5060, TLS 5061 (public)', msgs: 'REGISTER, INVITE', note: 'Small mode: the core node terminates TLS and handles NAT.' },
+    'ogw-ka-s': { a: 'ogw', b: 'ka', p: 'sip', d: 'M190 293 H534', mode: 'small', port: 'UDP/TCP 5060 (public)', msgs: 'INVITE', note: '' },
+    'ka-tgw-s': { a: 'ka', b: 'tgw', p: 'sip', d: 'M620 340 V800 H1300 V754', mode: 'small', port: 'UDP/TCP 5060', msgs: 'INVITE', note: 'Small mode: egress leaves from the core node.' }
+  },
+
+  // Flows and failure scenarios. Step fields:
+  //   p: node path (one id = action inside that node)   m: message shown   t: one-line explanation
+  //   l: explicit link ids (when two links join the same nodes)   lost: the packet never arrives
+  //   st: state change {down:[], inactive:[], up:[]} from this step on
+  flows: {
+    register: { title: 'REGISTER through the LB', key: 'a', kind: 'flow',
+      intro: 'Subscriber A registers. Its From URI hashes to core node A. The Path lets any core node reach it later.',
+      steps: [
+        { p: ['ua', 'nat', 'lb1'], m: 'REGISTER', t: 'Subscriber A sends REGISTER with no credentials. The NAT changes its source address.' },
+        { p: ['lb1'], m: 'pike · sanity · X-Src-*', t: 'LB node 1 checks pike and sanity. It removes any X-Src-* headers and adds its own from the socket.' },
+        { p: ['lb1'], m: 'add_path_received()', t: 'LB node 1 adds a Path header. The Path names LB node 1 and the client\'s received address.' },
+        { p: ['lb1'], m: 'ds_select_dst("1","1")', t: 'Dispatcher hashes the From URI. The hash selects core node A.' },
+        { p: ['lb1', 'ka'], m: 'REGISTER (UDP)', t: 'LB node 1 relays over UDP (route REG_UDP). A UDP Path lets nathelper send keepalives.' },
+        { p: ['ka'], m: 'route[SRC]', t: 'Core node A accepts X-Src-* only from LB_SUBNET. It takes the real source from them.' },
+        { p: ['ka', 'sa'], m: 'auth.challenge', t: 'Core node A asks its sidecar for a nonce.' },
+        { p: ['sa', 'ka'], m: 'nonce', t: 'The sidecar signs a nonce with HMAC. It does not call the backend.' },
+        { p: ['ka', 'lb1', 'nat', 'ua'], m: '401 WWW-Authenticate', t: 'The challenge goes back along the Via path.' },
+        { p: ['ua', 'nat', 'lb1', 'ka'], m: 'REGISTER + Authorization', t: 'The same From URI gives the same hash. Core node A gets the retry.' },
+        { p: ['ka', 'sa'], m: 'reg.verify', t: 'Core node A sends the raw Authorization header, the method, To and the source.' },
+        { p: ['sa', 'cc'], m: 'VerifyDigest', t: 'The backend checks the nonce MAC, its age, nc replay and the MD5 digest.' },
+        { p: ['cc', 'sa'], m: 'ACCEPTED', k: 'VerifyDigest', t: 'The backend accepts. No HA1 or password leaves the backend.' },
+        { p: ['sa', 'ka'], m: 'reg.verify.result', k: 'reg.verify', t: 'The sidecar returns ACCEPTED within its 380 ms budget.' },
+        { p: ['ka', 'mysql'], m: 'save("location")', t: 'Core node A saves the contact and its Path in the shared location table.' },
+        { p: ['ka', 'lb1', 'nat', 'ua'], m: '200 OK', t: 'The subscriber is registered.' },
+        { p: ['ka', 'sa'], m: 'reg.snapshot', t: 'Core node A sends all contacts of the AoR to its sidecar.' },
+        { p: ['sa', 'cc'], m: 'EventIngest REGISTERED', k: 'EventIngest', t: 'The sidecar reports the new contact. It now owns the expiry timer.' },
+        { p: ['ka', 'lb1', 'nat', 'ua'], m: 'OPTIONS keepalive', k: 'keepalive', t: 'Every 30 s, core node A pings through the Path. Only the owning core node sends them.' }
+      ] },
+
+    outcall: { title: 'Subscriber calls an external number', key: 'b', kind: 'flow',
+      intro: 'Subscriber A calls a number on a termination gateway. One call costs two sidecar round trips: call.identify, then call.setup.',
+      steps: [
+        { p: ['ua', 'nat', 'lb1'], m: 'INVITE', t: 'Subscriber A sends INVITE with no credentials.' },
+        { p: ['lb1'], m: 'Record-Route · hash', t: 'LB node 1 adds Record-Route and X-Src-*. The From-URI hash selects core node A again.' },
+        { p: ['lb1', 'ka'], m: 'INVITE (TCP)', t: 'LB to core node traffic uses TCP, so large INVITEs never fragment.' },
+        { p: ['ka', 'sa'], m: 'call.identify', t: 'Core node A suspends the transaction. Its SIP worker moves on.' },
+        { p: ['sa', 'cc'], m: 'IdentifyOrigin', t: 'No credentials, so the sidecar asks: is this source a trusted gateway?' },
+        { p: ['cc', 'sa'], m: 'NOT_TRUSTED', k: 'IdentifyOrigin', t: 'The source is not a gateway. The sidecar caches this answer for cache_seconds.' },
+        { p: ['sa', 'ka'], m: 'CHALLENGE + nonce', k: 'call.identify', t: 'The sidecar tells core node A to challenge.' },
+        { p: ['ka', 'lb1', 'nat', 'ua'], m: '407 Proxy-Authenticate', t: 'The subscriber gets a challenge with the sidecar\'s nonce.' },
+        { p: ['ua', 'nat', 'lb1', 'ka'], m: 'INVITE + Proxy-Authorization', t: 'The retry has credentials, so it skips the origin check.' },
+        { p: ['ka', 'sa'], m: 'call.identify', t: 'This time the request carries the digest.' },
+        { p: ['sa', 'cc'], m: 'VerifyDigest', t: 'The backend verifies the digest as for REGISTER.' },
+        { p: ['cc', 'sa'], m: 'ACCEPTED: account, ruri_user, caller_id', k: 'VerifyDigest', t: 'The backend returns the account, the rewritten number and the caller ID.' },
+        { p: ['sa', 'ka'], m: 'VERIFIED', k: 'call.identify', t: 'Core node A rewrites the R-URI user and sets From and PAI to the caller ID.' },
+        { p: ['ka', 'mysql'], m: 'registered() · lookup', t: 'The caller must be registered from the same IP (port ignored). The callee is not local: target REMOTE.' },
+        { p: ['ka', 'sa'], m: 'call.setup', t: 'Core node A sends the caller, callee, PAI, Diversion, target and SDP.' },
+        { p: ['sa', 'cc'], m: 'GetRoutes', t: 'The backend returns GATEWAYS in try order.' },
+        { p: ['sa', 'cc'], m: 'Authorize', t: 'Only then does the sidecar ask for money. The backend reserves and grants 180 s.' },
+        { p: ['sa', 'ka'], m: 'ALLOW: session, grant, record, rtdoc', k: 'call.setup', t: 'The decision comes back. The routes carry only the R-URI and timers.' },
+        { p: ['ka', 'ra'], m: 'offer', t: 'Core node A anchors the media on RTPEngine A.' },
+        { p: ['ka'], m: 'ds_select_dst("2","4")', t: 'Core node A picks a healthy egress LB node, round-robin (dispatcher set 2).' },
+        { p: ['ka', 'lb2', 'tgw'], m: 'INVITE route 1', t: 'To = R-URI. The gateway sees only the address of LB node 2.' },
+        { p: ['tgw', 'lb2', 'ka'], m: '200 OK', t: 'The gateway answers through the same LB node.' },
+        { p: ['ka', 'ra'], m: 'answer', t: 'RTPEngine A gets the gateway\'s SDP.' },
+        { p: ['ka', 'lb1', 'nat', 'ua'], m: '200 OK', t: 'The caller is connected. The grant clock starts now.' },
+        { p: ['ua', 'ra', 'tgw'], m: 'RTP', media: true, t: 'Media goes straight to the public IP of RTPEngine A. It never crosses the LB tier.' },
+        { p: ['ka', 'sa'], m: 'call.connected', t: 'Core node A reports the connect with the dialog ids.' },
+        { p: ['sa', 'cc'], m: 'Start IPDR', k: 'EventIngest', t: 'The sidecar spools the Start IPDR to disk, then streams it.' }
+      ] },
+
+    incall: { title: 'Gateway calls a registered subscriber', key: 'c', kind: 'flow',
+      intro: 'The gateway\'s From URI hashes to core node B. Subscriber A registered through core node A. The stored Path still reaches it.',
+      steps: [
+        { p: ['ogw', 'lb1'], m: 'INVITE', t: 'The origination gateway sends INVITE with no credentials.' },
+        { p: ['lb1'], m: 'Record-Route · hash', t: 'The gateway\'s From URI hashes to core node B.' },
+        { p: ['lb1', 'kb'], m: 'INVITE + X-Src-*', t: 'X-Src-* carries the gateway\'s real IP, port and transport.' },
+        { p: ['kb', 'sb'], m: 'call.identify', t: 'Core node B asks its sidecar who the caller is.' },
+        { p: ['sb', 'cc'], m: 'IdentifyOrigin', t: 'The backend matches the source to an origination gateway.' },
+        { p: ['cc', 'sb'], m: 'TRUSTED: account, ruri_user', k: 'IdentifyOrigin', t: 'TRUSTED. The R-URI user becomes the callee\'s subscriberId.' },
+        { p: ['sb', 'kb'], m: 'TRUSTED', k: 'call.identify', t: 'Core node B applies the rewrite.' },
+        { p: ['kb', 'mysql'], m: 'registered("location")', t: 'Core node B finds subscriber A in the shared table. The target is LOCAL.' },
+        { p: ['kb', 'sb'], m: 'call.setup (LOCAL)', k: 'call.setup', t: 'A local target needs no routes.' },
+        { p: ['sb', 'cc'], m: 'Authorize', t: 'The sidecar skips GetRoutes. The backend rates the call as ORGGWTOSIP.' },
+        { p: ['sb', 'kb'], m: 'ALLOW', k: 'call.setup', t: 'The call may proceed.' },
+        { p: ['kb', 'rb'], m: 'offer', t: 'Media anchors on RTPEngine B, the RTPEngine of the handling core node.' },
+        { p: ['kb'], m: 'lookup("location")', t: 'To = sip:<subscriberId>@domain. The stored Path becomes the Route: LB node 1, received address.' },
+        { p: ['kb', 'lb1'], m: 'INVITE (Path)', t: 'Core node B sends the INVITE to the LB node in the Path.' },
+        { p: ['lb1', 'nat', 'ua'], m: 'INVITE → received', t: 'LB node 1 follows the received address (use_received) through the NAT binding.' },
+        { p: ['ua', 'nat', 'lb1', 'kb'], m: '200 OK', t: 'Subscriber A answers.' },
+        { p: ['kb', 'rb'], m: 'answer', t: 'RTPEngine B gets the subscriber\'s SDP.' },
+        { p: ['kb', 'lb1', 'ogw'], m: '200 OK', t: 'The gateway is connected.' },
+        { p: ['ogw', 'rb'], m: 'RTP', media: true, t: 'Gateway media goes to RTPEngine B.' },
+        { p: ['ua', 'rb'], m: 'RTP', media: true, t: 'Subscriber media goes to RTPEngine B too. Neither crosses the LB tier.' },
+        { p: ['kb', 'sb'], m: 'call.connected', t: 'Core node B reports the connect.' },
+        { p: ['sb', 'cc'], m: 'Start IPDR', k: 'EventIngest', t: 'The Start IPDR goes to the backend.' }
+      ] },
+
+    reauth: { title: 'Re-authorization and disconnect at T', key: 'd', kind: 'flow',
+      intro: 'The call from flow b runs on 180 s grants. There is no grace period: the call ends at the allowance end, T.',
+      steps: [
+        { p: ['ka', 'sa'], m: 'call.connected (0 s)', k: 'call.connected', t: 'The grant clock starts at 200 OK. The dialog timer is set to 180 s.' },
+        { p: ['sa', 'cc'], m: 'Reauthorize (170 s, T−10)', k: 'Reauthorize', t: 'Re-authorization starts 10 s before T. Each attempt has a 2 s deadline.' },
+        { p: ['cc', 'sa'], m: 'GRANTED, total 360', k: 'Reauthorize', t: 'The backend reserves more money and returns the cumulative allowance.' },
+        { p: ['sa', 'ka'], m: 'dialog.timeout 190', k: 'dialog.timeout', t: 'The sidecar moves the dialog timer. T is now 360 s.' },
+        { p: ['sa', 'cc'], m: 'Reauthorize (350 s, T−10)', k: 'Reauthorize', lost: true, t: 'Attempt 1 gets no answer within 2 s.' },
+        { p: ['sa', 'cc'], m: 'Reauthorize (354 s, T−6)', k: 'Reauthorize', lost: true, t: 'Attempt 2 gets no answer within 2 s.' },
+        { p: ['sa', 'cc'], m: 'Reauthorize (357 s, T−3)', k: 'Reauthorize', t: 'Attempt 3 reaches the backend.' },
+        { p: ['cc', 'sa'], m: 'DENIED', k: 'Reauthorize', t: 'The backend denies. No more grants.' },
+        { p: ['sa', 'ka'], m: 'dlg.end_dlg (360 s)', k: 'dlg.end_dlg', t: 'At T the sidecar ends the dialog. Kamailio\'s own timer fires in the same second.' },
+        { p: ['ka', 'lb1', 'nat', 'ua'], m: 'BYE', t: 'The caller gets BYE with X-Disconnect-Reason.' },
+        { p: ['ka', 'lb2', 'tgw'], m: 'BYE', t: 'The gateway gets BYE through an LB node too.' },
+        { p: ['ka', 'ra'], m: 'delete', t: 'Core node A frees the media session.' },
+        { p: ['ka', 'sa'], m: 'call.ended', t: 'Core node A reports the end.' },
+        { p: ['sa', 'cc'], m: 'Terminate · Final IPDR', k: 'Terminate', t: 'Used 360 s. The Final IPDR says REAUTH_DENIED. If the sidecar were gone, Kamailio\'s timer alone ends the call: ALLOWANCE_EXPIRED.' }
+      ] },
+
+    admin: { title: 'Admin disconnect', key: 'e', kind: 'flow',
+      intro: 'An admin ends a live call. Admin and call-control never call each other: the command travels as a row plus NOTIFY.',
+      steps: [
+        { p: ['browser', 'admin'], m: 'DELETE /active-calls/{sessionId}', t: 'An ADMIN clicks disconnect.' },
+        { p: ['admin', 'pg'], m: 'INSERT control_command + NOTIFY', t: 'The row holds the session, the node, END_CALL and PENDING.' },
+        { p: ['admin', 'browser'], m: '202 Accepted', t: 'The UI does not wait for the call to end.' },
+        { p: ['pg', 'cc'], m: 'NOTIFY control', l: ['pg-cc-notify'], t: 'Every call-control instance hears it. Only the one holding this node\'s Control stream acts.' },
+        { p: ['cc', 'pg'], m: 'claim (SKIP LOCKED) → SENT', l: ['cc-pg'], t: 'That instance claims the pending commands for the node.' },
+        { p: ['cc', 'sa'], m: 'ControlCommand EndCall', k: 'Control', t: 'The command goes down the Control stream to sidecar A.' },
+        { p: ['sa', 'ka'], m: 'dlg.end_dlg', k: 'dlg.end_dlg', t: 'The sidecar ends the dialog with reason ADMIN_DISCONNECT.' },
+        { p: ['ka', 'lb1', 'nat', 'ua'], m: 'BYE', t: 'The caller gets BYE.' },
+        { p: ['ka', 'lb2', 'tgw'], m: 'BYE', t: 'The gateway gets BYE.' },
+        { p: ['sa', 'cc'], m: 'ControlAck ok', k: 'Control', t: 'The sidecar acknowledges. A repeated EndCall is a no-op.' },
+        { p: ['cc', 'pg'], m: 'status ACKED', l: ['cc-pg'], t: 'The command row is finished.' },
+        { p: ['sa', 'cc'], m: 'Final IPDR', k: 'EventIngest', t: 'Settlement charges the call. It leaves the active-calls list.' }
+      ] },
+
+    // ------------------------------------------------------------- failures
+    sidecar: { title: 'Sidecar A down', key: '1', kind: 'fail',
+      intro: 'Sidecar A stops. Core node A can make no decision, so it reports itself unhealthy and the LB tier drains it.',
+      steps: [
+        { p: ['sa'], m: 'sidecar stops', st: { down: ['sa'] }, t: 'The evapi connection closes. Core node A sets $shv(sidecar_up) to 0.' },
+        { p: ['lb1', 'ka'], m: 'OPTIONS probe', k: 'OPTIONS', t: 'LB node 1 probes each core node every 5 s.' },
+        { p: ['ka', 'lb1'], m: '503 Degraded', k: 'OPTIONS', t: 'Core node A answers 503 while its sidecar or RTPEngine is down.' },
+        { p: ['lb1'], m: 'core node A inactive (IP)', st: { inactive: ['ka'] }, t: 'Dispatcher marks core node A inactive after one failure (2–4 s in the lab).' },
+        { p: ['ua', 'nat', 'lb1', 'kb'], m: 'REGISTER / INVITE', t: 'Subscriber A\'s new requests hash to core node B.' },
+        { p: ['ka'], m: 'live calls continue', t: 'Calls already on core node A keep running. The dialog timer ends each at its allowance.' },
+        { p: ['sa'], m: 'sidecar restarts', st: { up: ['sa'] }, t: 'Sidecar A reconnects and adopts live calls (dlg.list_ctx, then Reauthorize).' },
+        { p: ['lb1', 'ka'], m: 'OPTIONS probe', k: 'OPTIONS', t: 'The next probes see core node A healthy again.' },
+        { p: ['ka', 'lb1'], m: '200 OK', st: { up: ['ka'] }, k: 'OPTIONS', t: 'Active again 7–12 s after the restart in the lab. A\'s next REGISTER returns to core node A.' }
+      ] },
+    rtp: { title: 'RTPEngine A down', key: '2', kind: 'fail',
+      intro: 'RTPEngine A stops. New calls on core node A fail closed: none goes out without media anchoring.',
+      steps: [
+        { p: ['ra'], m: 'RTPEngine stops', st: { down: ['ra'] }, t: 'Media for calls on core node A stops.' },
+        { p: ['sa', 'ka'], m: 'rtpengine.ping all', k: 'rtpengine.ping', t: 'The sidecar checks every 5 s. Only status "success" counts as up.' },
+        { p: ['sa', 'ka'], m: 'node.health 0', k: 'node.health', t: 'The sidecar reports RTPEngine down. It refuses call.setup with 503 before asking the backend.' },
+        { p: ['lb1', 'ka'], m: 'OPTIONS probe', k: 'OPTIONS', t: 'LB node 1 probes core node A.' },
+        { p: ['ka', 'lb1'], m: '503 Degraded', k: 'OPTIONS', t: 'Core node A reports itself unhealthy.' },
+        { p: ['lb1'], m: 'core node A inactive', st: { inactive: ['ka'] }, t: 'Drained within 9 s in the lab.' },
+        { p: ['ua', 'nat', 'lb1', 'kb'], m: 'INVITE', t: 'New calls go to core node B and anchor on RTPEngine B.' },
+        { p: ['ka'], m: 'live calls: no media', t: 'Calls already up keep their SIP dialog. The media timeout cannot fire, so the allowance timer ends them.' }
+      ] },
+    egress: { title: 'Egress LB node silent', key: '3', kind: 'fail',
+      intro: 'LB node 2 hangs. A call that core node A sends through it times out, and the next route leaves through LB node 1.',
+      steps: [
+        { p: ['lb2'], m: 'LB node 2 hangs', st: { down: ['lb2'] }, t: 'LB node 2 stops answering.' },
+        { p: ['ka', 'lb2'], m: 'INVITE route 1', lost: true, t: 'Round-robin picked LB node 2. No reply comes back.' },
+        { p: ['ka'], m: '408 after 5 s', t: 'The branch times out (fr_timer 5 s). failure_route ROUTE_FAIL runs.' },
+        { p: ['ka'], m: 'ds_mark_dst("ip")', st: { inactive: ['lb2'] }, t: 'Core node A marks LB node 2 inactive in set 2 and selects another.' },
+        { p: ['ka', 'sa'], m: 'call.attempt (408)', k: 'call.attempt', t: 'The failed attempt goes into the IPDR.' },
+        { p: ['ka', 'lb1', 'tgw'], m: 'INVITE route 2', t: 'The next route leaves through LB node 1. gw2 answers.' },
+        { p: ['ka'], m: 'restart, not resume', t: 'A resumed LB node forwards its queued INVITEs: ghost calls. Restart a hung LB node; probing reactivates it.' }
+      ] },
+    core: { title: 'Core node A lost', key: '4', kind: 'fail',
+      intro: 'Core node A dies with a live call. Its subscribers move to core node B. The backend settles the lost call.',
+      steps: [
+        { p: ['ka'], m: 'core node A dies', st: { down: ['ka', 'sa', 'ra'] }, t: 'Kamailio, its sidecar and its RTPEngine are gone. Live calls on it lose signalling.' },
+        { p: ['lb1', 'ka'], m: 'OPTIONS probe', k: 'OPTIONS', lost: true, t: 'The probe gets no answer within 5 s.' },
+        { p: ['lb1'], m: 'core node A inactive', st: { inactive: ['ka'] }, t: 'Dispatcher marks core node A inactive.' },
+        { p: ['ua', 'nat', 'lb1', 'kb'], m: 'REGISTER', t: 'Subscriber A\'s next REGISTER lands on core node B (CORE_FAIL retries the next core node; 6–7 s in the lab).' },
+        { p: ['kb', 'mysql'], m: 'save("location")', t: 'The contact now belongs to core node B. Its keepalives come from core node B.' },
+        { p: ['cc'], m: 'sweeper: allowance + 60 s', t: 'No Reauthorize and no Terminate arrived. The backend settles the lost call: ORPHANED.' }
+      ] },
+    mysql: { title: 'MySQL down', key: '5', kind: 'fail',
+      intro: 'The location database stops. Registration fails at once; calls to gateways continue.',
+      steps: [
+        { p: ['mysql'], m: 'MySQL stops', st: { down: ['mysql'] }, t: 'The shared location table is unreachable.' },
+        { p: ['ka', 'mysql'], m: 'DB_CHECK: SELECT 1', lost: true, t: 'Every 2 s, each core node checks MySQL. It sets $shv(db_up) to 0.' },
+        { p: ['ua', 'nat', 'lb1', 'ka'], m: 'REGISTER', t: 'A REGISTER arrives.' },
+        { p: ['ka', 'lb1', 'nat', 'ua'], m: '503', t: 'Core node A answers 503 at once. No worker waits on usrloc.' },
+        { p: ['ogw', 'lb1', 'kb'], m: 'INVITE to a gateway number', t: 'A trusted gateway call needs no location lookup: the target is REMOTE.' },
+        { p: ['kb', 'sb'], m: 'call.setup (REMOTE)', k: 'call.setup', t: 'The call proceeds as usual.' },
+        { p: ['kb', 'lb2', 'tgw'], m: 'INVITE route 1', t: 'Gateway calls continue. Calls to and from subscribers fail.' }
+      ] },
+    backend: { title: 'Backend down', key: '6', kind: 'fail',
+      intro: 'call-control is unreachable. No decision means no new registration and no new call. Calls already up end at their allowance.',
+      steps: [
+        { p: ['cc'], m: 'backend unreachable', st: { down: ['cc'] }, t: 'Every call-control instance is down.' },
+        { p: ['ua', 'nat', 'lb1', 'ka'], m: 'REGISTER + Authorization', t: 'The nonce came from the sidecar, so the 401 still worked.' },
+        { p: ['ka', 'sa'], m: 'reg.verify', t: 'Core node A asks for verification.' },
+        { p: ['sa', 'cc'], m: 'VerifyDigest', lost: true, t: 'The 250 ms deadline passes.' },
+        { p: ['ka', 'lb1', 'nat', 'ua'], m: '503', t: 'The REGISTER fails closed. New INVITEs get 503 at identify the same way.' },
+        { p: ['sa', 'cc'], m: 'Reauthorize', lost: true, t: 'Calls already up cannot extend. Each ends at its allowance.' },
+        { p: ['sa'], m: 'IPDRs wait in the spool', t: 'Final IPDRs stay on disk and are sent when the backend returns.' }
+      ] }
+  },
+
+  // Message reference for tooltips: protocol, direction, fields (from the evapi catalogue and the v2 proto).
+  msgs: {
+    'auth.challenge': { p: 'ctl', d: 'evapi · core node → sidecar · async', f: 'data: realm, src_ip, src_port, src_proto\nresult: nonce' },
+    'reg.verify': { p: 'ctl', d: 'evapi · core node → sidecar · async', f: 'data: auth (raw header), method, to, source\nresult: ACCEPTED | REJECTED | STALE | ERROR, aor, nonce (STALE)' },
+    'call.identify': { p: 'ctl', d: 'evapi · core node → sidecar · async', f: 'data: call_id, from, to, ruri, pai, auth (if present), source\nresult: TRUSTED | CHALLENGE | VERIFIED | REJECTED | ERROR,\n  caller_type, account_id, gateway_id, aor, ruri_user, nonce, stale,\n  caller_id (VERIFIED)' },
+    'call.setup': { p: 'ctl', d: 'evapi · core node → sidecar · async', f: 'data: call_id, from_tag, caller fields from identify, caller, from,\n  callee, callee_original, pai, diversion, target LOCAL | REMOTE, sdp, source\nresult: ALLOW (session_id, grant, record, rtdoc)\n  | REJECT (sip_code, reason)' },
+    'reg.snapshot': { p: 'ctl', d: 'evapi · core node → sidecar · event', f: 'aor, contacts[]: uri, received, path, expires_at, user_agent' },
+    'call.attempt': { p: 'ctl', d: 'evapi · core node → sidecar · event', f: 'session_id, sip_code, reason' },
+    'call.connected': { p: 'ctl', d: 'evapi · core node → sidecar · event', f: 'session_id, call_id, h_entry, h_id, connect_ts, to_contact' },
+    'call.ended': { p: 'ctl', d: 'evapi · core node → sidecar · event', f: 'session_id, call_id, h_entry, h_id, connect_ts, end_ts,\nended_by: caller | callee | timer | media | system' },
+    'dialog.timeout': { p: 'ctl', d: 'evapi · sidecar → core node · command', f: 'h_entry, h_id, timeout (seconds from now)' },
+    'node.health': { p: 'ctl', d: 'evapi · sidecar → core node · command', f: 'rtpengine_up: 0 | 1' },
+    'nonce': { p: 'ctl', d: 'auth.challenge result', f: 'timestamp + random + HMAC under a key ID shared with the backend' },
+    'dlg.end_dlg': { p: 'ctl', d: 'JSON-RPC · sidecar → Kamailio :5071/RPC', f: 'params: h_entry, h_id, extra_hdrs\n  e.g. "X-Disconnect-Reason: reauth_denied"\n"Dialog not found" counts as success' },
+    'rtpengine.ping': { p: 'ctl', d: 'JSON-RPC · sidecar → Kamailio', f: 'params: "all"\nonly status "success" counts as up' },
+    'offer': { p: 'ctl', d: 'ng · Kamailio → RTPEngine', f: 'on INVITE; record-call when call.setup says record: 1' },
+    'answer': { p: 'ctl', d: 'ng · Kamailio → RTPEngine', f: 'on 183 / 200 OK' },
+    'delete': { p: 'ctl', d: 'ng · Kamailio → RTPEngine', f: 'on BYE, CANCEL and failures' },
+    'IdentifyOrigin': { p: 'grpc', d: 'gRPC Identity · unary · 250 ms', f: 'OriginRequest: call_id, source{ip, port, transport}, from_uri,\n  to_uri, ruri, pai, node_id\nOriginResponse: result TRUSTED | NOT_TRUSTED, gateway_id,\n  account_id, ruri_user, cache_seconds' },
+    'VerifyDigest': { p: 'grpc', d: 'gRPC Identity · unary · 250 ms', f: 'DigestRequest: authorization, method, realm, to_uri, ruri,\n  source, node_id\nDigestResponse: result ACCEPTED | REJECTED | STALE, aor,\n  account_id, ruri_user, caller_id' },
+    'GetRoutes': { p: 'grpc', d: 'gRPC Routing · unary · 250 ms', f: 'RouteRequest: session_id, call_id, caller_type, account_id,\n  gateway_id, aor, caller, callee, callee_original, source, pai,\n  diversion, codecs, node_id\nRouteResponse: disposition GATEWAYS | NO_ROUTE |\n  SUBSCRIBER_UNAVAILABLE, routes[gateway_id, uri, fr_inv_timer_ms],\n  unreachable_action, push_wait_seconds' },
+    'Authorize': { p: 'grpc', d: 'gRPC CallAuthorization · unary · 250 ms · idempotent on session_id', f: 'AuthorizeRequest: session_id, caller_type, account_id, caller,\n  callee, target_type, gateway_ids, requested_seconds, node_id\nAuthorizeResponse: result GRANTED | DENIED, granted_seconds,\n  allowed_total_seconds, final_grant, record, sip_code, deny_reason' },
+    'Reauthorize': { p: 'grpc', d: 'gRPC CallAuthorization · unary · 2 s · not retried', f: 'ReauthorizeRequest: session_id, used_seconds, requested_seconds\nAuthorizeResponse: cumulative allowed_total_seconds, final_grant' },
+    'Terminate': { p: 'grpc', d: 'gRPC CallAuthorization · unary · 2 s · idempotent', f: 'TerminateRequest: session_id, used_seconds, cause' },
+    'Control': { p: 'grpc', d: 'gRPC CallAuthorization.Control · bidi stream', f: 'ControlCommand: command_id, end_call{session_id, reason}\n  | force_reauth{session_id}\nControlAck: command_id, node_id, ok, error\nThe first message is a hello ControlAck with the node_id.' },
+    'EventIngest': { p: 'grpc', d: 'gRPC EventIngest.Submit · bidi stream · at least once', f: 'Event: event_id (ULID, dedup key), ipdr | registration\nEventAck: event_id, accepted\nIpdr: type START | FINAL | FAILED, session_id, seq, node_id,\n  call_id, caller, numbers, times, reasons, attempts, recording\nRegistrationEvent: type REGISTERED | UNREGISTERED | EXPIRED,\n  aor, contact_uri, received, user_agent, expires_at,\n  last_register_time, node_id' },
+    'OPTIONS': { p: 'sip', d: 'SIP · dispatcher probe every 5 s', f: 'From: sip:lb@SIP_DOMAIN\nCore node answer: 200 OK when $shv(sidecar_up) > 0 and\n  $shv(rtp_up) == 1, else 503 Degraded' },
+    'REGISTER': { p: 'sip', d: 'SIP · through the LB node', f: 'LB node adds: Path <sip:LB;lr;received=sip:client>\n  and X-Src-IP / X-Src-Port / X-Src-Proto\nRelayed to the core node over UDP (route REG_UDP)' },
+    'INVITE': { p: 'sip', d: 'SIP', f: 'From outside: the LB node adds Record-Route (double) and X-Src-*,\n  then relays to the core node over TCP.\nEgress: To = R-URI; the gateway sees only LB node addresses.' },
+    'keepalive': { p: 'sip', d: 'SIP OPTIONS · nathelper · every 30 s', f: 'From: sip:keepalive@SIP_DOMAIN\nRoute: the stored Path (UDP) → LB node → received address\nSent only by the core node that owns the contact (server_id)' }
+  },
+
+  glossary: [
+    ['core node', 'One Kamailio instance with its own sidecar and its own RTPEngine.'],
+    ['LB node', 'A Kamailio proxy in the LB tier. It runs dispatcher and has no database and no sidecar.'],
+    ['sidecar', 'The Java 25 process beside Kamailio on a core node. It makes every backend call.'],
+    ['backend', 'The billing services the sidecar calls: call-control instances and PostgreSQL.'],
+    ['evapi', 'Kamailio\'s event socket on 127.0.0.1:8448. It carries netstring-framed JSON to the sidecar.'],
+    ['dispatcher', 'The Kamailio module that selects a destination from a set. Set 1 on LB nodes = core nodes. Set 2 on core nodes = LB nodes.'],
+    ['From-URI hash', 'ds_select_dst("1","1"). The same From URI always selects the same healthy core node.'],
+    ['Path', 'A REGISTER header the LB node adds. It names the LB node and the client\'s received address.'],
+    ['received address', 'The source address the LB node saw: for a client behind NAT, the NAT address.'],
+    ['X-Src-IP / Port / Proto', 'Headers with the client\'s real source. The LB node sets them; the core node trusts them only from LB_SUBNET.'],
+    ['OPTIONS probe', 'A health request every 5 s. A core node answers 503 when its sidecar or RTPEngine is down.'],
+    ['inactive (IP)', 'Dispatcher state of a destination that failed a probe. It gets no new requests.'],
+    ['ds_mark_dst', 'Marks a destination inactive after a branch timeout, so the next request uses another.'],
+    ['nonce', 'A stateless challenge value: timestamp, random value and HMAC. The sidecar issues it; the backend verifies it.'],
+    ['HA1', 'MD5(user:realm:password). Only the backend stores it.'],
+    ['rtdoc / rtjson', 'The route document in call.setup, and the Kamailio module that relays its routes in order.'],
+    ['allowance / T', 'The seconds a call may run. T is the second it ends unless a new grant arrives.'],
+    ['IPDR', 'A call record the sidecar sends: Start and Final, or one Failed. The backend builds CDRs from them.'],
+    ['NOTIFY', 'PostgreSQL\'s message to listening connections: config_changed and control.'],
+    ['sweeper', 'A backend job. It settles sessions with no news for allowance + 60 s.']
+  ]
+};
+
+/* ==========================================================================
+   RENDER
+   ========================================================================== */
+const NS = 'http://www.w3.org/2000/svg';
+const $ = s => document.querySelector(s);
+const svg = $('#stage');
+const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const PCOL = { sip: 'var(--sip)', ctl: 'var(--ctl)', grpc: 'var(--grpc)', rtp: 'var(--rtp)', sql: 'var(--sql)', http: 'var(--http)', mut: 'var(--muted)' };
+const PNAME = { sip: 'SIP', ctl: 'evapi · JSON-RPC · ng', grpc: 'gRPC mTLS', rtp: 'RTP', sql: 'SQL', http: 'HTTPS' };
+function E(tag, attrs, parent, text) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  if (parent) parent.appendChild(n);
+  return n;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const NAME = id => { const n = MODEL.nodes[id]; return n.t === 'Kamailio' ? `Kamailio (${n.s.split('\n')[0]})` : n.t; };
+
+// groups
+MODEL.groups.forEach(g => {
+  const el = E('g', { class: 'grp' + (g.scaled ? ' scaled-only' : '') }, $('#g-groups'));
+  E('rect', { x: g.x, y: g.y, width: g.w, height: g.h, rx: 8 }, el);
+  E('text', { x: g.x + 12, y: g.y + 19 }, el, g.label);
+});
+
+// links
+const linkEls = {};
+Object.entries(MODEL.links).forEach(([id, L]) => {
+  const mode = L.mode || 'scaled';
+  const cls = ['link', 'p-' + L.p];
+  if (L.dashed) cls.push('dashed');
+  if (mode === 'scaled') cls.push('scaled-only');
+  if (mode === 'small') cls.push('small-link');
+  const g = E('g', { class: cls.join(' '), tabindex: mode === 'small' ? -1 : 0, role: 'button', 'aria-label': `Link ${NAME(L.a)} to ${NAME(L.b)}, ${PNAME[L.p]}`, 'data-link': id }, $('#g-links'));
+  L.path = E('path', { class: 'w', d: L.d }, g);
+  E('path', { class: 'hit', d: L.d }, g);
+  if (L.label) E('text', { class: 'lt', x: L.lx, y: L.ly, 'text-anchor': L.p === 'sql' && L.dashed ? 'start' : 'middle' }, g, L.label);
+  g.addEventListener('click', () => select('link', id));
+  g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select('link', id); } });
+  linkEls[id] = g;
+});
+document.querySelectorAll('.small-link').forEach(g => g.style.display = 'none');
+
+// nodes
+const nodeEls = {};
+Object.entries(MODEL.nodes).forEach(([id, N]) => {
+  const g = E('g', { class: 'node' + (N.k ? ' k-' + N.k : '') + (N.scaled ? ' scaled-only' : ''), tabindex: 0, role: 'button', 'aria-label': NAME(id), 'data-node': id }, $('#g-nodes'));
+  E('rect', { class: 'box', x: N.x, y: N.y, width: N.w, height: N.h, rx: 5 }, g);
+  const lines = (N.s || '').split('\n').filter(Boolean);
+  const total = 19 + lines.length * 19;
+  const ty = N.y + N.h / 2 - total / 2 + 16;
+  E('text', { class: 't', x: N.x + N.w / 2, y: ty, 'text-anchor': 'middle' }, g, N.t);
+  lines.forEach((ln, i) => E('text', { class: 's', x: N.x + N.w / 2, y: ty + 22 + i * 19, 'text-anchor': 'middle' }, g, ln));
+  N.badge = E('g', { style: 'display:none' }, g);
+  N.badgeBg = E('rect', { x: N.x + N.w - 62, y: N.y - 9, width: 58, height: 18, rx: 3 }, N.badge);
+  N.badgeTx = E('text', { class: 'badge', x: N.x + N.w - 33, y: N.y + 4, 'text-anchor': 'middle' }, N.badge, '');
+  g.addEventListener('click', () => select('node', id));
+  g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select('node', id); } });
+  nodeEls[id] = g;
+});
+const fx = $('#g-fx');
+
+/* ==========================================================================
+   INSPECTOR
+   ========================================================================== */
+const insp = $('#inspector');
+let selected = null;
+function overview() {
+  selected = null;
+  document.querySelectorAll('.node.sel, .link.sel').forEach(x => x.classList.remove('sel'));
+  const small = mode === 'small';
+  insp.innerHTML = small ? `
+    <div class="kind"><i style="--c:var(--sip);background:var(--sip)"></i>Small deployment</div>
+    <h2>One core node faces the internet</h2>
+    <h3>What moves into the core node</h3>
+    <ul><li>TLS on 5061, with the certificates.</li><li>pike flood limits (30 requests per 2 s per source); trusted gateways exempt.</li><li>NAT handling: received / rport, fix_nated_register, NAT keepalives sent directly.</li><li>The real source address comes from the socket, not from X-Src-* headers.</li><li>Egress to gateways leaves from the core node.</li><li>No health answer for an LB tier.</li></ul>
+    <h3>What stays the same</h3>
+    <ul><li>The sidecar, RTPEngine and every backend call.</li><li>One script: the <code>WITH_LB</code> define selects the mode.</li><li>Clients use a DNS name with SRV records, so the move to scaled mode needs no client change.</li></ul>
+    <p class="hint" style="margin-top:14px">Flows and failures play in scaled mode.</p>` : `
+    <div class="kind"><i style="background:var(--sip)"></i>Inspector</div>
+    <h2>Click a box or a line</h2>
+    <p class="hint" style="margin-top:10px">Each component shows its job, its ports, what it trusts and how it scales. Each line shows its protocol, port and messages.</p>
+    <p class="hint">Hover a message name (dotted underline) to see its fields.</p>
+    <h3>Reading the map</h3>
+    <ul><li>Signalling always passes the LB tier, in both directions.</li><li>Media (dashed cyan) goes straight to each RTPEngine public IP.</li><li>Both core nodes share one MySQL location table.</li><li>Sidecars reach any call-control instance; no sticky sessions.</li></ul>`;
+}
+function kvRows(rows) { return rows.length ? `<table class="kv">${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>` : '<p class="hint" style="margin-top:6px">n/a</p>'; }
+function select(kind, id) {
+  document.querySelectorAll('.node.sel, .link.sel').forEach(x => x.classList.remove('sel'));
+  selected = { kind, id };
+  if (kind === 'node') {
+    let N = MODEL.nodes[id]; const base = N.same ? MODEL.nodes[N.same] : N;
+    nodeEls[id].classList.add('sel');
+    const c = PCOL[N.k] || 'var(--muted)';
+    insp.innerHTML = `<button type="button" class="close" id="closeInsp">Esc</button>
+      <div class="kind"><i style="background:${c}"></i>${esc(N.role)}</div>
+      <h2>${esc(NAME(id))}</h2>
+      ${N.same ? `<p class="hint" style="margin-top:6px">Same role as ${esc(NAME(N.same))}.</p>` : ''}
+      <h3>Job</h3><ul>${base.job.map(j => `<li>${esc(j)}</li>`).join('')}</ul>
+      <h3>Ports</h3>${kvRows(base.ports)}
+      <h3>Trusts</h3><p class="hint" style="margin-top:6px">${esc(base.trusts)}</p>
+      <h3>Scales</h3><p class="hint" style="margin-top:6px">${esc(base.scales)}</p>
+      <h3>Links</h3><ul>${Object.entries(MODEL.links).filter(([lid, L]) => (L.a === id || L.b === id) && (L.mode || 'scaled') !== (mode === 'small' ? 'scaled' : 'small')).map(([lid, L]) => `<li><a href="#" data-goto="${lid}">${esc(NAME(L.a === id ? L.b : L.a))}</a> · ${PNAME[L.p]}</li>`).join('')}</ul>`;
+  } else {
+    const L = MODEL.links[id];
+    linkEls[id].classList.add('sel');
+    insp.innerHTML = `<button type="button" class="close" id="closeInsp">Esc</button>
+      <div class="kind"><i style="background:${PCOL[L.p]}"></i>${PNAME[L.p]}</div>
+      <h2>${esc(NAME(L.a))} ↔ ${esc(NAME(L.b))}</h2>
+      ${kvRows([['Protocol', PNAME[L.p]], ['Port / transport', L.port], ['Messages', L.msgs]].concat(L.note ? [['Note', L.note]] : []))}`;
+  }
+  insp.querySelector('#closeInsp')?.addEventListener('click', overview);
+  insp.querySelectorAll('[data-goto]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); select('link', a.dataset.goto); }));
+  bindTips(insp);
+}
+
+/* ==========================================================================
+   TOOLTIPS
+   ========================================================================== */
+const tip = $('#tip');
+function msgKey(name) {
+  if (MODEL.msgs[name]) return name;
+  const first = name.split(/[\s(+:·→]/)[0];
+  return MODEL.msgs[first] ? first : null;
+}
+function showTip(el) {
+  const k = el.dataset.k; const M = MODEL.msgs[k]; if (!M) return;
+  tip.style.setProperty('--c', PCOL[M.p]);
+  tip.innerHTML = `<div class="tn">${esc(k)}</div><div class="td">${esc(M.d)}</div><div class="tf">${esc(M.f)}</div>`;
+  const r = el.getBoundingClientRect();
+  tip.classList.add('on');
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let x = Math.min(Math.max(12, r.left), innerWidth - tw - 12);
+  let y = r.bottom + 8; if (y + th > innerHeight - 8) y = r.top - th - 8;
+  tip.style.left = x + 'px'; tip.style.top = Math.max(8, y) + 'px';
+}
+function hideTip() { tip.classList.remove('on'); }
+function bindTips(root) {
+  root.querySelectorAll('.msg[data-k]').forEach(el => {
+    if (el.dataset.bound) return; el.dataset.bound = 1;
+    el.tabIndex = 0;
+    el.addEventListener('mouseenter', () => showTip(el)); el.addEventListener('mouseleave', hideTip);
+    el.addEventListener('focus', () => showTip(el)); el.addEventListener('blur', hideTip);
+  });
+}
+
+/* ==========================================================================
+   PLAYER
+   ========================================================================== */
+let mode = 'scaled', flowId = null, idx = -1, playing = false, speed = 1, anim = null, timer = null;
+const flowChips = $('#flowChips'), failChips = $('#failChips');
+Object.entries(MODEL.flows).forEach(([id, F]) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip' + (F.kind === 'fail' ? ' fail' : ''); b.dataset.flow = id; b.setAttribute('aria-pressed', 'false');
+  b.innerHTML = `<span class="k">${F.key}</span>${esc(F.title)}`;
+  b.addEventListener('click', () => loadFlow(id, true));
+  (F.kind === 'fail' ? failChips : flowChips).appendChild(b);
+});
+
+function linkBetween(a, b, media, prefer) {
+  const vis = l => { const m = l.mode || 'scaled'; return mode === 'small' ? m !== 'scaled' : m !== 'small'; };
+  const cands = Object.entries(MODEL.links).filter(([id, L]) => vis(L) && ((L.a === a && L.b === b) || (L.a === b && L.b === a)) && (media ? L.p === 'rtp' : L.p !== 'rtp'));
+  let hit = prefer ? cands.find(([id]) => prefer.includes(id)) : null;
+  if (!hit) hit = cands.find(([id, L]) => !L.dashed) || cands[0];
+  if (!hit) return null;
+  return { id: hit[0], L: hit[1], rev: hit[1].a !== a };
+}
+function hopsOf(step) {
+  const hops = [];
+  for (let i = 0; i < step.p.length - 1; i++) { const h = linkBetween(step.p[i], step.p[i + 1], step.media, step.l); if (h) hops.push(h); }
+  return hops;
+}
+function stateAt(F, i) {
+  const down = new Set(), inactive = new Set();
+  for (let k = 0; k <= i && k < F.steps.length; k++) {
+    const s = F.steps[k].st; if (!s) continue;
+    (s.down || []).forEach(n => { down.add(n); });
+    (s.inactive || []).forEach(n => inactive.add(n));
+    (s.up || []).forEach(n => { down.delete(n); inactive.delete(n); });
+  }
+  return { down, inactive };
+}
+function applyState(st) {
+  Object.entries(nodeEls).forEach(([id, g]) => {
+    const N = MODEL.nodes[id], d = st.down.has(id), ia = st.inactive.has(id) && !d;
+    g.classList.toggle('is-down', d); g.classList.toggle('is-inactive', ia);
+    N.badge.style.display = d || ia ? '' : 'none';
+    if (d || ia) {
+      N.badgeTx.textContent = d ? 'DOWN' : 'INACTIVE';
+      const w = d ? 54 : 78;
+      N.badgeBg.setAttribute('width', w); N.badgeBg.setAttribute('x', N.x + N.w - w - 4);
+      N.badgeTx.setAttribute('x', N.x + N.w - 4 - w / 2);
+      N.badgeBg.style.fill = d ? 'var(--down)' : 'var(--sip)'; N.badgeTx.style.fill = 'var(--bg)';
+    }
+  });
+  Object.entries(MODEL.links).forEach(([id, L]) => linkEls[id].classList.toggle('is-cut', st.down.has(L.a) || st.down.has(L.b)));
+}
+
+function loadFlow(id, autoplay) {
+  if (mode !== 'scaled') return;
+  stop(); flowId = id; idx = -1;
+  document.querySelectorAll('[data-flow]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.flow === id)));
+  const F = MODEL.flows[id];
+  $('#flowIntro').textContent = F.intro;
+  const log = $('#log'); log.innerHTML = '';
+  F.steps.forEach((s, i) => {
+    const li = document.createElement('li');
+    const k = s.k || msgKey(s.m);
+    const proto = protoOf(s);
+    li.style.setProperty('--c', PCOL[proto]);
+    li.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')}</span><span class="m">${k ? `<span class="msg" data-k="${esc(k)}">${esc(s.m)}</span>` : esc(s.m)}</span><span class="x">${esc(s.t)}</span>`;
+    li.addEventListener('click', () => { pause(); go(i); });
+    log.appendChild(li);
+  });
+  bindTips(log);
+  svg.classList.add('playing');
+  applyState(stateAt(F, -1));
+  if (autoplay) { playing = true; setPlayBtn(); }
+  go(0);
+}
+function protoOf(s) {
+  if (s.media) return 'rtp';
+  const h = hopsOf(s); if (h.length) return h[0].L.p;
+  const n = MODEL.nodes[s.p[0]]; return n.k || 'mut';
+}
+function render(i, animate, done) {
+  const F = MODEL.flows[flowId], s = F.steps[i];
+  idx = i;
+  applyState(stateAt(F, i));
+  document.querySelectorAll('.node.hot, .link.hot').forEach(x => x.classList.remove('hot'));
+  s.p.forEach(n => nodeEls[n].classList.add('hot'));
+  const hops = hopsOf(s);
+  hops.forEach(h => linkEls[h.id].classList.add('hot'));
+  const proto = protoOf(s), col = PCOL[proto];
+  // caption, log, counter
+  const k = s.k || msgKey(s.m);
+  const cap = $('#caption'); cap.style.setProperty('--c', col);
+  const where = s.p.length > 1 ? s.p.map(NAME).join(' → ') : NAME(s.p[0]);
+  cap.innerHTML = `<div class="cm">${k ? `<span class="msg" data-k="${esc(k)}">${esc(s.m)}</span>` : esc(s.m)}${s.lost ? ' · no reply' : ''}</div><div class="ct">${esc(s.t)}</div><div class="cw">${esc(where)}${hops.length ? ' · ' + PNAME[proto] : ''}</div>`;
+  bindTips(cap);
+  const log = $('#log');
+  [...log.children].forEach((li, j) => { li.classList.toggle('cur', j === i); li.classList.toggle('done', j < i); });
+  const cur = log.children[i];
+  if (cur) { const top = cur.offsetTop - log.offsetTop; if (top < log.scrollTop || top + cur.offsetHeight > log.scrollTop + log.clientHeight) log.scrollTop = top - log.clientHeight / 3; }
+  $('#counter').textContent = `${F.title} · step ${i + 1} / ${F.steps.length}`;
+  $('#btnPrev').disabled = i <= 0; $('#btnFirst').disabled = i <= 0; $('#btnNext').disabled = i >= F.steps.length - 1;
+  drawStep(s, hops, col, animate && !reduced.matches, done);
+}
+
+// Sample a polyline over the hops, in travel direction.
+function samplePoints(hops) {
+  const pts = [];
+  hops.forEach(h => {
+    const P = h.L.path, len = P.getTotalLength(), n = Math.max(2, Math.ceil(len / 6));
+    for (let j = 0; j <= n; j++) { const t = (h.rev ? 1 - j / n : j / n) * len; const p = P.getPointAtLength(t); pts.push([p.x, p.y]); }
+  });
+  return pts;
+}
+// A label on a solid pill, so it stays readable over lines and group labels.
+function pill(x, y, text, col, anchor) {
+  const g = E('g', {}, fx);
+  const r = E('rect', { class: 'pill', rx: 4, height: 24 }, g); r.style.stroke = col;
+  const t = E('text', { class: 'packet-label', 'dominant-baseline': 'central' }, g, text); t.style.fill = col;
+  const w = t.getComputedTextLength() + 16;
+  g.w = w;
+  g.move = (px, py) => {
+    const left = anchor === 'middle' ? px - w / 2 : px;
+    const L = Math.min(Math.max(left, 4), 1496 - w);
+    r.setAttribute('x', L); r.setAttribute('y', py - 12); r.setAttribute('width', w);
+    t.setAttribute('x', L + 8); t.setAttribute('y', py + 1);
+  };
+  g.move(x, y);
+  return g;
+}
+function drawStep(s, hops, col, animate, done) {
+  cancelAnimationFrame(anim); fx.innerHTML = '';
+  if (!hops.length) {
+    // an action inside one node: pulse the node, label beside it
+    const N = MODEL.nodes[s.p[0]], cx = N.x + N.w / 2, cy = N.y + N.h / 2;
+    const ring = E('rect', { class: 'pulse', x: N.x - 4, y: N.y - 4, width: N.w + 8, height: N.h + 8, rx: 8 }, fx);
+    ring.style.stroke = col;
+    pill(N.x + N.w / 2, N.y + 2, s.m, col, 'middle');
+    if (!animate) { done && setTimeout(done, 900 / speed); return; }
+    const t0 = performance.now(), D = 1100 / speed;
+    const tick = now => {
+      const k = Math.min(1, (now - t0) / D);
+      ring.style.opacity = String(1 - k * .6); ring.setAttribute('stroke-width', String(3 + 5 * Math.sin(k * Math.PI)));
+      if (k < 1) anim = requestAnimationFrame(tick); else done && done();
+    };
+    anim = requestAnimationFrame(tick);
+    return;
+  }
+  const pts = samplePoints(hops);
+  const d = 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L');
+  const arrow = `url(#arr-${protoOf(s)})`;
+  const trail = E('path', { class: 'trail', d }, fx);
+  if (!s.lost) trail.setAttribute('marker-end', arrow);
+  trail.style.stroke = col; if (s.media) trail.style.strokeDasharray = '8 6';
+  const total = trail.getTotalLength();
+  const cut = s.lost ? .82 : 1;
+  const pk = E('circle', { class: 'packet', r: 7, filter: 'url(#glow)' }, fx); pk.style.fill = col;
+  const lab = pill(0, 0, s.m, col, 'start');
+  const lw = lab.w;
+  const place = k => {
+    const p = trail.getPointAtLength(total * k);
+    pk.setAttribute('cx', p.x); pk.setAttribute('cy', p.y);
+    const lx = Math.min(Math.max(p.x + 12, 8), 1492 - lw);
+    lab.move(lx, p.y < 34 ? p.y + 24 : p.y - 16);
+  };
+  const finish = () => {
+    if (s.lost) {
+      const p = trail.getPointAtLength(total * cut);
+      E('text', { class: 'lost', x: p.x, y: p.y + 8, 'text-anchor': 'middle' }, fx, '✕');
+      pk.style.opacity = '.25';
+    }
+    done && done();
+  };
+  if (!animate) {
+    if (!s.media) { trail.style.strokeDasharray = s.lost ? `${total * cut} ${total}` : ''; }
+    place(cut); finish(); return;
+  }
+  const D = Math.max(520, total / 0.62) / speed;
+  if (!s.media) { trail.style.strokeDasharray = `${total} ${total}`; trail.style.strokeDashoffset = total; }
+  trail.removeAttribute('marker-end');
+  const t0 = performance.now();
+  const tick = now => {
+    const raw = Math.min(1, (now - t0) / D);
+    const k = (raw < .5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2) * cut;
+    if (!s.media) trail.style.strokeDashoffset = String(total * (1 - k));
+    place(k);
+    if (raw < 1) anim = requestAnimationFrame(tick);
+    else { if (!s.lost) trail.setAttribute('marker-end', arrow); finish(); }
+  };
+  anim = requestAnimationFrame(tick);
+}
+
+function go(i) {
+  if (!flowId) return;
+  const F = MODEL.flows[flowId];
+  i = Math.max(0, Math.min(i, F.steps.length - 1));
+  clearTimeout(timer);
+  render(i, true, playing ? () => { timer = setTimeout(() => { if (!playing) return; if (idx < F.steps.length - 1) go(idx + 1); else pause(); }, 650 / speed); } : null);
+}
+function play() {
+  if (!flowId) { loadFlow('register', false); }
+  const F = MODEL.flows[flowId];
+  if (idx >= F.steps.length - 1) idx = -1;
+  playing = true; setPlayBtn(); go(idx + 1);
+}
+function pause() { playing = false; clearTimeout(timer); setPlayBtn(); }
+function stop() { pause(); cancelAnimationFrame(anim); fx.innerHTML = ''; }
+function setPlayBtn() { $('#btnPlay').textContent = playing ? '❚❚ Pause' : '▶ Play'; }
+$('#btnPlay').addEventListener('click', () => playing ? pause() : play());
+$('#btnNext').addEventListener('click', () => { pause(); go(idx + 1); });
+$('#btnPrev').addEventListener('click', () => { pause(); go(idx - 1); });
+$('#btnFirst').addEventListener('click', () => { pause(); go(0); });
+$('#speed').addEventListener('change', e => { speed = parseFloat(e.target.value); });
+
+/* ==========================================================================
+   MODE
+   ========================================================================== */
+function setMode(m) {
+  mode = m;
+  $('#mode-scaled').setAttribute('aria-pressed', String(m === 'scaled'));
+  $('#mode-small').setAttribute('aria-pressed', String(m === 'small'));
+  svg.classList.toggle('mode-small', m === 'small');
+  document.querySelectorAll('.small-link').forEach(g => g.style.display = m === 'small' ? '' : 'none');
+  document.querySelectorAll('.scaled-only').forEach(g => g.setAttribute('tabindex', m === 'small' && g.matches('.node, .link') ? '-1' : (g.matches('.node, .link') ? '0' : g.getAttribute('tabindex') || '')));
+  MODEL.nodes.ka.s = m === 'small' ? 'public-facing\nTLS 5061 · pike\nNAT handling\nreal source = socket' : 'core node A\nregistrar\ndialogs · timers\nrtjson routing';
+  const g = nodeEls.ka; g.querySelectorAll('text.s').forEach((t, i) => t.textContent = MODEL.nodes.ka.s.split('\n')[i] || '');
+  document.querySelectorAll('[data-flow]').forEach(b => b.disabled = m === 'small');
+  if (m === 'small') {
+    stop(); flowId = null; idx = -1; svg.classList.remove('playing');
+    document.querySelectorAll('.node.hot, .link.hot').forEach(x => x.classList.remove('hot'));
+    document.querySelectorAll('[data-flow]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    applyState({ down: new Set(), inactive: new Set() });
+    $('#flowIntro').textContent = 'Small mode: one core node faces the internet. Switch back to Scaled to play flows and failures.';
+    $('#caption').innerHTML = '<div class="cm">small deployment</div><div class="ct">The LB tier and core node B are greyed out. Core node A now terminates TLS, handles NAT and sends egress itself.</div>';
+    $('#log').innerHTML = ''; $('#counter').textContent = '';
+    ['btnPrev', 'btnNext', 'btnFirst', 'btnPlay'].forEach(b => $('#' + b).disabled = true);
+  } else {
+    ['btnPlay'].forEach(b => $('#' + b).disabled = false);
+    loadFlow('register', false);
+  }
+  overview();
+}
+$('#mode-scaled').addEventListener('click', () => setMode('scaled'));
+$('#mode-small').addEventListener('click', () => setMode('small'));
+
+/* ==========================================================================
+   KEYBOARD
+   ========================================================================== */
+document.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'select' || tag === 'input' || tag === 'textarea') return;
+  if (e.key === 'Escape') { overview(); hideTip(); return; }
+  if (mode !== 'scaled' || !flowId) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); pause(); go(idx + 1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); pause(); go(idx - 1); }
+  else if (e.key === ' ' && !e.target.closest('button, [role="button"]')) { e.preventDefault(); playing ? pause() : play(); }
+  else if (e.key === 'Home' && !e.target.closest('.log')) { pause(); go(0); }
+});
+
+/* ==========================================================================
+   KNOWLEDGE SECTIONS FROM THE MODEL
+   ========================================================================== */
+(function () {
+  const tb = $('#tbl-links tbody');
+  Object.entries(MODEL.links).forEach(([id, L]) => {
+    if ((L.mode || 'scaled') === 'small' || L.same) return;
+    if (L.p === 'rtp' && id !== 'ua-ra') return;
+    const tr = document.createElement('tr');
+    const name = L.p === 'rtp' ? 'Endpoints and gateways ↔ RTPEngine (each core node)' : `${NAME(L.a)} ↔ ${NAME(L.b)}`;
+    tr.innerHTML = `<td>${esc(name)}</td><td><span class="pchip" style="color:${PCOL[L.p]}">${PNAME[L.p]}</span></td><td>${esc(L.port)}</td><td>${esc(L.msgs)}${L.note ? `<br><span style="color:var(--muted)">${esc(L.note)}</span>` : ''}</td>`;
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => { if (mode !== 'scaled') setMode('scaled'); select('link', id); $('.stagebox').scrollIntoView({ behavior: reduced.matches ? 'auto' : 'smooth', block: 'start' }); });
+    tb.appendChild(tr);
+  });
+  $('#gloss').innerHTML = MODEL.glossary.map(([t, d]) => `<div><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join('');
+  bindTips(document.getElementById('q1'));
+})();
+
+/* ==========================================================================
+   START: scaled mode, flow a loaded and paused at step 1
+   ========================================================================== */
+overview();
+loadFlow('register', false);
+</script>
+</body>
+</html>
