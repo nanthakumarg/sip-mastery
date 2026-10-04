@@ -177,6 +177,8 @@ Rendering choices:
 - SVG with a `viewBox`, so diagrams scale. Text uses Martian Mono.
 - Initial HTML is rendered on the server by Astro, so a diagram is readable before JavaScript loads and with JavaScript off.
 - Islands hydrate with `client:visible`, so off-screen diagrams cost nothing.
+- **Width.** Lesson text stays in a centred 72ch column; diagrams break out of it (up to `--wide-max`, 1800px). A ladder never scales past `--ladder-scale` (115%) of its natural size, so on wide screens the extra width goes to the inspector (up to `--insp-max`, 600px). Each stage is only as wide as that combination needs.
+- **Expand.** Every stage has an Expand button: full screen, ladder up to 145%, inspector up to 760px, Esc closes and focus returns to the button.
 - Animation uses CSS transitions. `prefers-reduced-motion` turns off movement but keeps stepping.
 
 ## 6. Build-time checks

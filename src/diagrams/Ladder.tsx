@@ -21,6 +21,12 @@ export function geometry(lanes: number, compact = false): LadderGeometry {
 
 const HEAD_W = 136;
 const NUM_W = 40;
+
+/** Natural width of a ladder in SVG units (= CSS px at scale 1). */
+export function ladderWidth(lanes: number, compact = false): number {
+  const g = geometry(lanes, compact);
+  return NUM_W + HEAD_W + (lanes - 1) * g.laneGap + 8;
+}
 const PROTOS: Protocol[] = ['sip', 'sdp', 'rtp', 'rtcp', 'dns', 'err', 'down'];
 
 interface Props {
@@ -38,7 +44,7 @@ export default function Ladder({ flow, current, onSelect, compact = false, futur
   const x0 = NUM_W + HEAD_W / 2;
   const X: Record<string, number> = {};
   flow.lanes.forEach((l, i) => { X[l.id] = x0 + i * g.laneGap; });
-  const width = x0 + (flow.lanes.length - 1) * g.laneGap + HEAD_W / 2 + 8;
+  const width = ladderWidth(flow.lanes.length, compact);
   const height = g.top + flow.steps.length * g.rowH + 8;
   const cur = flow.steps[current];
   const activeLanes = new Set(cur ? [cur.from, cur.to] : []);
@@ -47,7 +53,7 @@ export default function Ladder({ flow, current, onSelect, compact = false, futur
     <svg
       className={`ladder lanes-${flow.lanes.length}${compact ? ' is-compact' : ''}`}
       viewBox={`0 0 ${width} ${height}`}
-      style={{ ['--min-w' as string]: `${Math.round(width * 0.75)}px` }}
+      style={{ ['--min-w' as string]: `${Math.round(width * 0.75)}px`, ['--lw' as string]: `${width}px` }}
       role="img"
       aria-label={`Call flow: ${flow.title}. Step ${current + 1} of ${flow.steps.length}.`}
     >

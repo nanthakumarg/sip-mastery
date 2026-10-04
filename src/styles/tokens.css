@@ -38,5 +38,8 @@
   /* Layout */
   --gutter: clamp(16px, 4vw, 48px);
   --measure: 72ch;
+  --wide-max: 1800px;      /* diagrams may break out of the text column up to this width */
+  --ladder-scale: 1.15;    /* a ladder never grows past 115% of its natural size */
+  --insp-max: 600px;       /* the inspector takes the extra width instead */
   --sidebar: 280px;
 }

@@ -5,13 +5,19 @@
    =========================================================== */
 
 /* ---------- Stage ---------- */
+.stage, .brokenfixed {
+  /* As wide as useful: the ladder at its maximum scale plus the widest inspector. */
+  max-width: calc(var(--lw, 712px) * var(--ladder-scale) + var(--insp-max) + 18px + 38px);
+  margin-inline: auto;
+}
+.brokenfixed .stage { max-width: none; }
 .stage {
   position: relative;
   background: var(--bg-deep);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 18px;
-  margin: 0;
+  margin-block: 0;
 }
 .stage:focus-visible { outline: 2px solid var(--sip); outline-offset: 3px; }
 .stage::after { /* faint scanlines: the console atmosphere */
@@ -20,7 +26,11 @@
 }
 .stage.is-broken { border-color: rgba(255, 107, 90, .45); }
 
-.stage-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px 24px; padding: 2px 4px 14px; border-bottom: 1px solid var(--line-2); }
+.stage-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 24px; padding: 2px 4px 14px; border-bottom: 1px solid var(--line-2); }
+.stage-head > div:first-child { margin-right: auto; }
+.stage-expand { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--dim); font: 400 12px var(--mono); }
+.stage-expand:hover { color: var(--text); border-color: #3a414c; }
+.stage-expand svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; }
 .stage-title { font: 700 19px/1.25 var(--display); color: var(--text); margin-top: 4px; }
 .stage.is-broken .eyebrow { color: var(--err); }
 
@@ -32,7 +42,12 @@
 .lg-rtp { background: repeating-linear-gradient(90deg, var(--rtp) 0 6px, transparent 6px 10px); }
 .lg-warn { color: var(--err); font-size: 13px; }
 
-.stage-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 390px); gap: 18px; margin-top: 16px; align-items: start; }
+/* The ladder takes what it needs (up to --ladder-scale); the inspector takes the rest. */
+.stage-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(370px, calc(100% - var(--lw) * var(--ladder-scale) - 18px), var(--insp-max));
+  gap: 18px; margin-top: 16px; align-items: start;
+}
 .stage-left { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .stage-ladder { max-height: min(70vh, 720px); overflow: auto; overscroll-behavior: contain; border-radius: 6px; scrollbar-color: var(--line) transparent; }
 .stage-inspector { min-width: 0; position: sticky; top: 84px; }
@@ -47,7 +62,7 @@
 }
 
 /* ---------- Ladder (SVG) ---------- */
-svg.ladder { width: 100%; min-width: var(--min-w, 0); height: auto; overflow: visible; font-family: var(--mono); }
+svg.ladder { width: 100%; min-width: var(--min-w, 0); max-width: calc(var(--lw) * var(--ladder-scale)); margin-inline: auto; height: auto; overflow: visible; font-family: var(--mono); }
 svg.ladder.lanes-2 { min-width: 0; } /* two lanes always fit; scale instead of scrolling */
 .ladder .lifeline { stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 5 7; }
 .ladder .lane-box { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; transition: stroke .25s; }
@@ -114,7 +129,7 @@ svg.ladder.lanes-2 { min-width: 0; } /* two lanes always fit; scale instead of s
 .insp-toggle input { accent-color: var(--sip); }
 .insp-count { color: var(--dim); }
 
-.insp-msg { padding: 8px 0; max-height: 420px; overflow: auto; font: 400 12px/1.6 var(--mono); color: var(--dim); scrollbar-color: var(--line) transparent; }
+.insp-msg { padding: 8px 0; max-height: min(60vh, 560px); overflow: auto; font: 400 12px/1.6 var(--mono); color: var(--dim); scrollbar-color: var(--line) transparent; }
 .insp-line { display: grid; grid-template-columns: 18px minmax(0, 1fr); padding: 1px 12px 1px 4px; cursor: pointer; border-left: 2px solid transparent; }
 .insp-line:hover, .insp-line.is-focus { background: rgba(255,255,255,.04); }
 .insp-line.is-pinned { border-left-color: var(--text); background: rgba(255,255,255,.06); }
@@ -153,6 +168,11 @@ svg.ladder.lanes-2 { min-width: 0; } /* two lanes always fit; scale instead of s
 
 /* ---------- Scrolly ---------- */
 .scrolly { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 40px; align-items: start; }
+.prose > .scrolly { max-width: 1480px; }
+@media (min-width: 1500px) {
+  /* Wide screens: narrow text blocks, the pinned ladder gets the larger share. */
+  .scrolly { grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: 56px; }
+}
 .scrolly-text { display: flex; flex-direction: column; gap: 22vh; padding: 12vh 0 30vh; }
 .scrolly-step { padding: 18px 20px; border: 1px solid var(--line-2); border-left: 3px solid var(--line); border-radius: 6px; background: var(--panel); transition: border-color .3s, opacity .3s; }
 .scrolly-step > * + * { margin-top: .7em; }
@@ -176,7 +196,7 @@ svg.ladder.lanes-2 { min-width: 0; } /* two lanes always fit; scale instead of s
 }
 
 /* ---------- Digest calculator ---------- */
-.digest { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 18px 22px; background: var(--bg-deep); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.digest { max-width: 1320px; margin-inline: auto; display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 18px 22px; background: var(--bg-deep); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
 .dg-inputs { display: flex; flex-direction: column; gap: 10px; }
 .dg-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .dg-field { display: flex; flex-direction: column; gap: 4px; }
@@ -214,3 +234,22 @@ svg.ladder.lanes-2 { min-width: 0; } /* two lanes always fit; scale instead of s
 @media (max-width: 860px) {
   .digest { grid-template-columns: minmax(0, 1fr); padding: 12px; }
 }
+
+/* ---------- Expanded (full screen) stage ---------- */
+html.stage-open { overflow: hidden; }
+.stage.is-expanded {
+  position: fixed; inset: 0; z-index: 100;
+  max-width: none; margin: 0; border: 0; border-radius: 0;
+  overflow: auto; overscroll-behavior: contain;
+  padding: 20px clamp(16px, 3vw, 48px) 28px;
+  --ladder-scale: 1.45;
+  --insp-max: 760px;
+}
+.stage.is-expanded::after { border-radius: 0; }
+.stage.is-expanded .stage-main { max-width: calc(var(--lw) * var(--ladder-scale) + var(--insp-max) + 18px); margin-inline: auto; }
+.stage.is-expanded .stage-head { max-width: calc(var(--lw) * var(--ladder-scale) + var(--insp-max) + 18px); margin-inline: auto; }
+.stage.is-expanded .stage-ladder { max-height: calc(100vh - 290px); }
+.stage.is-expanded .stage-inspector { top: 0; }
+.stage.is-expanded .insp-msg { max-height: calc(100vh - 420px); }
+.stage.is-expanded .stage-steps { display: none; }
+.stage.is-expanded .stage-expand { color: var(--text); border-color: var(--dim); }

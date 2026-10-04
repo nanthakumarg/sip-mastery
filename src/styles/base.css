@@ -34,9 +34,14 @@ h1 em, h2 em, h3 em { font-style: normal; color: var(--sip); }
 .lede { color: var(--dim); font-size: clamp(18px, 1.6vw, 21px); line-height: 1.55; max-width: 64ch; }
 
 /* ---------- Prose (lesson body) ---------- */
-.prose { display: grid; grid-template-columns: minmax(0, 1fr); }
-.prose > * { max-width: var(--measure); }
-.prose > .wide { max-width: none; }
+/* Breakout grid: text stays in a centred reading column; .wide elements
+   (diagrams, calculators) use the full width, up to --wide-max. */
+.prose {
+  display: grid;
+  grid-template-columns: [full-start] minmax(0, 1fr) [content-start] minmax(0, var(--measure)) [content-end] minmax(0, 1fr) [full-end];
+}
+.prose > * { grid-column: content; min-width: 0; }
+.prose > .wide { grid-column: full; width: 100%; max-width: var(--wide-max); justify-self: center; }
 .prose > * + * { margin-top: 1.1em; }
 .prose > h2 { margin-top: 2.6em; padding-top: 1.2em; border-top: 1px solid var(--line-2); }
 .prose > h3 { margin-top: 2em; }

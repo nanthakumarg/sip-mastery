@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import FlowStage from './FlowStage.tsx';
+import { ladderWidth } from './Ladder.tsx';
 import type { FlowBundle } from './types.ts';
 
 interface Props {
@@ -15,7 +16,7 @@ export default function BrokenFixed({ broken, fixed }: Props) {
   const [mode, setMode] = useState<'broken' | 'fixed'>('broken');
   const bundle = mode === 'broken' ? broken : fixed;
   return (
-    <div className={`brokenfixed is-${mode}`}>
+    <div className={`brokenfixed is-${mode}`} style={{ ['--lw' as string]: `${ladderWidth(bundle.flow.lanes.length)}px` }}>
       <div className="bf-switch" role="radiogroup" aria-label="Show the broken or the fixed flow">
         <button type="button" role="radio" aria-checked={mode === 'broken'} className="bf-broken" onClick={() => setMode('broken')}>
           <span aria-hidden="true">✕</span> Broken

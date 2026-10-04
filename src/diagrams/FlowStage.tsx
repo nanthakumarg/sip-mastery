@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Inspector from './Inspector.tsx';
-import Ladder, { usedProtocols } from './Ladder.tsx';
+import Ladder, { ladderWidth, usedProtocols } from './Ladder.tsx';
 import { comparableIndex } from './diff.ts';
 import { PROTO_LABEL, type FlowBundle } from './types.ts';
 
@@ -35,6 +35,9 @@ interface Props extends FlowBundle {
 export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow', speed = 2400 }: Props) {
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const figureRef = useRef<HTMLElement>(null);
+  const expandBtn = useRef<HTMLButtonElement>(null);
   const ladderBox = useRef<HTMLDivElement>(null);
   const last = flow.steps.length - 1;
   const step = flow.steps[current]!;
@@ -63,6 +66,21 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
     }
   }, [current]);
 
+  // Expanded view: full screen, page scroll locked, Esc closes, focus returns to the button.
+  useEffect(() => {
+    if (!expanded) return;
+    const root = document.documentElement;
+    root.classList.add('stage-open');
+    figureRef.current?.focus();
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      root.classList.remove('stage-open');
+      window.removeEventListener('keydown', onEsc);
+      expandBtn.current?.focus();
+    };
+  }, [expanded]);
+
   const go = (i: number) => { setPlaying(false); setCurrent(Math.max(0, Math.min(last, i))); };
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -77,7 +95,16 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
   const quote = step.rfc ? quotes[step.rfc] : undefined;
 
   return (
-    <figure className={`stage${flow.broken ? ' is-broken' : ''}`} tabIndex={0} onKeyDown={onKey} aria-label={`Interactive call flow: ${flow.title}`}>
+    <figure
+      ref={figureRef}
+      className={`stage${flow.broken ? ' is-broken' : ''}${expanded ? ' is-expanded' : ''}`}
+      style={{ ['--lw' as string]: `${ladderWidth(flow.lanes.length)}px` }}
+      tabIndex={0}
+      onKeyDown={onKey}
+      role={expanded ? 'dialog' : undefined}
+      aria-modal={expanded ? true : undefined}
+      aria-label={`Interactive call flow: ${flow.title}`}
+    >
       <header className="stage-head">
         <div>
           <p className="eyebrow">{eyebrow}</p>
@@ -89,6 +116,11 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
           ))}
           {flow.steps.some(s => s.warn) && <li><span className="lg-warn">⚠</span>Problem</li>}
         </ul>
+        <button type="button" ref={expandBtn} className="stage-expand" onClick={() => setExpanded(x => !x)}
+          aria-pressed={expanded} title={expanded ? 'Close full screen (Esc)' : 'Open full screen'}>
+          <svg viewBox="0 0 14 14" aria-hidden="true"><path d={expanded ? 'M5 1v4H1M9 1v4h4M5 13V9H1M9 13V9h4' : 'M1 5V1h4M13 5V1H9M1 9v4h4M13 9v4H9'} /></svg>
+          {expanded ? 'Close' : 'Expand'}
+        </button>
       </header>
 
       <div className="stage-main">
