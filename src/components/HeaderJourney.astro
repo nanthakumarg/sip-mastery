@@ -1,0 +1,9 @@
+---
+/** <HeaderJourney flow="header-journey" /> : headers × hops table for one request */
+import Island from '../diagrams/HeaderJourney.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+
+interface Props { flow: string }
+const [b] = await flowBundle(Astro.props.flow);
+---
+<div class="wide"><Island client:visible flow={b!.flow} refData={b!.refData} /></div>

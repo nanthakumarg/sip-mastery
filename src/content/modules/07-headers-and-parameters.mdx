@@ -1,0 +1,223 @@
+---
+module: 7
+title: Headers and parameters
+part: 2
+level: [intermediate]
+paths: { noc: core, dev: core }
+summary: The headers you meet in every trace — the mandatory six, tags, Via and Contact parameters, routing, identity and privacy, redirect history, and session timers — and which element adds, changes, or removes each one.
+objectives:
+  - Name the headers that every request must carry, and say what each one does.
+  - Explain From and To tags, and why a dialog needs both.
+  - Read the Via, Contact, and URI parameters you meet in traces.
+  - Tell P-Asserted-Identity from From, and explain how Privacy hides it.
+  - Read History-Info and Diversion to see why a call was forwarded.
+  - Explain how Session-Expires and Min-SE keep a call alive, and end a dead one.
+status: draft
+---
+
+## 7.1 The headers in every request
+
+Six headers are the minimum for any request; an INVITE also needs Contact.
+
+<RfcQuote id="rfc3261-8.1.1-mandatory" />
+
+| Header | Job | Changes on the way? |
+|---|---|---|
+| **Via** | The path back for responses; the top branch names the transaction | Each hop adds one; the next hop may add `received` and `rport` |
+| **Max-Forwards** | Stops loops | Each proxy subtracts 1 |
+| **From** | The sender, and the sender's tag | No (a B2BUA writes a new one) |
+| **To** | The target, and the other side's tag | The UAS adds its tag |
+| **Call-ID** | Groups the messages of one call or one registration | No (a B2BUA writes a new one) |
+| **CSeq** | Orders the requests from one side, and names the method | +1 for each new request from that side |
+| **Contact** (INVITE) | Where to send the next requests in the dialog | Rewritten by SBCs and NAT fixes |
+
+<RfcQuote id="rfc3261-8.1.1.6-max-forwards" />
+
+The header reference below covers these and about forty more. Search for a header, or pick a group, to see who adds, changes, and removes it.
+
+<HeaderReference initial="Via" />
+
+### Watch the headers travel
+
+Here is one INVITE on its way from Alice's phone, behind a NAT router, through Proxy A, an SBC, and Proxy B to Bob's phone. Each column is one hop; each marked cell is a change at that hop. Turn on **Show only the headers that change** to see what each element does.
+
+<HeaderJourney flow="header-journey" />
+
+<Flow id="header-journey" eyebrow="Call flow · the same INVITE, hop by hop" />
+
+## 7.2 Tags
+
+A **tag** is a random string in From and To. The UAC adds its tag to From in the first request; the UAS adds its tag to To in its response. Together with the Call-ID, the two tags name the dialog.
+
+<RfcQuote id="rfc3261-19.3-tags" />
+
+Why two tags, and not just the Call-ID? Because a forked INVITE can be answered by several phones. Each one adds its own To tag, so the caller can tell the dialogs apart:
+
+<RfcQuote id="rfc3261-19.3-forking" />
+
+Every request inside the dialog repeats both tags, in the right places. From the caller's side, From carries the caller's tag; from the callee's side — for example in Bob's BYE — the two swap: From carries Bob's tag, To carries Alice's.
+
+## 7.3 Via parameters
+
+| Parameter | Added by | Means |
+|---|---|---|
+| `branch` | The sender of the request | Names the transaction. Starts with `z9hG4bK` (Module 8). |
+| `received` | The next hop | The source IP address the packet really came from, if it differs from the Via |
+| `rport` | The sender adds it empty; the next hop fills it | The source port the packet came from: send the response there (RFC 3581) |
+| `maddr` | Rarely used | A multicast or override address for responses |
+
+In the journey above, Alice's phone writes its private address in Via and adds an empty `rport`. Proxy A fills in what it really saw: `received=192.0.2.10;rport=40112` — the public address and port of the NAT router (Module 2).
+
+<RfcQuote id="rfc3261-18.2.1-received" />
+
+<RfcQuote id="rfc3581-4-rport" />
+
+## 7.4 Contact parameters
+
+| Parameter | Used in | Means |
+|---|---|---|
+| `expires` | REGISTER and its 200 OK | How long this binding lasts, in seconds |
+| `q` | REGISTER, 3xx | Preference among several Contacts, 0 to 1 |
+| `+sip.instance` | REGISTER | A permanent, unique id of the device (RFC 5626) |
+| `reg-id` | REGISTER | Which of the device's connections this registration uses (RFC 5626) |
+
+```
+Contact: <sip:alice@192.0.2.10:5060;transport=tcp>;expires=3600;q=1.0
+  ;+sip.instance="<urn:uuid:00000000-0000-1000-8000-000A95A0E128>";reg-id=1
+```
+
+<RfcQuote id="rfc5626-2.1-reg-id" />
+
+## 7.5 URI parameters
+
+URI parameters live **inside** the angle brackets (Module 4):
+
+| Parameter | Means |
+|---|---|
+| `transport=tcp` | Use this transport to reach the URI |
+| `lr` | Loose router: this proxy follows RFC 3261 routing (Module 10) |
+| `user=phone` | The user part is a telephone number |
+| `maddr` | Send to this address instead of the host — avoid; use Route |
+| `ob` | SIP Outbound: keep using the connection this request came on |
+
+## 7.6 Routing headers
+
+**Record-Route** is added by a proxy that wants to see the rest of the dialog. The UAs turn the list into a route set, and later requests carry it as **Route** headers. Each proxy removes its own Route entry. Module 10 explains the details; for now, notice in the journey that Proxy A and Proxy B add Record-Route — and that the SBC removes Proxy A's entry to hide the inner network.
+
+## 7.7 Identity and privacy
+
+The From header is written by the caller's phone, so it proves nothing. A network that has **authenticated** the caller says so in **P-Asserted-Identity** (PAI):
+
+<RfcQuote id="rfc3325-4-pai" />
+
+- The phone may suggest which of its identities to use with **P-Preferred-Identity**. The first trusted proxy removes it and adds PAI.
+- PAI is trusted only inside a **trust domain** — between elements that have agreed to trust each other, such as a carrier and its customers' SBCs. A proxy that receives PAI from an untrusted source must replace or remove it:
+
+<RfcQuote id="rfc3325-5-untrusted" />
+
+- **Privacy** asks the network to hide things. `Privacy: id` asks the network to remove PAI before the call leaves the trust domain; the caller's phone also writes an anonymous From.
+
+```
+From: "Anonymous" <sip:anonymous@anonymous.invalid>;tag=1928301774
+P-Asserted-Identity: "Alice" <sip:alice@atlanta.example>, <tel:+14045550101>
+Privacy: id
+```
+
+<RfcQuote id="rfc3325-9.3-id" />
+
+<RfcQuote id="rfc3323-4.1-reveal" />
+
+<Note title="For support engineers: &quot;wrong caller ID&quot;">
+The number a callee sees can come from From, from PAI, or — on the PSTN side — from the gateway's own mapping. When the displayed number is wrong, check which header each element trusts, and whether an element in the middle removed PAI because it did not trust its peer.
+</Note>
+
+## 7.8 Redirect history: Diversion and History-Info
+
+When a call is forwarded, the new target often needs to know **who** was called first and **why** the call moved — a voicemail system needs to know whose mailbox to open.
+
+- **Diversion** (RFC 5806) answers both questions in one entry per forwarding. The RFC is Historic, but many carriers and PBXs still use it.
+
+<RfcQuote id="rfc5806-3-diversion" />
+
+```
+Diversion: <sip:+14045550102@atlanta.example>;reason=no-answer;counter=1
+```
+
+- **History-Info** (RFC 7044) is the standard replacement. Each element that forwards the request adds an entry, with an index that shows the order and a parameter that shows how the target changed: `rc` (same user, new Contact), `mp` (another user), or `np` (no change).
+
+```
+History-Info: <sip:bob@biloxi.example>;index=1
+History-Info: <sip:bob@biloxi.example>;np=1;index=1.1
+History-Info: <sip:bob@203.0.113.20>;index=1.1.1;rc=1.1
+```
+
+<RfcQuote id="rfc7044-1-history" />
+
+## 7.9 Session timers
+
+SIP has no built-in keepalive for a call. If a BYE is lost, or a phone crashes, the proxies and the other phone may keep the call open for hours. **Session timers** (RFC 4028) fix this: one side refreshes the session with a re-INVITE or an UPDATE, and if no refresh comes, both sides end the call.
+
+<RfcQuote id="rfc4028-1-keepalive" />
+
+| Header | Means |
+|---|---|
+| `Supported: timer` | "I support session timers." |
+| `Session-Expires: 1800;refresher=uac` | The session interval in seconds, and who refreshes. A proxy may lower it. |
+| `Min-SE: 90` | The shortest interval this element accepts. Never below 90 seconds. |
+| `422 Session Interval Too Small` | The interval is shorter than the receiver's Min-SE. The response carries the Min-SE to retry with. |
+
+<RfcQuote id="rfc4028-4-1800" />
+
+The refresher sends its refresh halfway through the interval:
+
+<RfcQuote id="rfc4028-7.2-half" />
+
+In the journey above, Proxy B lowers Session-Expires from 1800 to 900: it wants to know within 15 minutes if a call is dead.
+
+## 7.10 Other headers you will meet
+
+| Header | Says |
+|---|---|
+| **User-Agent** / **Server** | The software of the UAC / UAS. Often the fastest clue in a trace — and removed by SBCs that hide the topology. |
+| **Reason** | Why a request ends something (Module 6) |
+| **Warning** | Extra detail for a response, such as `304 … "Media type not available"` |
+| **Date** | The sender's clock; registrars send it, and some phones set their clock from it |
+| **Subject** | A short text about the call |
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Changing the From tag or To tag inside a dialog">
+    The tags, with the Call-ID, *are* the dialog. A request with another tag belongs to no dialog: the other side answers 481, and the call it was meant to change or end stays up.
+
+    <BrokenFixedFlow broken="bye-wrong-tag" fixed="bye-after-200" />
+  </Mistake>
+
+  <Mistake title="Using the same Call-ID for unrelated calls">
+    A phone or script that reuses one Call-ID for every call makes all of them look like one dialog. Registrars, proxies, and analysis tools then merge unrelated calls, reject requests as retransmissions, or answer 481.
+
+    <p class="fix"><b>Remember:</b> a new Call-ID for every new call. A retry after 401 or 407 keeps the Call-ID; a new call does not.</p>
+  </Mistake>
+
+  <Mistake title="Trusting From for the caller's identity">
+    Anybody can write anything in From. Billing, emergency services, and call blocking must use an identity that the network verified: P-Asserted-Identity from a trusted peer, or a verified STIR Identity header (Module 28).
+
+    <p class="fix"><b>Remember:</b> From is a claim. PAI from a trusted peer is an assertion. Accept PAI only from peers you trust.</p>
+  </Mistake>
+
+  <Mistake title="Not decrementing Max-Forwards">
+    A proxy or a B2BUA that forwards without decrementing Max-Forwards — or resets it to 70 — disables loop protection. A routing loop between two servers then runs until something else breaks, instead of ending with 483 Too Many Hops.
+
+    <p class="fix"><b>Remember:</b> every proxy subtracts 1. A B2BUA that starts a new request should still carry the received value down, not reset it.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- Every request has **Via, Max-Forwards, From, To, Call-ID, and CSeq**; an INVITE also has **Contact**.
+- The **From tag** and the **To tag**, with the Call-ID, name a dialog. They never change inside it.
+- **Via** gets `received` and `rport` from the next hop, so responses find their way back through NAT.
+- **Contact** parameters (`expires`, `q`, `+sip.instance`, `reg-id`) describe a registration; **URI parameters** (`transport`, `lr`, `user=phone`, `ob`) describe how to reach a URI.
+- **P-Asserted-Identity** is a verified identity, trusted only inside a trust domain. **Privacy: id** hides it outside that domain.
+- **Diversion** and **History-Info** record why a call was forwarded.
+- **Session-Expires** and **Min-SE** make sure a dead call ends, even when a BYE is lost.

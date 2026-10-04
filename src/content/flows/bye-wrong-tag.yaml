@@ -1,0 +1,115 @@
+id: bye-wrong-tag
+title: "Broken: BYE with a changed tag"
+summary: Alice's phone sends BYE with a To tag that is not the dialog's tag. Bob's phone cannot find the dialog, and the call stays up.
+broken: true
+breaks: [dialog-tags]
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: alice
+    to: bob
+    label: INVITE
+    caption: Alice's phone calls Bob's phone.
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: bob
+    to: alice
+    label: 180 Ringing
+    caption: Bob's phone rings.
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}
+
+  - from: bob
+    to: alice
+    label: 200 OK
+    caption: Bob answers, at the same moment that Alice decides to hang up.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: alice
+    to: bob
+    label: ACK
+    caption: Alice's phone confirms the 200 OK. The call is now set up.
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b76
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: alice
+    to: bob
+    label: BYE
+    caption: Alice's phone ends the call, but it writes a new To tag into the BYE.
+    warn: The To tag must be the tag from Bob's 200 OK. With another tag, the BYE matches no dialog.
+    rfc: rfc3261-19.3-tags
+    message: |
+      BYE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKnashds8
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}
+
+  - from: bob
+    to: alice
+    label: 481 Call/Transaction Does Not Exist
+    proto: err
+    caption: Bob's phone finds no dialog with these tags. It rejects the BYE, and the call stays up.
+    warn: Alice's phone thinks the call has ended. Bob's phone still sends media.
+    message: |
+      SIP/2.0 481 Call/Transaction Does Not Exist
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKnashds8
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}

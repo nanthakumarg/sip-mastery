@@ -52,7 +52,7 @@ steps:
     message: |
       INVITE sip:bob@203.0.113.20:5060 SIP/2.0
       Via: SIP/2.0/UDP 203.0.113.50:5060;branch=z9hG4bK-b2b-77a1
-      Max-Forwards: 70
+      Max-Forwards: 69
       From: Alice <sip:alice@atlanta.example>;tag=as58f4201b
       To: Bob <sip:bob@biloxi.example>
       Call-ID: 6c1e2a9b4f7d@203.0.113.50

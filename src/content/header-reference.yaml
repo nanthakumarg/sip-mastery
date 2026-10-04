@@ -1,0 +1,305 @@
+# Header reference (Module 7). Adds to the entries in headers.yaml.
+# adds / changes / removes: who does it, in a short phrase. "—" means nobody.
+# mandatory: "request" (every request), "invite" (INVITE), or omitted.
+
+categories:
+  - { id: core, label: Every request }
+  - { id: routing, label: Routing }
+  - { id: identity, label: Identity and privacy }
+  - { id: auth, label: Authentication }
+  - { id: caps, label: Capabilities }
+  - { id: body, label: Body }
+  - { id: session, label: Session and timers }
+  - { id: events, label: Events and transfer }
+  - { id: info, label: Information }
+
+headers:
+  Via:
+    category: core
+    mandatory: request
+    adds: Every element that sends or forwards a request, at the top
+    changes: The next hop adds received and rport
+    removes: Each element removes its own Via from the response
+    example: "Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9;rport"
+  Max-Forwards:
+    category: core
+    mandatory: request
+    adds: The UAC, with 70
+    changes: Each proxy subtracts 1
+    removes: —
+    example: "Max-Forwards: 70"
+  From:
+    category: core
+    mandatory: request
+    adds: The UAC, with its tag
+    changes: Never inside a dialog (a B2BUA writes a new one)
+    removes: —
+    example: "From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl"
+  To:
+    category: core
+    mandatory: request
+    adds: The UAC, without a tag
+    changes: The UAS adds its tag in the response
+    removes: —
+    example: "To: Bob <sip:bob@biloxi.example>;tag=314159"
+  Call-ID:
+    category: core
+    mandatory: request
+    adds: The UAC, new and unique for each call or registration
+    changes: Never (a B2BUA writes a new one)
+    removes: —
+    example: "Call-ID: 3848276298220188511@192.0.2.10"
+  CSeq:
+    category: core
+    mandatory: request
+    adds: The UAC
+    changes: Plus 1 for each new request from the same side
+    removes: —
+    example: "CSeq: 2 INVITE"
+  Contact:
+    category: core
+    mandatory: invite
+    adds: The UAC in requests, the UAS in responses
+    changes: SBCs and some NAT fixes rewrite it
+    removes: —
+    example: "Contact: <sip:alice@192.0.2.10:5060>;expires=3600"
+  Route:
+    category: routing
+    adds: The UAC, from the route set or the outbound proxy
+    changes: —
+    removes: Each listed proxy removes its own entry
+    example: "Route: <sip:proxy.atlanta.example;lr>"
+  Record-Route:
+    category: routing
+    adds: Each proxy that wants to stay in the path
+    changes: —
+    removes: SBCs remove the entries of the inner network
+    example: "Record-Route: <sip:proxy.biloxi.example;lr>"
+  Path:
+    category: routing
+    adds: Edge proxies, in a REGISTER
+    changes: —
+    removes: —
+    example: "Path: <sip:edge.atlanta.example;lr;ob>"
+  P-Asserted-Identity:
+    category: identity
+    adds: The first trusted proxy, after it authenticates the caller
+    changes: —
+    removes: A proxy, before an untrusted hop, if Privacy says id
+    example: "P-Asserted-Identity: \"Alice\" <sip:alice@atlanta.example>, <tel:+14045550101>"
+  P-Preferred-Identity:
+    category: identity
+    adds: The UAC, to choose one of its identities
+    changes: —
+    removes: The first trusted proxy
+    example: "P-Preferred-Identity: <tel:+14045550101>"
+  Privacy:
+    category: identity
+    adds: The UAC
+    changes: —
+    removes: —
+    example: "Privacy: id"
+  Identity:
+    category: identity
+    adds: The signing service of the caller's provider (STIR)
+    changes: —
+    removes: Sometimes the terminating provider, after verification
+    example: "Identity: eyJhbGciOiJFUzI1NiIs…;info=<https://cert.example/c.pem>"
+  History-Info:
+    category: identity
+    adds: Each element that retargets or forwards the request, one entry each
+    changes: —
+    removes: Privacy services, when Privacy says history
+    example: "History-Info: <sip:bob@biloxi.example>;index=1.1, <sip:bob@203.0.113.20>;index=1.1.1;rc=1.1"
+  Diversion:
+    category: identity
+    adds: The element that forwards the call
+    changes: —
+    removes: —
+    example: "Diversion: <sip:+14045550102@atlanta.example>;reason=no-answer;counter=1"
+  WWW-Authenticate:
+    category: auth
+    adds: A registrar or a UAS, in a 401
+    changes: —
+    removes: —
+    example: "WWW-Authenticate: Digest realm=\"atlanta.example\", nonce=\"…\", qop=\"auth\""
+  Authorization:
+    category: auth
+    adds: The UAC, after a 401
+    changes: —
+    removes: —
+    example: "Authorization: Digest username=\"alice\", realm=\"atlanta.example\", …"
+  Proxy-Authenticate:
+    category: auth
+    adds: A proxy, in a 407
+    changes: —
+    removes: —
+    example: "Proxy-Authenticate: Digest realm=\"atlanta.example\", nonce=\"…\", qop=\"auth\""
+  Proxy-Authorization:
+    category: auth
+    adds: The UAC, after a 407
+    changes: —
+    removes: Only the proxy whose realm matches may consume it
+    example: "Proxy-Authorization: Digest username=\"alice\", realm=\"atlanta.example\", …"
+  Allow:
+    category: caps
+    adds: Either side
+    changes: —
+    removes: —
+    example: "Allow: INVITE, ACK, CANCEL, BYE, OPTIONS, PRACK, UPDATE, REFER"
+  Supported:
+    category: caps
+    adds: Either side
+    changes: —
+    removes: —
+    example: "Supported: 100rel, timer, replaces"
+  Require:
+    category: caps
+    adds: The UAC; the UAS in reliable 1xx and 421
+    changes: —
+    removes: —
+    example: "Require: 100rel"
+  Proxy-Require:
+    category: caps
+    adds: The UAC
+    changes: —
+    removes: —
+    example: "Proxy-Require: sec-agree"
+  Unsupported:
+    category: caps
+    adds: The server, in a 420
+    changes: —
+    removes: —
+    example: "Unsupported: precondition"
+  Accept:
+    category: caps
+    adds: Either side
+    changes: —
+    removes: —
+    example: "Accept: application/sdp"
+  Content-Type:
+    category: body
+    adds: The sender of a body
+    changes: Elements that change the body type
+    removes: —
+    example: "Content-Type: application/sdp"
+  Content-Length:
+    category: body
+    adds: The sender
+    changes: Every element that changes the body
+    removes: —
+    example: "Content-Length: 158"
+  Content-Disposition:
+    category: body
+    adds: The sender of a body
+    changes: —
+    removes: —
+    example: "Content-Disposition: session"
+  Session-Expires:
+    category: session
+    adds: The UAC, or a proxy that wants a session timer
+    changes: Proxies may lower it, never below Min-SE
+    removes: —
+    example: "Session-Expires: 1800;refresher=uac"
+  Min-SE:
+    category: session
+    adds: The UAC, or a proxy that needs a larger minimum
+    changes: Proxies may raise it
+    removes: —
+    example: "Min-SE: 90"
+  Expires:
+    category: session
+    adds: The UAC in REGISTER and SUBSCRIBE
+    changes: The registrar may return a shorter value
+    removes: —
+    example: "Expires: 3600"
+  Min-Expires:
+    category: session
+    adds: The registrar or notifier, in a 423
+    changes: —
+    removes: —
+    example: "Min-Expires: 600"
+  Event:
+    category: events
+    adds: The subscriber in SUBSCRIBE, the notifier in NOTIFY
+    changes: —
+    removes: —
+    example: "Event: presence"
+  Subscription-State:
+    category: events
+    adds: The notifier, in each NOTIFY
+    changes: —
+    removes: —
+    example: "Subscription-State: active;expires=3599"
+  Refer-To:
+    category: events
+    adds: The sender of a REFER
+    changes: —
+    removes: —
+    example: "Refer-To: <sip:carol@chicago.example>"
+  Referred-By:
+    category: events
+    adds: The sender of a REFER
+    changes: —
+    removes: —
+    example: "Referred-By: <sip:alice@atlanta.example>"
+  Replaces:
+    category: events
+    adds: The UAC of an INVITE that takes over a call
+    changes: —
+    removes: —
+    example: "Replaces: 7a1c9e02@192.0.2.11;to-tag=d903;from-tag=c71e"
+  Reason:
+    category: info
+    adds: The element that ends a call or cancels a branch
+    changes: —
+    removes: —
+    example: "Reason: Q.850;cause=16;text=\"Normal call clearing\""
+  Warning:
+    category: info
+    adds: Any element, in a response
+    changes: —
+    removes: —
+    example: "Warning: 304 sbc.atlanta.example \"Media type not available\""
+  Retry-After:
+    category: info
+    adds: The server, in 503, 500, 486, 480, and similar responses
+    changes: —
+    removes: —
+    example: "Retry-After: 120"
+  User-Agent:
+    category: info
+    adds: The UAC
+    changes: —
+    removes: SBCs, for topology hiding
+    example: "User-Agent: Linphone/5.2"
+  Server:
+    category: info
+    adds: The UAS, in responses
+    changes: —
+    removes: SBCs, for topology hiding
+    example: "Server: Asterisk PBX 20.5"
+  Date:
+    category: info
+    adds: Either side; registrars in 200 OK
+    changes: —
+    removes: —
+    example: "Date: Sat, 03 Oct 2026 10:00:00 GMT"
+  Subject:
+    category: info
+    adds: The UAC
+    changes: —
+    removes: —
+    example: "Subject: Project review"
+  Call-Info:
+    category: info
+    adds: Either side
+    changes: —
+    removes: —
+    example: "Call-Info: <https://atlanta.example/alice.png>;purpose=icon"
+  Alert-Info:
+    category: info
+    adds: The UAC or a PBX, to pick a ringtone
+    changes: Some proxies strip it from untrusted sources
+    removes: —
+    example: "Alert-Info: <urn:alert:service:call-waiting>"

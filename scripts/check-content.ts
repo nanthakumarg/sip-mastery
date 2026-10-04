@@ -3,14 +3,18 @@
  * and checks that every quote id used by a flow exists.
  * Exit code 1 on any error. Warnings are printed but do not fail the build.
  */
-import { glossaryTerms, listFlowIds, loadElements, loadFlow, loadHeaderRef, loadQuotes } from '../src/lib/data.ts';
+import { glossaryTerms, listFlowIds, loadElements, loadFlow, loadHeaderRef, loadQuotes, readContent } from '../src/lib/data.ts';
 import { lintDiagram } from '../src/sip/lint-diagram.ts';
 import { lintFlow, type LintIssue } from '../src/sip/lint-flow.ts';
 import { prepareFlow } from '../src/sip/flow.ts';
 import { loadMethods, methodFlow } from '../src/lib/methods.ts';
 
 // Parse every data file first, so a YAML error fails here and not only in the dev server.
-loadHeaderRef();
+const headerRef = loadHeaderRef();
+// Every header in the header reference needs an explanation in headers.yaml.
+for (const name of Object.keys((readContent('header-reference.yaml') as { headers: Record<string, unknown> }).headers)) {
+  if (!headerRef.headers[name]) { console.log(`✗ header-reference.yaml: "${name}" is missing from headers.yaml`); process.exitCode = 1; }
+}
 const terms = glossaryTerms();
 const quoteIds = new Set(loadQuotes().map(q => q.id));
 let errors = 0;

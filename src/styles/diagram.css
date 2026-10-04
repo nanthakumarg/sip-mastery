@@ -914,3 +914,59 @@ svg.callmap { display: block; width: 100%; min-width: 600px; height: auto; font-
 .ca-causes { margin: 6px 0 0; padding-left: 18px; font-size: 14px; color: var(--dim); display: grid; gap: 3px; }
 .ca-ladder { display: grid; gap: 10px; min-width: 0; }
 .ca-ladder .ladder { min-width: 0; width: 100%; height: auto; max-width: var(--lw); display: block; margin-inline: auto; background: var(--panel); border: 1px solid var(--line-2); border-radius: 6px; }
+
+/* ---------- Header reference (Module 7) ---------- */
+.href { position: relative; max-width: 1500px; margin-inline: auto; background: var(--bg-deep); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.hr-cats { max-width: 100%; overflow-x: auto; }
+.hr-cats button { flex: none; }
+.hr-body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; margin-top: 14px; align-items: start; }
+@media (max-width: 1000px) { .hr-body { grid-template-columns: minmax(0, 1fr); } }
+.hr-list { display: grid; gap: 12px; }
+.hr-names { display: flex; flex-wrap: wrap; gap: 6px; }
+.hr-name { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 5px; font: 500 12.5px var(--mono); color: var(--sip); }
+.hr-name:hover { border-color: var(--line); }
+.hr-name.is-sel { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+.hr-compact { padding: 0 5px; border: 1px solid var(--line); border-radius: 3px; font: 400 10.5px/1.5 var(--mono); color: var(--muted); }
+.hr-detail { position: sticky; top: 72px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; }
+.hr-title { display: flex; align-items: center; gap: 10px; font: 600 22px var(--mono); }
+.hr-must { margin-left: 8px; }
+.hr-life { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin-top: 12px; font-size: 14px; }
+.hr-life dt { font: 500 11px/1.9 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.hr-life dd { margin: 0; color: var(--dim); }
+.hr-example { margin-top: 12px; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--line-2); border-radius: 6px; font: 400 12.5px/1.6 var(--mono); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.hr-link { display: inline-block; margin-top: 10px; font: 400 12.5px var(--mono); }
+
+/* ---------- Header journey (Module 7) ---------- */
+.hjourney { max-width: 1700px; }
+.hj-only { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; color: var(--dim); cursor: pointer; }
+.hj-only input { accent-color: var(--sip); }
+.hj-table-wrap { margin-top: 10px; overflow-x: auto; border: 1px solid var(--line-2); border-radius: 6px; }
+.hj-table { width: 100%; min-width: 860px; border-collapse: collapse; font: 400 12px/1.45 var(--mono); }
+.hj-table th, .hj-table td { padding: 6px 8px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: top; }
+.hj-table thead th { position: sticky; top: 0; background: var(--panel-2); font: 500 11.5px var(--display); color: var(--text); letter-spacing: 0; text-transform: none; }
+.hj-hop { display: block; font: 500 10.5px var(--mono); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.hj-table tbody th { width: 150px; background: var(--panel); }
+.hj-table tbody th button { height: auto; padding: 0; border: 0; background: none; font: 500 12px var(--mono); color: var(--sip); text-align: left; }
+.hj-table tbody tr { cursor: pointer; }
+.hj-table tbody tr:hover td, .hj-table tbody tr:hover th { background: rgba(236,231,220,.04); }
+.hj-table tbody tr.is-sel th, .hj-table tbody tr.is-sel td { box-shadow: inset 0 1px 0 var(--text), inset 0 -1px 0 var(--text); }
+.hj-cell { color: var(--muted); max-width: 260px; }
+.hj-val { overflow-wrap: anywhere; }
+.hj-cell.s-same { color: var(--muted); }
+.hj-cell.s-added, .hj-cell.s-changed { color: var(--text); background: rgba(236,231,220,.07); }
+.hj-cell.s-removed { color: var(--muted); text-decoration: line-through; }
+.hj-cell.s-absent { color: var(--line); }
+.hj-glyph { display: inline-block; width: 1.2em; font-weight: 600; color: var(--text); }
+.hj-detail { margin-top: 12px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 6px; font-size: 14px; color: var(--dim); }
+.hj-detail > * + * { margin-top: 6px; }
+.hj-detail a { font: 400 12px var(--mono); }
+.hj-steps { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+.hj-steps b { color: var(--text); font-weight: 600; margin-right: 8px; }
+.hj-steps code { display: block; margin-top: 2px; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; background: none; border: 0; padding: 0; color: var(--dim); }
+.hj-state { font: 500 10.5px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.hj-state.s-added, .hj-state.s-changed { color: var(--text); }
+.hjourney .hj-table th, .hjourney .hj-table td { min-width: 0; font-size: 12px; line-height: 1.45; letter-spacing: 0; text-transform: none; }
+.hjourney .hj-table td { font-family: var(--mono); }
+.hjourney .hj-table thead th { font-family: var(--display); font-size: 12px; vertical-align: bottom; padding-bottom: 8px; }
+.hjourney .hj-table th, .hjourney .hj-table td { padding: 6px 8px; }
+.hjourney .hj-table { font-size: 12px; }

@@ -125,6 +125,107 @@ headers:
     summary: Says whether proxies may use the location to route the request, for example to the nearest emergency centre.
     rfc: 6442
     section: "4.2"
+  P-Asserted-Identity:
+    summary: The caller identity that a trusted proxy verified, for example by Digest authentication. Trusted only between elements in the same trust domain.
+    rfc: 3325
+    section: "9.1"
+    who: The first trusted proxy adds it. A proxy removes it before an untrusted hop if Privacy says id.
+  P-Preferred-Identity:
+    summary: The identity the user would like the network to assert, when the user has more than one.
+    rfc: 3325
+    section: "9.2"
+    who: The UAC adds it. The first trusted proxy removes it and adds P-Asserted-Identity.
+  Privacy:
+    summary: The privacy the user asks for, such as id (hide the asserted identity outside the trust domain), header, session, user, or none.
+    rfc: 3323
+    section: "4.2"
+    who: The UAC adds it. A privacy service applies it.
+  History-Info:
+    summary: The list of Request-URIs the request had, and why each one changed. Used by voicemail and call centres.
+    rfc: 7044
+    section: "5"
+    who: Each element that forwards or retargets the request adds an entry.
+  Diversion:
+    summary: Who forwarded the call, and why (for example no-answer). Historic, but common on SIP trunks.
+    rfc: 5806
+    section: "4"
+    who: The element that forwards the call adds an entry.
+  Session-Expires:
+    summary: The session interval in seconds, and which side refreshes the session (refresher=uac or uas).
+    rfc: 4028
+    section: "4"
+    who: The UAC proposes it. Proxies may lower it. The UAS confirms it in the 2xx.
+  Min-SE:
+    summary: The smallest session interval that an element accepts. Never below 90 seconds.
+    rfc: 4028
+    section: "5"
+    who: The UAC, and any proxy that needs a larger minimum.
+  Reason:
+    summary: Why a request ends something, as a SIP code or a Q.850 cause, for example in a BYE or a CANCEL.
+    rfc: 3326
+    section: "2"
+    who: The UA or proxy that ends the call, or a gateway that translates a PSTN cause.
+  Warning:
+    summary: A warning code, the host that sent it, and a text. Codes 3xx explain SDP problems.
+    rfc: 3261
+    section: "20.43"
+    who: Any element that sends a response.
+  Retry-After:
+    summary: How long to wait before trying again, after 503, 500, 486, 480, and similar responses.
+    rfc: 3261
+    section: "20.33"
+  Min-Expires:
+    summary: In a 423 response, the shortest registration or subscription time the server accepts.
+    rfc: 3261
+    section: "20.23"
+  Event:
+    summary: The event package of a SUBSCRIBE or NOTIFY, such as presence or message-summary. Compact form o.
+    rfc: 6665
+    section: "8.2.1"
+  Subscription-State:
+    summary: In a NOTIFY, whether the subscription is active, pending, or terminated, and for how long.
+    rfc: 6665
+    section: "8.2.3"
+  Refer-To:
+    summary: In a REFER, the URI that the receiver should contact. Compact form r.
+    rfc: 3515
+    section: "2.1"
+  Referred-By:
+    summary: Who asked for the REFER. Carried into the new INVITE. Compact form b.
+    rfc: 3892
+    section: "3"
+  Replaces:
+    summary: Says that a new INVITE replaces an existing dialog, named by Call-ID and tags. Used in attended transfer.
+    rfc: 3891
+    section: "6.1"
+  Identity:
+    summary: A signed token (PASSporT) that proves the caller's number. The basis of STIR/SHAKEN (Module 28).
+    rfc: 8224
+    section: "4"
+  Path:
+    summary: In a REGISTER, the proxies that requests for this user must pass through, such as an edge proxy.
+    rfc: 3327
+    section: "4"
+  Call-Info:
+    summary: More information about the caller or callee, such as a picture or a web page, with a purpose parameter.
+    rfc: 3261
+    section: "20.9"
+  Alert-Info:
+    summary: In an INVITE, a URI for a special ringtone. In a 180, a special ringback.
+    rfc: 3261
+    section: "20.4"
+  Content-Disposition:
+    summary: How to handle the body, for example session (an SDP) or render.
+    rfc: 3261
+    section: "20.11"
+  Recv-Info:
+    summary: The Info Packages that this side accepts in INFO requests.
+    rfc: 6086
+    section: "7.3"
+  Info-Package:
+    summary: In an INFO request, the Info Package this INFO belongs to.
+    rfc: 6086
+    section: "7.2"
   Content-Type:
     summary: The type of the body, for example application/sdp.
     rfc: 3261

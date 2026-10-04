@@ -35,6 +35,8 @@ import FramingLab from '../../components/FramingLab.astro';
 import MethodCards from '../../components/MethodCards.astro';
 import CapabilityLab from '../../components/CapabilityLab.astro';
 import CodeAtlas from '../../components/CodeAtlas.astro';
+import HeaderReference from '../../components/HeaderReference.astro';
+import HeaderJourney from '../../components/HeaderJourney.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -60,7 +62,8 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   CircuitVsPacket, ProtocolCompare, HttpVsSip, RfcMap, Landscape,
   AddressClassifier, CompareFlows, NatRewrite, PacketExplorer,
   UriDissector, ElementGallery, LocationService, MessageAnatomy, FramingLab,
-  MethodCards, CapabilityLab, CodeAtlas };
+  MethodCards, CapabilityLab, CodeAtlas,
+  HeaderReference, HeaderJourney };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

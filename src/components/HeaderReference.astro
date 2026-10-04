@@ -1,0 +1,21 @@
+---
+/** <HeaderReference initial="Via" /> : searchable header reference (header-reference.yaml + headers.yaml) */
+import Island from '../diagrams/HeaderReference.tsx';
+import { loadHeaderRef, readContent, rfcUrl } from '../lib/data.ts';
+import { COMPACT } from '../sip/parse.ts';
+
+interface Props { initial?: string }
+type Entry = { category: string; mandatory?: 'request' | 'invite'; adds: string; changes: string; removes: string; example: string };
+const data = readContent('header-reference.yaml') as { categories: { id: string; label: string }[]; headers: Record<string, Entry> };
+const base = loadHeaderRef().headers;
+const compact = Object.fromEntries(Object.entries(COMPACT).map(([k, v]) => [v, k]));
+const headers = Object.entries(data.headers).map(([name, e]) => {
+  const b = base[name];
+  if (!b) throw new Error(`header-reference.yaml: "${name}" has no entry in headers.yaml`);
+  return {
+    name, ...e, compact: compact[name], summary: b.summary,
+    ...(b.rfc ? { url: rfcUrl(b.rfc, b.section), label: `RFC ${b.rfc}${b.section ? ` §${b.section}` : ''}` } : {}),
+  };
+});
+---
+<div class="wide"><Island client:visible headers={headers} categories={data.categories} initial={Astro.props.initial} /></div>
