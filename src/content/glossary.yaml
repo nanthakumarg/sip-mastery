@@ -362,3 +362,18 @@
   definition: A header in the 200 OK to REGISTER. It lists the proxies that the user agent puts in Route for its own requests (RFC 3608).
 - term: Min-Expires
   definition: The header in a 423 response that gives the shortest expiry the registrar accepts.
+- term: Attacker
+  definition: In Module 14, a host on the Internet that scans, guesses passwords, floods, or forges requests.
+- term: trust domain
+  definition: A set of SIP elements that trust each other to authenticate users and to assert identity with P-Asserted-Identity (RFC 3325).
+- term: P-Asserted-Identity
+  aliases: [PAI]
+  definition: The identity of the caller as the network verified it. Only meaningful when it comes from a member of the trust domain.
+- term: toll fraud
+  definition: Calls that an attacker makes on someone else's account or trunk, usually to expensive or premium-rate numbers.
+- term: mutual TLS
+  aliases: [mTLS]
+  definition: TLS in which both sides present a certificate and check the other's, as between two proxies or on a SIP trunk.
+- term: certificate
+  aliases: [X.509 certificate]
+  definition: A file signed by a certificate authority that binds a public key to names, such as the SIP domain of a server.

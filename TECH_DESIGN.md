@@ -56,6 +56,8 @@ sip-course/
 │  │  ├─ lint-diagram.ts         # controlled diagram language rules (§5)
 │  │  ├─ registrar.ts            # RFC 3261 §10.3 registrar, Path, Outbound, GRUU (Module 12)
 │  │  ├─ expiry.ts               # registration expiry vs NAT mapping timeline (Module 12)
+│  │  ├─ attacks.ts              # attacks and the defences that close them (Module 14)
+│  │  ├─ cert.ts                 # RFC 5922 §7 server certificate check (Module 14)
 │  │  └─ digest.ts               # HA1 / HA2 / response
 │  ├─ diagrams/                  # React islands
 │  │  ├─ Ladder.tsx              # call-flow ladder, step player
@@ -142,6 +144,7 @@ Rules:
 - `broken: true` marks a deliberately wrong flow. It must list the rule IDs it breaks in `breaks: [...]`. The build fails if a broken flow does **not** break those rules, or if it breaks any rule it doesn't list.
 - Non-message steps (`kind: note`, `kind: timer`, `kind: media`) are supported for timers and RTP.
 - `at: 900` on a step gives its time in seconds since the start of the flow, where time matters (registration). Later steps without `at` keep that time.
+- `trust: [proxyA, alice]` lists the lanes in the trust domain and turns on the `pai-trust` check.
 - `registrar: { lane: registrar, maxExpires: 600, lookup: [proxyB] }` marks a registration flow. The `registrar-model` rule runs the registrar model (`src/sip/registrar.ts`) over its REGISTER requests, with that policy, and checks every response of the registrar and every location-service lookup of the `lookup` lanes.
 
 ### 4.3 RFC quotes (YAML)
@@ -214,6 +217,8 @@ Rendering choices:
 | `min-expires` | A 423 Interval Too Brief carries Min-Expires (RFC 3261 §10.3 step 7) |
 | `register-refresh` | A UA refreshes a binding before the expiry that the last 2xx granted it; needs `at` on the steps (RFC 3261 §10.2.4) |
 | `registrar-model` | In a flow with `registrar:`, each registrar response has the status, Contact list (with expires, q, and GRUUs), Path, and Service-Route of the registrar model, and a proxy that looks up the AOR forwards to a registered Contact with the stored Path as Route, or answers with an error when there is none (RFC 3261 §10.3, RFC 3327, RFC 3608, RFC 5626 §6, RFC 5627 §5) |
+| `pai-trust` | In a flow with `trust: [...]`, a lane in the trust domain does not forward a P-Asserted-Identity that it received from a lane outside it (RFC 3325 §5) |
+| `user-enumeration` | Security practice, not an RFC rule (Module 14): a server does not answer 404 to an unauthenticated request for one user and 401/407 for another |
 
 ### 6.2 Diagram language checks (`lint-diagram.ts`)
 | Rule ID | Check |

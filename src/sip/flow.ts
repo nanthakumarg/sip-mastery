@@ -81,6 +81,8 @@ export interface FlowData {
   credentials?: { username: string; password: string };
   phases?: FlowPhase[];
   map?: FlowMap;
+  /** Lanes inside the trust domain for P-Asserted-Identity (RFC 3325). Enables the pai-trust check. */
+  trust?: string[];
   /** The registrar lane and its policy: the flow is checked against the registrar model (src/sip/registrar.ts). */
   registrar?: RegistrarConfig;
 }

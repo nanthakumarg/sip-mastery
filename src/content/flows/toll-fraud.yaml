@@ -1,0 +1,193 @@
+id: toll-fraud
+title: "Toll fraud through a PBX with a weak password"
+summary: "An attacker who guessed the password of extension 101 calls a premium-rate number. The PBX authenticates the call and sends it to the carrier."
+credentials: { username: "101", password: "1234" }
+lanes:
+  - { id: attacker, label: Attacker, kind: ua, sub: 198.51.100.66 }
+  - { id: pbx, label: PBX, kind: b2bua, sub: pbx.atlanta.example }
+  - { id: gw, label: Carrier gateway, kind: server, sub: 198.51.100.80 }
+steps:
+  - from: attacker
+    to: pbx
+    label: "INVITE"
+    caption: "At 02:00 on a Saturday, the attacker calls a premium-rate number through the PBX, as extension 101."
+    message: |
+      INVITE sip:+19005550199@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKtf01aa
+      Max-Forwards: 70
+      From: "101" <sip:101@atlanta.example>;tag=fr4ud1
+      To: <sip:+19005550199@atlanta.example;user=phone>
+      Call-ID: 6d41ac0ee2@198.51.100.66
+      CSeq: 1 INVITE
+      Contact: <sip:101@198.51.100.66:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=- 2214 2214 IN IP4 198.51.100.66
+      s=-
+      c=IN IP4 198.51.100.66
+      t=0 0
+      m=audio 40000 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: pbx
+    to: attacker
+    label: "401 Unauthorized"
+    caption: "The PBX asks for credentials. So far, everything works as designed."
+    rfc: rfc3261-26.1.1-gateway
+    message: |
+      SIP/2.0 401 Unauthorized
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKtf01aa
+      From: "101" <sip:101@atlanta.example>;tag=fr4ud1
+      To: <sip:+19005550199@atlanta.example;user=phone>;tag=pbx401
+      Call-ID: 6d41ac0ee2@198.51.100.66
+      CSeq: 1 INVITE
+      WWW-Authenticate: Digest realm="atlanta.example", nonce="5a0c71e2d4b8f913", qop="auth", algorithm=MD5
+      Content-Length: 0
+
+  - from: attacker
+    to: pbx
+    label: "ACK"
+    caption: "The attacker acknowledges the 401."
+    message: |
+      ACK sip:+19005550199@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKtf01aa
+      Max-Forwards: 70
+      From: "101" <sip:101@atlanta.example>;tag=fr4ud1
+      To: <sip:+19005550199@atlanta.example;user=phone>;tag=pbx401
+      Call-ID: 6d41ac0ee2@198.51.100.66
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - from: attacker
+    to: pbx
+    label: "INVITE"
+    caption: "It answers the challenge with the password of 101: 1234, found by guessing last night."
+    warn: "The digest is correct: the password is weak, not the protocol."
+    status: { attacker: "Has password" }
+    message: |
+      INVITE sip:+19005550199@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKtf02bb
+      Max-Forwards: 70
+      From: "101" <sip:101@atlanta.example>;tag=fr4ud1
+      To: <sip:+19005550199@atlanta.example;user=phone>
+      Call-ID: 6d41ac0ee2@198.51.100.66
+      CSeq: 2 INVITE
+      Contact: <sip:101@198.51.100.66:5060>
+      Authorization: Digest username="101", realm="atlanta.example", nonce="5a0c71e2d4b8f913", uri="sip:+19005550199@atlanta.example;user=phone", response="{digest}", algorithm=MD5, qop=auth, nc=00000001, cnonce="9b1c2d"
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=- 2214 2214 IN IP4 198.51.100.66
+      s=-
+      c=IN IP4 198.51.100.66
+      t=0 0
+      m=audio 40000 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: pbx
+    to: gw
+    label: "INVITE"
+    caption: "The PBX accepts the credentials and starts a call on its SIP trunk, as extension 101."
+    message: |
+      INVITE sip:+19005550199@198.51.100.80:5060;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.60:5060;branch=z9hG4bKpbx0o1
+      Max-Forwards: 70
+      From: <sip:+14045550101@atlanta.example;user=phone>;tag=pbxo1
+      To: <sip:+19005550199@198.51.100.80;user=phone>
+      Call-ID: 0b7e19a5f3@203.0.113.60
+      CSeq: 101 INVITE
+      Contact: <sip:pbx@203.0.113.60:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=- 7781 7781 IN IP4 203.0.113.60
+      s=-
+      c=IN IP4 203.0.113.60
+      t=0 0
+      m=audio 30000 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: gw
+    to: pbx
+    label: "200 OK"
+    caption: "The premium-rate number answers. The carrier starts billing the company."
+    status: { gw: "Billing" }
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.60:5060;branch=z9hG4bKpbx0o1
+      From: <sip:+14045550101@atlanta.example;user=phone>;tag=pbxo1
+      To: <sip:+19005550199@198.51.100.80;user=phone>;tag=gw99a
+      Call-ID: 0b7e19a5f3@203.0.113.60
+      CSeq: 101 INVITE
+      Contact: <sip:gw@198.51.100.80:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=- 4410 4410 IN IP4 198.51.100.80
+      s=-
+      c=IN IP4 198.51.100.80
+      t=0 0
+      m=audio 20000 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: pbx
+    to: gw
+    label: "ACK"
+    caption: "The PBX confirms the call to the carrier."
+    message: |
+      ACK sip:gw@198.51.100.80:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.60:5060;branch=z9hG4bKpbx0a1
+      Max-Forwards: 70
+      From: <sip:+14045550101@atlanta.example;user=phone>;tag=pbxo1
+      To: <sip:+19005550199@198.51.100.80;user=phone>;tag=gw99a
+      Call-ID: 0b7e19a5f3@203.0.113.60
+      CSeq: 101 ACK
+      Content-Length: 0
+
+  - from: pbx
+    to: attacker
+    label: "200 OK"
+    caption: "The PBX answers the attacker. The attacker profits from each minute of the premium-rate call."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKtf02bb
+      From: "101" <sip:101@atlanta.example>;tag=fr4ud1
+      To: <sip:+19005550199@atlanta.example;user=phone>;tag=pbx2xx
+      Call-ID: 6d41ac0ee2@198.51.100.66
+      CSeq: 2 INVITE
+      Contact: <sip:pbx@203.0.113.60:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=- 7782 7782 IN IP4 203.0.113.60
+      s=-
+      c=IN IP4 203.0.113.60
+      t=0 0
+      m=audio 30002 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: attacker
+    to: pbx
+    label: "ACK"
+    caption: "The call runs all weekend, often on dozens of channels at once."
+    status: { attacker: "In call" }
+    message: |
+      ACK sip:pbx@203.0.113.60:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKtf03cc
+      Max-Forwards: 70
+      From: "101" <sip:101@atlanta.example>;tag=fr4ud1
+      To: <sip:+19005550199@atlanta.example;user=phone>;tag=pbx2xx
+      Call-ID: 6d41ac0ee2@198.51.100.66
+      CSeq: 2 ACK
+      Content-Length: 0

@@ -17,7 +17,7 @@ areas:
 rfcs:
   # --- SIP core ---------------------------------------------------------------
   - { n: 2543, area: core, proto: sip, short: SIP (first version), summary: "The first SIP specification. In 2002, RFC 3261 and four companion RFCs (3262 to 3265) replaced it.", modules: [1] }
-  - { n: 3261, area: core, proto: sip, short: SIP, summary: "The core of SIP: messages, transactions, dialogs, proxies, registration, and authentication.", modules: [3, 4, 5, 6, 7, 8, 9, 10, 12, 13] }
+  - { n: 3261, area: core, proto: sip, short: SIP, summary: "The core of SIP: messages, transactions, dialogs, proxies, registration, and authentication.", modules: [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14] }
   - { n: 3263, area: core, proto: dns, short: Locating SIP servers, summary: "How a client uses DNS (NAPTR, SRV, A and AAAA records) to find a SIP server.", modules: [11] }
   - { n: 2782, area: core, proto: dns, short: DNS SRV, summary: "The SRV record: which servers offer a service in a domain, at which port, with priority for failover and weight for load sharing.", modules: [11] }
   - { n: 3581, area: core, proto: sip, short: rport, summary: "The rport parameter sends a response back to the source IP address and port of the request. This helps behind NAT.", modules: [10, 20] }
@@ -37,7 +37,7 @@ rfcs:
   - { n: 3312, area: ext, proto: sip, short: Preconditions, summary: "Lets a call wait for network resources, such as reserved bandwidth, before the phone rings.", modules: [5] }
   - { n: 4488, area: ext, proto: sip, short: REFER without subscription, summary: "The norefersub option tag: a REFER that does not create an implicit subscription.", modules: [5, 22] }
   - { n: 7647, area: ext, proto: sip, short: REFER clarifications, summary: "Updates REFER for RFC 6665. A REFER is now accepted with 200, never 202.", modules: [5, 22] }
-  - { n: 3323, area: ext, proto: sip, short: Privacy, summary: "The Privacy header and how to hide the identity of a caller.", modules: [7, 24] }
+  - { n: 3323, area: ext, proto: sip, short: Privacy, summary: "The Privacy header and how to hide the identity of a caller.", modules: [7, 14, 24] }
   - { n: 3325, area: ext, proto: sip, short: P-Asserted-Identity, summary: "P-Asserted-Identity carries an identity that the network has checked, inside a trust domain.", modules: [7, 14, 24] }
   - { n: 3326, area: ext, proto: sip, short: Reason header, summary: "The Reason header says why a request was sent, for example with a Q.850 cause value.", modules: [6, 24] }
   - { n: 3327, area: ext, proto: sip, short: Path, summary: "Proxies on the REGISTER path stay in the path of incoming requests.", modules: [12] }
@@ -89,7 +89,7 @@ rfcs:
   - { n: 7616, area: sec, short: HTTP Digest, summary: "The current HTTP Digest authentication, with SHA-256.", modules: [13] }
   - { n: 8760, area: sec, proto: sip, short: Digest algorithms for SIP, summary: "Adds SHA-256 and SHA-512/256 to SIP digest authentication.", modules: [13] }
   - { n: 4474, area: sec, proto: sip, short: SIP Identity (old), summary: "The first Identity header. RFC 8224 replaced it.", modules: [28] }
-  - { n: 8224, area: sec, proto: sip, short: Identity header, summary: "The Identity header signs the caller identity of a request.", modules: [28] }
+  - { n: 8224, area: sec, proto: sip, short: Identity header, summary: "The Identity header signs the caller identity of a request.", modules: [14, 28] }
   - { n: 8225, area: sec, short: PASSporT, summary: "The signed token that the Identity header carries.", modules: [28] }
   - { n: 8588, area: sec, short: SHAKEN extension, summary: "The PASSporT extension for SHAKEN attestation levels.", modules: [28] }
   - { n: 5630, area: sec, proto: sip, short: SIPS, summary: "How to use the sips: scheme correctly: TLS on every hop up to the target.", modules: [3, 14, 19] }
@@ -114,5 +114,5 @@ rfcs:
   - { n: 3725, area: guide, proto: sip, short: Third-party call control, summary: "Best current practices for third-party call control.", modules: [22] }
   - { n: 5359, area: guide, proto: sip, short: Service examples, summary: "Example flows for services such as hold, transfer, and call forwarding.", modules: [22] }
   - { n: 6141, area: guide, proto: sip, short: re-INVITE handling, summary: "How to handle re-INVITEs and their failures correctly.", modules: [9, 22] }
-  - { n: 5853, area: guide, proto: sip, short: SBC requirements, summary: "What Session Border Controllers do in real networks, and the problems they cause for SIP.", modules: [3, 25] }
-  - { n: 7092, area: guide, proto: sip, short: B2BUA taxonomy, summary: "Names the common kinds of B2BUA, from a proxy-like B2BUA to a full media terminator.", modules: [3, 25] }
+  - { n: 5853, area: guide, proto: sip, short: SBC requirements, summary: "What Session Border Controllers do in real networks, and the problems they cause for SIP.", modules: [3, 14, 25] }
+  - { n: 7092, area: guide, proto: sip, short: B2BUA taxonomy, summary: "Names the common kinds of B2BUA, from a proxy-like B2BUA to a full media terminator.", modules: [3, 14, 25] }

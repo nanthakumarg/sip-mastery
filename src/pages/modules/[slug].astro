@@ -47,6 +47,8 @@ import ViaStack from '../../components/ViaStack.astro';
 import DnsResolver from '../../components/DnsResolver.astro';
 import RegistrarView from '../../components/RegistrarView.astro';
 import ExpiryClock from '../../components/ExpiryClock.astro';
+import AttackMap from '../../components/AttackMap.astro';
+import CertCheck from '../../components/CertCheck.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -78,7 +80,8 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   DialogTable, ForkingTree,
   RoutingLab, ViaStack,
   DnsResolver,
-  RegistrarView, ExpiryClock };
+  RegistrarView, ExpiryClock,
+  AttackMap, CertCheck };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

@@ -2581,3 +2581,317 @@
     First, it uses them as the contents of the Contact header field in
     non-REGISTER requests and responses that it emits (for example, an INVITE
     request and 200 OK response).
+
+# --- Module 14: SIP security ------------------------------------------------
+
+- id: rfc3261-26.1-threats
+  rfc: 3261
+  section: "26.1"
+  title: Attacks and Threat Models
+  text: >-
+    Attackers may wish to steal services, eavesdrop on communications, or
+    disrupt sessions.
+
+- id: rfc3261-26.1.1-hijack
+  rfc: 3261
+  section: "26.1.1"
+  title: Registration Hijacking
+  text: >-
+    An attacker that successfully impersonates a party authorized to change
+    contacts associated with an address-of-record could, for example,
+    de-register all existing contacts for a URI and then register their own
+    device as the appropriate contact address, thereby directing all requests
+    for the affected user to the attacker's device.
+
+- id: rfc3261-26.1.1-gateway
+  rfc: 3261
+  section: "26.1.1"
+  title: Registration Hijacking
+  text: >-
+    Any SIP UAS that represents a valuable service (a gateway that interworks
+    SIP requests with traditional telephone calls, for example) might want to
+    control access to its resources by authenticating requests that it
+    receives.
+
+- id: rfc3261-26.1.3-sdp
+  rfc: 3261
+  section: "26.1.3"
+  title: Tampering with Message Bodies
+  text: >-
+    Attackers might attempt to modify SDP bodies, for example, in order to
+    point RTP media streams to a wiretapping device in order to eavesdrop on
+    subsequent voice communications.
+
+- id: rfc3261-26.1.5-internet
+  rfc: 3261
+  section: "26.1.5"
+  title: Denial of Service and Amplification
+  text: >-
+    In many architectures, SIP proxy servers face the public Internet in order
+    to accept requests from worldwide IP endpoints.
+
+- id: rfc3261-26.1.5-forged-via
+  rfc: 3261
+  section: "26.1.5"
+  title: Denial of Service and Amplification
+  text: >-
+    Attackers can create bogus requests that contain a falsified source IP
+    address and a corresponding Via header field that identify a targeted host
+    as the originator of the request and then send this request to a large
+    number of SIP network elements, thereby using hapless SIP UAs or proxies to
+    generate denial-of-service traffic aimed at the target.
+
+- id: rfc3261-26.2-hop-by-hop
+  rfc: 3261
+  section: "26.2"
+  title: Security Mechanisms
+  text: >-
+    Proxy servers must therefore be trusted, to some degree, by SIP UAs. To
+    this purpose, low-layer security mechanisms for SIP are recommended, which
+    encrypt the entire SIP requests or responses on the wire on a hop-by-hop
+    basis, and that allow endpoints to verify the identity of proxy servers to
+    whom they send requests.
+
+- id: rfc3261-26.2.1-tls
+  rfc: 3261
+  section: "26.2.1"
+  title: Transport and Network Layer Security
+  text: >-
+    Transport or network layer security encrypts signaling traffic,
+    guaranteeing message confidentiality and integrity.
+
+- id: rfc3261-26.2.2-mutual
+  rfc: 3261
+  section: "26.2.2"
+  title: SIPS URI Scheme
+  text: >-
+    Certificates received in the authentication process SHOULD be validated
+    with root certificates held by the client; failure to validate a
+    certificate SHOULD result in the failure of the request.
+
+- id: rfc3261-26.3.1-must-tls
+  rfc: 3261
+  section: "26.3.1"
+  title: Requirements for Implementers of SIP
+  text: >-
+    Proxy servers, redirect servers, and registrars MUST implement TLS, and
+    MUST support both mutual and one-way authentication.
+
+- id: rfc3261-26.3.2.1-forge
+  rfc: 3261
+  section: "26.3.2.1"
+  title: Registration
+  text: >-
+    Since the registrar requires the user agent to authenticate itself, it
+    would be difficult for an attacker to forge REGISTER requests for the
+    user's address-of-record.
+
+- id: rfc3261-26.3.2.1-intercept
+  rfc: 3261
+  section: "26.3.2.1"
+  title: Registration
+  text: >-
+    Also note that since the REGISTER is sent over a confidential TLS
+    connection, attackers will not be able to intercept the REGISTER to record
+    credentials for any possible replay attack.
+
+- id: rfc3261-26.3.2.2-relay
+  rfc: 3261
+  section: "26.3.2.2"
+  title: Interdomain Requests
+  text: >-
+    Such security policies could be instituted to prevent the SIP equivalent
+    of SMTP 'open relays' that are frequently exploited to generate spam.
+
+- id: rfc3261-26.3.2.4-bastion
+  rfc: 3261
+  section: "26.3.2.4"
+  title: DoS Protection
+  text: >-
+    These bastion hosts can also take the brunt of denial-of-service attacks,
+    ensuring that SIP hosts within the administrative domain are not
+    encumbered with superfluous messaging.
+
+- id: rfc3261-26.3.2.4-single
+  rfc: 3261
+  section: "26.3.2.4"
+  title: DoS Protection
+  text: >-
+    UAs and proxy servers SHOULD challenge questionable requests with only a
+    single 401 (Unauthorized) or 407 (Proxy Authentication Required), forgoing
+    the normal response retransmission algorithm, and thus behaving
+    statelessly towards unauthenticated requests.
+
+- id: rfc3261-26.4.3-hop
+  rfc: 3261
+  section: "26.4.3"
+  title: TLS
+  text: >-
+    TLS only allows SIP entities to authenticate servers to which they are
+    adjacent; TLS offers strictly hop-by-hop security.
+
+- id: rfc3261-26.4.4-not-e2e
+  rfc: 3261
+  section: "26.4.4"
+  title: SIPS URIs
+  text: >-
+    Thus SIPS cannot guarantee that TLS usage will be truly end-to-end.
+
+- id: rfc3325-1-trust-domain
+  rfc: 3325
+  section: "1"
+  title: Applicability Statement
+  text: >-
+    Nodes in such a Trust Domain are explicitly trusted by its users and
+    end-systems to publicly assert the identity of each party, and to be
+    responsible for withholding that identity outside of the Trust Domain when
+    privacy is requested.
+
+- id: rfc3325-1-forgery
+  rfc: 3325
+  section: "1"
+  title: Applicability Statement
+  text: >-
+    Furthermore, since the asserted identities are not cryptographically
+    certified, they are subject to forgery, replay, and falsification in any
+    architecture that does not meet the requirements of [5].
+
+- id: rfc3325-8-uas
+  rfc: 3325
+  section: "8"
+  title: User Agent Server Behavior
+  text: >-
+    However, if a User Agent Server receives a message from a previous element
+    that it does not trust, it MUST NOT use the P-Asserted-Identity header
+    field in any way.
+
+- id: rfc3325-12-tls
+  rfc: 3325
+  section: "12"
+  title: Security Considerations
+  text: >-
+    This information is secured by transitive trust, which is only as reliable
+    as the weakest link in the chain of trust.
+
+- id: rfc5630-3.1.2-servers
+  rfc: 5630
+  section: "3.1.2"
+  title: Mutual Authentication
+  text: >-
+    For these reasons, mutual authentication is mostly used in server-to-server
+    communications (e.g., between SIP proxies, or between proxies and gateways
+    or media servers), and in environments where using certificates on both
+    sides is possible (e.g., high-security devices used within an enterprise).
+
+- id: rfc5630-3.1.3-best-effort
+  rfc: 5630
+  section: "3.1.3"
+  title: Using TLS with SIP Instead of SIPS
+  text: >-
+    If one wants to use "best-effort TLS" for SIP, one just needs to use a SIP
+    URI, and send the request over TLS.
+
+- id: rfc5922-4-no-inference
+  rfc: 5922
+  section: "4"
+  title: SIP Domain to Host Resolution
+  text: >-
+    For example, a valid certificate for "example.com" does not imply that the
+    owner of that certificate has any relationship at all to
+    "subname.example.com".
+
+- id: rfc5922-6-provider
+  rfc: 5922
+  section: "6"
+  title: Certificate Usage by a SIP Service Provider
+  text: >-
+    When assigning certificates to authoritative servers, a SIP service
+    provider MUST ensure that the SIP domain used to reach the server appears
+    as an identity in the subjectAltName field, or for compatibility with
+    existing certificates, the Subject field of the certificate.
+
+- id: rfc5922-7.1-validity
+  rfc: 5922
+  section: "7.1"
+  title: Finding SIP Identities in a Certificate
+  text: >-
+    Implementations (both clients and server) MUST determine the validity of
+    a certificate by following the procedures described in RFC 5280 [6].
+
+- id: rfc5922-7.1-uri
+  rfc: 5922
+  section: "7.1"
+  title: Finding SIP Identities in a Certificate
+  text: >-
+    If the scheme of the URI is not "sip", then the implementation MUST NOT
+    accept the value as a SIP domain identity.
+
+- id: rfc5922-7.1-userpart
+  rfc: 5922
+  section: "7.1"
+  title: Finding SIP Identities in a Certificate
+  text: >-
+    If the scheme of the URI value is "sip", and the URI value that contains a
+    userpart (there is an '@'), the implementation MUST NOT accept the value as
+    a SIP domain identity (a value with a userpart identifies an individual
+    user, not a domain).
+
+- id: rfc5922-7.1-dns
+  rfc: 5922
+  section: "7.1"
+  title: Finding SIP Identities in a Certificate
+  text: >-
+    An implementation MUST accept a domain name system identifier as a SIP
+    domain identity if and only if no other identity is found that matches the
+    "sip" URI type described above.
+
+- id: rfc5922-7.1-cn
+  rfc: 5922
+  section: "7.1"
+  title: Finding SIP Identities in a Certificate
+  text: >-
+    If and only if the subjectAltName does not appear in the certificate, the
+    implementation MAY examine the CN field of the certificate.
+
+- id: rfc5922-7.2-whole
+  rfc: 5922
+  section: "7.2"
+  title: Comparing SIP Identities
+  text: >-
+    Implementations MUST NOT match suffixes. For example, "foo.example.com"
+    does not match "example.com".
+
+- id: rfc5922-7.2-wildcard
+  rfc: 5922
+  section: "7.2"
+  title: Comparing SIP Identities
+  text: >-
+    Through the rule above, this document prohibits such wildcards in
+    certificates for SIP domains.
+
+- id: rfc5922-7.3-client
+  rfc: 5922
+  section: "7.3"
+  title: Client Behavior
+  text: >-
+    Then, the client MUST compare the original domain portion of the SIP AUS
+    used as input to the RFC 3263 [8] server location procedures to the SIP
+    domain identities obtained from the certificate.
+
+- id: rfc5922-7.3-close
+  rfc: 5922
+  section: "7.3"
+  title: Client Behavior
+  text: >-
+    If the server is not authenticated, the client MUST close the connection
+    immediately.
+
+- id: rfc5922-7.4-peers
+  rfc: 5922
+  section: "7.4"
+  title: Server Behavior
+  text: >-
+    For example, if the server is an inbound proxy that has peering
+    relationships with the outbound proxies of other specific domains, the
+    server might allow only connections authenticated as coming from those
+    domains.

@@ -1,0 +1,9 @@
+---
+/** <AttackMap /> : attacks on a SIP service and the defences that close them (Module 14) */
+import Island from '../diagrams/AttackMap.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+import { ATTACKS } from '../sip/attacks.ts';
+
+const quotes = quoteMap([...new Set(ATTACKS.map(a => a.rfc))]);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

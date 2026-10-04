@@ -1,0 +1,229 @@
+---
+module: 14
+title: SIP security
+part: 4
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: Who attacks a SIP service and how — eavesdropping, scanning, password guessing, registration hijack, toll fraud, flooding, and forged identities — and the defences that close each path, from TLS and certificate checks to the SBC at the edge and the trust domain for P-Asserted-Identity.
+objectives:
+  - Name the classic attacks on a SIP service, and say what each one costs the victim.
+  - Explain what TLS protects and what it does not, and when to use SIPS.
+  - Check whether a server certificate is valid for a SIP domain, as RFC 5922 requires.
+  - Explain what an SBC does at the edge — topology hiding, rate limits, blocking — and why the same 401 for every user matters.
+  - Explain the trust domain, and why a proxy must remove P-Asserted-Identity from an untrusted source.
+  - Say why encrypted signaling does not make a call private.
+status: draft
+---
+
+## 14.1 Threats
+
+A SIP server on the Internet usually gets its first scan within hours of going online, often within minutes. Most attacks are not clever; they are automatic, constant, and aimed at money. RFC 3261 names the goals:
+
+<RfcQuote id="rfc3261-26.1-threats" />
+
+| Attack | What the attacker does | What it costs |
+|---|---|---|
+| **Eavesdropping** | Captures SIP and RTP on the path | Who called whom; the call itself |
+| **Scanning** | Sends REGISTER or OPTIONS to thousands of extensions | A list of real users to attack |
+| **Password guessing** | Answers the 401 again and again with common passwords | A working account |
+| **Registration hijack** | Registers its own Contact with a stolen password | The user's incoming calls |
+| **Toll fraud** | Calls premium-rate or international numbers on your account | Money: often thousands in one weekend |
+| **Flooding** | Sends more requests than the server can handle | Real calls fail |
+| **Identity forgery** | Writes a false caller identity | Victims trust the wrong caller |
+
+<RfcQuote id="rfc3261-26.1.1-hijack" />
+
+<RfcQuote id="rfc3261-26.1.1-gateway" />
+
+The map below shows atlanta.example's network. Each coral path is one attack. Turn on the defences, one at a time, and see which paths close. Some attacks need two defences together; some need a stolen password, so they close when **both** ways to steal one are closed.
+
+<AttackMap />
+
+No single defence closes everything. TLS alone closes two attacks of twelve. The rest of this module goes through the defences.
+
+## 14.2 TLS, SIPS, certificate checks, and mutual TLS
+
+### TLS: hop by hop
+
+TLS encrypts SIP between two hops and lets the client check who the server is. The Via shows it: `SIP/2.0/TLS`, usually on port 5061.
+
+<RfcQuote id="rfc3261-26.2.1-tls" />
+
+Proxies must read and change headers, so SIP cannot be encrypted end to end. Each hop is protected separately, and the user agents must trust the proxies in the middle:
+
+<RfcQuote id="rfc3261-26.2-hop-by-hop" />
+
+<RfcQuote id="rfc3261-26.4.3-hop" />
+
+TLS from Alice's phone to Proxy A says nothing about the hop from Proxy B to Bob. Every proxy and registrar must support TLS:
+
+<RfcQuote id="rfc3261-26.3.1-must-tls" />
+
+### SIP over TLS, or SIPS?
+
+There are two ways to use TLS, and they mean different things:
+
+| | `sip:` URI sent over TLS | `sips:` URI |
+|---|---|---|
+| **Meaning** | Use TLS on this hop if you can | TLS on **every** hop up to the target domain |
+| **When TLS fails** | The request may continue on TCP or UDP | The request fails |
+| **Common use** | Phones to their provider; most trunks | High-security networks that must refuse plain SIP |
+
+<RfcQuote id="rfc5630-3.1.3-best-effort" />
+
+<RfcQuote id="rfc3261-26.2.2-sips-hops" />
+
+Even SIPS cannot promise TLS on the last hop to the phone:
+
+<RfcQuote id="rfc3261-26.4.4-not-e2e" />
+
+### Certificate checks: is this really biloxi.example?
+
+Encryption without a certificate check stops passive eavesdroppers, but not an attacker in the path: it can present its own certificate and read everything. The client must check that the certificate names the **SIP domain** it wanted:
+
+<RfcQuote id="rfc5922-7.3-client" />
+
+<RfcQuote id="rfc3261-26.2.2-mutual" />
+
+Note what the client compares: the domain of the **URI**, `biloxi.example`, not the host name that DNS returned, `sip1.biloxi.example`. DNS is not trusted; the certificate is. A certificate for the host only does not prove that the host serves the domain. Pick a certificate and follow the rules:
+
+<CertCheck />
+
+| RFC 5922 rule | Example |
+|---|---|
+| A `sip` URI in subjectAltName is the preferred identity | `URI:sip:biloxi.example` |
+| DNS names count only if there is no `sip` URI identity | `DNS:biloxi.example` |
+| A URI with a user part names a person, not a domain | `URI:sip:bob@biloxi.example` is ignored |
+| The CN only if there is no subjectAltName at all | Old certificates |
+| Whole names only: no suffixes, no wildcards | `*.biloxi.example` does not match |
+
+<RfcQuote id="rfc5922-7.2-whole" />
+
+<RfcQuote id="rfc5922-4-no-inference" />
+
+RFC 3261 §26.3.2.1 was looser: it allowed a certificate for "a host within the atlanta.com domain". RFC 5922 updates RFC 3261 and requires the domain itself. So a provider must buy certificates for its SIP domains, not only for its servers:
+
+<RfcQuote id="rfc5922-6-provider" />
+
+### Mutual TLS on trunks
+
+Between a phone and its provider, only the server has a certificate; the phone proves who it is with digest (Module 13). Between servers — a company and its carrier, two providers — **both** sides present a certificate. This is **mutual TLS**, and it replaces "trust anything from this IP address", which a forged source address can fool:
+
+<RfcQuote id="rfc5630-3.1.2-servers" />
+
+<RfcQuote id="rfc5922-7.4-peers" />
+
+## 14.3 Edge protection: SBC, topology hiding, rate limits, blocking
+
+Most attacks arrive at the edge, so most defences live there. RFC 3261 suggests a "bastion host" in front of the SIP servers; today it is usually an SBC (Module 3):
+
+<RfcQuote id="rfc3261-26.3.2.4-bastion" />
+
+| Defence | What it does | Closes |
+|---|---|---|
+| **Topology hiding** | Replaces inside addresses in Via, Record-Route, Contact, and SDP with the SBC's own | Mapping the inside network |
+| **Rate limits** | Limits requests per second from each source, and in total, for example with the Kamailio pike module | Flooding, fast scans |
+| **Blocking after failed logins** | Blocks a source address after a few failed challenges, for example with fail2ban | Password guessing |
+| **Same answer for every user** | Answers 401 for unknown users too, never 404 | Scanning |
+| **Challenge every outgoing call** | 401 or 407 for any request that would cost money | Calls without a password |
+| **Call limits** | Limits calls per account, destinations, and night-time international calls | The size of a toll-fraud bill |
+
+<RfcQuote id="rfc7092-4.3-sbc-default" />
+
+<RfcQuote id="rfc3323-4.1-reveal" />
+
+A proxy should answer an unauthenticated request cheaply. A stateful challenge with retransmissions costs memory, and an attacker with a forged Via can aim the retransmissions at someone else:
+
+<RfcQuote id="rfc3261-26.3.2.4-single" />
+
+<RfcQuote id="rfc3261-26.1.5-forged-via" />
+
+Moving SIP from port 5060 to another port cuts the noise from simple scanners, but it is not a defence: a full port scan finds it in minutes.
+
+## 14.4 Trust domains: PAI and Privacy
+
+Anyone can write anything in From (Module 7). A network that has **authenticated** the caller says so in **P-Asserted-Identity**. That claim is only worth something inside a **trust domain**: a set of elements that agree how they authenticate users and whom they trust.
+
+<RfcQuote id="rfc3325-1-trust-domain" />
+
+PAI is plain text, with no signature. Its only protection is that elements accept it only from members of the trust domain:
+
+<RfcQuote id="rfc3325-1-forgery" />
+
+So the element at the edge of the trust domain must check every PAI that comes in from outside, and a phone must ignore PAI from an element it does not trust:
+
+<RfcQuote id="rfc3325-5-untrusted" />
+
+<RfcQuote id="rfc3325-8-uas" />
+
+In practice, the trust domain is a list of peers in the SBC or proxy configuration: "PAI is accepted from the carrier's trunk and from our own proxies; from everyone else, it is removed". `Privacy: id` asks the trust domain to remove PAI before the call leaves it (Module 7). The chain is only as strong as its weakest member:
+
+<RfcQuote id="rfc3325-12-tls" />
+
+## 14.5 Media security and caller identity
+
+TLS protects SIP, not the voice. RTP is a separate stream, and without **SRTP** anyone on the path can record it (Module 18):
+
+<RfcQuote id="rfc3261-26.1.3-sdp" />
+
+The two are linked. With the common SDES method, the SRTP keys travel in the SDP, in `a=crypto` lines. Without TLS for SIP, the keys are readable, and SRTP protects nothing. DTLS-SRTP, used by WebRTC, exchanges its keys on the media path instead.
+
+PAI only works inside a trust domain. Between carriers, caller ID needs a signature that any network can check: **STIR/SHAKEN** adds an Identity header with a signed token (RFC 8224; Module 28).
+
+| Protects | Signaling | Media | Caller identity |
+|---|---|---|---|
+| **Mechanism** | TLS, hop by hop | SRTP | PAI in a trust domain; STIR/SHAKEN between networks |
+| **Module** | 14, 19 | 18 | 7, 14, 28 |
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="A PBX open on port 5060 with weak extension passwords">
+    A PBX is reachable from the whole Internet on UDP 5060, and the extension passwords are 1234, the extension number, or the factory default. Scanners find it within hours and guess the passwords within days. Then, usually on a Friday night, the calls start: premium-rate and international numbers, on many channels at once. The digest is correct, the PBX works exactly as configured, and the bill arrives on Monday.
+
+    <Flow id="toll-fraud" eyebrow="Call flow · toll fraud" />
+
+    <RfcQuote id="rfc3261-26.1.1-gateway" />
+
+    <p class="fix"><b>Remember:</b> long random SIP passwords; block sources after failed logins; accept registrations only from the networks your phones use, where you can; limit calls per account and to expensive destinations. Watch for many 401s from one address — that is a scan or a guessing attack in progress.</p>
+  </Mistake>
+
+  <Mistake title="Different replies for known and unknown users (404 and 401)">
+    A registrar that answers 404 Not Found to a REGISTER for an extension that does not exist, and 401 to one that exists, tells a scanner which extensions are real. The scanner then guesses passwords only for real users, which is much faster.
+
+    <BrokenFixedFlow broken="scan-404-401" fixed="scan-uniform-401" />
+
+    <p class="fix"><b>Remember:</b> challenge every request without credentials, whether the user exists or not. After a failed digest, answer the same way for unknown users and wrong passwords. Many PBXs have a setting for this, such as <code>alwaysauthreject</code> in Asterisk's older chan_sip driver.</p>
+  </Mistake>
+
+  <Mistake title="TLS for signaling, but RTP without encryption">
+    The phones register over TLS, the Via says TLS, and the padlock icon is on. But the SDP still offers plain RTP. Anyone on the path cannot read the SIP, but can record every call.
+
+    ```
+    m=audio 49170 RTP/AVP 0 8            plain RTP: readable by anyone on the path
+    m=audio 49170 RTP/SAVP 0 8           SRTP
+    a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:WVNfX19zZW1jdGwgKCkgewkyMjA7fQp9CnVubGVz
+    ```
+
+    The reverse also happens: SRTP with SDES keys over plain UDP or TCP. The `a=crypto` line carries the key in the clear, so anyone who captures the INVITE can decrypt the media.
+
+    <p class="fix"><b>Remember:</b> check the <code>m=</code> line, not the Via. Encrypted media needs <code>RTP/SAVP</code> (or <code>UDP/TLS/RTP/SAVP</code> for DTLS-SRTP), and SDES keys need TLS for the signaling. Turn on SRTP alone in the attack map above and see which path stays open.</p>
+  </Mistake>
+
+  <Mistake title="Accepting PAI from an untrusted source">
+    An SBC or proxy that passes on P-Asserted-Identity from any source lets anyone choose the caller ID that phones and carriers treat as verified. Attackers use this for fraud calls that show a bank's number, and for calls that bypass billing or call blocking.
+
+    <BrokenFixedFlow broken="pai-forged-passed" fixed="pai-forged-removed" />
+
+    <p class="fix"><b>Remember:</b> at the edge of the trust domain, remove PAI (and P-Preferred-Identity) from every request that does not come from a configured, authenticated peer. Then add PAI yourself, from the identity that you authenticated.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- Most attacks on SIP are automatic and aim at money: **scanning**, **password guessing**, **registration hijack**, and **toll fraud**. **Eavesdropping**, **flooding**, and **identity forgery** complete the list.
+- **TLS** encrypts SIP **hop by hop**. A `sip:` URI over TLS is best effort; a **SIPS** URI requires TLS on every hop up to the target domain.
+- The client checks that the certificate names the **domain of the URI**, as RFC 5922 requires: a `sip` URI or DNS name in subjectAltName, whole names only, no wildcards. Servers check each other with **mutual TLS**.
+- The **SBC** at the edge hides the inside topology, limits rates, and blocks sources after failed logins. Answer **401 for every user**, never 404, so scanners learn nothing.
+- **P-Asserted-Identity** is trusted only from members of the **trust domain**; the edge removes it from everyone else.
+- TLS does not protect the voice: use **SRTP**, and keep SDES keys inside TLS. Between networks, caller ID needs **STIR/SHAKEN**.

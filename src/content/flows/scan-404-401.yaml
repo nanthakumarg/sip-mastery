@@ -1,0 +1,98 @@
+id: scan-404-401
+title: "Broken: 404 for unknown users, 401 for real ones"
+summary: "A scanner sends REGISTER for three extensions. The different answers tell it which ones exist."
+broken: true
+breaks: [user-enumeration]
+lanes:
+  - { id: attacker, label: Attacker, kind: ua, sub: 198.51.100.66 }
+  - { id: pbx, label: PBX, kind: registrar, sub: pbx.atlanta.example }
+steps:
+  - from: attacker
+    to: pbx
+    label: "REGISTER"
+    caption: "A scanner on the Internet tries extension 100. User-Agent: friendly-scanner is a common scanning tool."
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.66:5070;branch=z9hG4bKsc01a1
+      Max-Forwards: 70
+      From: "100" <sip:100@atlanta.example>;tag=5c41e1
+      To: "100" <sip:100@atlanta.example>
+      Call-ID: 9817264173@198.51.100.66
+      CSeq: 1 REGISTER
+      Contact: <sip:100@198.51.100.66:5070>
+      User-Agent: friendly-scanner
+      Content-Length: 0
+
+  - from: pbx
+    to: attacker
+    label: "401 Unauthorized"
+    caption: "The PBX challenges: extension 100 exists."
+    message: |
+      SIP/2.0 401 Unauthorized
+      Via: SIP/2.0/UDP 198.51.100.66:5070;branch=z9hG4bKsc01a1
+      From: "100" <sip:100@atlanta.example>;tag=5c41e1
+      To: "100" <sip:100@atlanta.example>;tag=a91f0
+      Call-ID: 9817264173@198.51.100.66
+      CSeq: 1 REGISTER
+      WWW-Authenticate: Digest realm="atlanta.example", nonce="7c1f10b2e9a64d7", qop="auth", algorithm=MD5
+      Content-Length: 0
+
+  - from: attacker
+    to: pbx
+    label: "REGISTER"
+    caption: "It tries 101."
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.66:5070;branch=z9hG4bKsc02a1
+      Max-Forwards: 70
+      From: "101" <sip:101@atlanta.example>;tag=5c42e1
+      To: "101" <sip:101@atlanta.example>
+      Call-ID: 9817264273@198.51.100.66
+      CSeq: 1 REGISTER
+      Contact: <sip:101@198.51.100.66:5070>
+      User-Agent: friendly-scanner
+      Content-Length: 0
+
+  - from: pbx
+    to: attacker
+    label: "404 Not Found"
+    caption: "The PBX answers 404 Not Found: there is no extension 101."
+    warn: "The PBX tells the scanner that 101 does not exist."
+    message: |
+      SIP/2.0 404 Not Found
+      Via: SIP/2.0/UDP 198.51.100.66:5070;branch=z9hG4bKsc02a1
+      From: "101" <sip:101@atlanta.example>;tag=5c42e1
+      To: "101" <sip:101@atlanta.example>;tag=a92f0
+      Call-ID: 9817264273@198.51.100.66
+      CSeq: 1 REGISTER
+      Content-Length: 0
+
+  - from: attacker
+    to: pbx
+    label: "REGISTER"
+    caption: "And 102. A real scan tries thousands of numbers in a few minutes."
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.66:5070;branch=z9hG4bKsc03a1
+      Max-Forwards: 70
+      From: "102" <sip:102@atlanta.example>;tag=5c43e1
+      To: "102" <sip:102@atlanta.example>
+      Call-ID: 9817264373@198.51.100.66
+      CSeq: 1 REGISTER
+      Contact: <sip:102@198.51.100.66:5070>
+      User-Agent: friendly-scanner
+      Content-Length: 0
+
+  - from: pbx
+    to: attacker
+    label: "401 Unauthorized"
+    caption: "Another 401. The scanner now knows that 100 and 102 exist, and 101 does not."
+    message: |
+      SIP/2.0 401 Unauthorized
+      Via: SIP/2.0/UDP 198.51.100.66:5070;branch=z9hG4bKsc03a1
+      From: "102" <sip:102@atlanta.example>;tag=5c43e1
+      To: "102" <sip:102@atlanta.example>;tag=a93f0
+      Call-ID: 9817264373@198.51.100.66
+      CSeq: 1 REGISTER
+      WWW-Authenticate: Digest realm="atlanta.example", nonce="7c1f30b2e9a64d7", qop="auth", algorithm=MD5
+      Content-Length: 0

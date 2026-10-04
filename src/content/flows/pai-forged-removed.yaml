@@ -1,0 +1,72 @@
+id: pai-forged-removed
+title: "Fixed: Proxy A removes PAI from an untrusted source"
+summary: "Proxy A removes the P-Asserted-Identity that the attacker wrote. Alice sees an unverified caller."
+trust: [proxyA, alice]
+lanes:
+  - { id: attacker, label: Attacker, kind: ua, sub: 198.51.100.66 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: proxy.atlanta.example }
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+steps:
+  - from: attacker
+    to: proxyA
+    label: "INVITE"
+    caption: "The attacker calls Alice. It writes its own P-Asserted-Identity: the number of Alice's bank."
+    rfc: rfc3325-1-forgery
+    message: |
+      INVITE sip:alice@atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKpa1f00
+      Max-Forwards: 70
+      From: "First Bank" <sip:service@bank.example>;tag=b4nk11
+      To: <sip:alice@atlanta.example>
+      Call-ID: f0rg3d77c1@198.51.100.66
+      CSeq: 1 INVITE
+      Contact: <sip:service@198.51.100.66:5060>
+      P-Asserted-Identity: "First Bank" <tel:+14045550100>
+      Content-Length: 0
+
+  - from: proxyA
+    to: alice
+    label: "INVITE"
+    caption: "The INVITE comes from outside the trust domain. Proxy A removes the PAI before it forwards the request."
+    rfc: rfc3325-5-untrusted
+    message: |
+      INVITE sip:alice@192.0.2.10:5060 SIP/2.0
+      Via: SIP/2.0/UDP proxy.atlanta.example:5060;branch=z9hG4bKpa2f00
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKpa1f00
+      Max-Forwards: 69
+      From: "First Bank" <sip:service@bank.example>;tag=b4nk11
+      To: <sip:alice@atlanta.example>
+      Call-ID: f0rg3d77c1@198.51.100.66
+      CSeq: 1 INVITE
+      Contact: <sip:service@198.51.100.66:5060>
+      Content-Length: 0
+
+  - from: alice
+    to: proxyA
+    label: "180 Ringing"
+    caption: "Alice's phone shows only the From. It does not mark the call as verified."
+    status: { alice: "Unverified caller" }
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP proxy.atlanta.example:5060;branch=z9hG4bKpa2f00
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKpa1f00
+      From: "First Bank" <sip:service@bank.example>;tag=b4nk11
+      To: <sip:alice@atlanta.example>;tag=al1c3r
+      Call-ID: f0rg3d77c1@198.51.100.66
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0
+
+  - from: proxyA
+    to: attacker
+    label: "180 Ringing"
+    caption: "Proxy A removes its Via and forwards the 180."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 198.51.100.66:5060;branch=z9hG4bKpa1f00
+      From: "First Bank" <sip:service@bank.example>;tag=b4nk11
+      To: <sip:alice@atlanta.example>;tag=al1c3r
+      Call-ID: f0rg3d77c1@198.51.100.66
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0

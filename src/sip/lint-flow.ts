@@ -3,7 +3,7 @@
  * Each rule follows RFC 3261. A flow marked `broken: true` must break exactly
  * the rules it lists in `breaks`; every other flow must break none.
  */
-import { liveDialogFor, trackDialogs, uriList } from './dialog.ts';
+import { liveDialogFor, trackDialogs, uriList, uriOf } from './dialog.ts';
 import type { PreparedFlow, PreparedStep } from './flow.ts';
 import { inDialogTarget, isLoose, viaList } from './routing.ts';
 import { contactsOf, DEFAULT_POLICY, parseContactHeader, runRegistrar, sameUri } from './registrar.ts';
@@ -75,6 +75,8 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   checkMaxForwards(msgs, proxies, add);
   checkRegisters(flow, msgs, add);
   if (flow.registrar) checkRegistrarModel(flow, add);
+  if (flow.trust) checkPaiTrust(flow, msgs, add);
+  checkUserEnumeration(msgs, add);
   return issues;
 }
 
@@ -143,8 +145,10 @@ function checkAuthRetries(msgs: MsgStep[], add: Add) {
       if (reverseHop(r, ch) && isRequest(r.parsed, method) && topVia(r.parsed)?.branch === topVia(ch.parsed)?.branch) { orig = r; break; }
     }
     if (!orig) return;
-    // The retry: next request with the same method on the same hop.
-    const retry = msgs.slice(i + 1).find(r => sameHop(r, orig) && isRequest(r.parsed, method));
+    // The retry: next request with the same method, to the same To URI, on the same hop.
+    // (A request for another user, as in a scan, is not a retry.)
+    const toUri = (m: SipMessage) => uriOf(getHeader(m, 'To'));
+    const retry = msgs.slice(i + 1).find(r => sameHop(r, orig) && isRequest(r.parsed, method) && toUri(r.parsed) === toUri(orig.parsed));
     if (!retry) return;
     const o = orig.parsed;
     const r = retry.parsed;
@@ -392,4 +396,49 @@ function checkRegistrarModel(flow: PreparedFlow, add: Add) {
       if (routes.slice(0, path.length).join(',') !== path.join(',')) add('registrar-model', out.index, `Route [${routes.join(', ')}] does not start with the stored Path [${path.join(', ')}]`);
     }
   });
+}
+
+/**
+ * pai-trust (RFC 3325 §5): a proxy in the trust domain does not pass on a
+ * P-Asserted-Identity that it received from a node outside the trust domain.
+ */
+function checkPaiTrust(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
+  const trusted = new Set(flow.trust);
+  const pai = (m: SipMessage) => getHeaders(m, 'P-Asserted-Identity').map(h => h.value).join(', ');
+  msgs.forEach((s, i) => {
+    const m = s.parsed;
+    if (m.kind !== 'request' || !trusted.has(s.from) || !pai(m)) return;
+    const below = viaList(m)[1]?.branch;
+    const inbound = msgs.slice(0, i).reverse().find(q => q.to === s.from && isRequest(q.parsed, m.method)
+      && callId(q.parsed) === callId(m) && (!below || topVia(q.parsed)?.branch === below));
+    if (inbound && !trusted.has(inbound.from) && pai(inbound.parsed) === pai(m)) {
+      add('pai-trust', s.index, `${s.from} forwards P-Asserted-Identity ${pai(m)}, which came from ${inbound.from}, outside the trust domain`);
+    }
+  });
+}
+
+/**
+ * user-enumeration (security practice, Module 14; not an RFC rule): a server
+ * answers a request without credentials the same way for users that exist and
+ * users that do not — not 401/407 for some and 404 for others.
+ */
+function checkUserEnumeration(msgs: MsgStep[], add: Add) {
+  const answers = new Map<string, { status: number; step: number; user: string }[]>();
+  for (const s of msgs) {
+    const m = s.parsed;
+    if (!isResponse(m) || ![401, 404, 407].includes(m.status!)) continue;
+    const c = cseq(m);
+    const req = msgs.find(q => q.to === s.from && isRequest(q.parsed, c?.method) && callId(q.parsed) === callId(m) && cseq(q.parsed)?.seq === c?.seq);
+    if (!req || getHeader(req.parsed, 'Authorization') || getHeader(req.parsed, 'Proxy-Authorization')) continue;
+    const user = /sips?:([^@;>]+)@/i.exec(getHeader(m, 'To') ?? '')?.[1] ?? '';
+    const key = `${s.from}|${c?.method}`;
+    answers.set(key, [...(answers.get(key) ?? []), { status: m.status!, step: s.index, user }]);
+  }
+  for (const list of answers.values()) {
+    const challenged = list.filter(a => a.status !== 404);
+    if (!challenged.length) continue;
+    for (const a of list.filter(x => x.status === 404)) {
+      add('user-enumeration', a.step, `404 for ${a.user}, but ${challenged[0]!.status} for ${challenged[0]!.user}: a scanner can tell which users exist`);
+    }
+  }
 }

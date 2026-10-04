@@ -1,0 +1,11 @@
+---
+/** <CertCheck /> : does a server certificate name the SIP domain? (RFC 5922 §7, Module 14) */
+import Island from '../diagrams/CertCheck.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap([
+  'rfc5922-7.1-validity', 'rfc5922-7.1-uri', 'rfc5922-7.1-userpart', 'rfc5922-7.1-dns', 'rfc5922-7.1-cn',
+  'rfc5922-7.2-whole', 'rfc5922-7.3-client',
+]);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>
