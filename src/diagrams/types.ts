@@ -17,6 +17,7 @@ export interface ClientStep {
   rfc?: string;
   wire?: string;
   status?: Record<string, string>;
+  detail?: string;
 }
 
 export interface ClientFlow {
@@ -61,5 +62,5 @@ export interface FlowBundle {
 }
 
 export const PROTO_LABEL: Record<Protocol, string> = {
-  sip: 'SIP', sdp: 'SDP', rtp: 'RTP media', rtcp: 'RTCP', dns: 'DNS / STUN / ICE', err: 'Error', down: 'Lost',
+  sip: 'SIP', sdp: 'SDP', rtp: 'RTP media', rtcp: 'RTCP', dns: 'DNS / STUN / ICE', net: 'TCP / IP', err: 'Error', down: 'Lost',
 };

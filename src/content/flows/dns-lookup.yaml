@@ -1,0 +1,81 @@
+id: dns-lookup
+title: A DNS lookup before the first request
+summary: The phone knows a name, proxy.atlanta.example. DNS turns it into an IP address before any SIP is sent.
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: resolver, label: DNS resolver, kind: server, sub: 192.0.2.53 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+steps:
+  - from: alice
+    to: resolver
+    proto: dns
+    label: DNS query (A)
+    caption: The phone knows the name proxy.atlanta.example, not its address. It asks its DNS resolver.
+    detail: |
+      UDP  192.0.2.10:51734 → 192.0.2.53:53
+
+      ;; QUESTION
+      proxy.atlanta.example.        IN  A
+
+  - from: resolver
+    to: alice
+    proto: dns
+    label: DNS answer (A)
+    caption: The resolver returns the IPv4 address. The phone can keep it for 300 seconds, the TTL.
+    detail: |
+      UDP  192.0.2.53:53 → 192.0.2.10:51734
+
+      ;; ANSWER
+      proxy.atlanta.example.  300  IN  A     198.51.100.10
+
+  - from: alice
+    to: resolver
+    proto: dns
+    label: DNS query (AAAA)
+    caption: The phone also asks for AAAA records, which hold IPv6 addresses.
+    detail: |
+      UDP  192.0.2.10:51735 → 192.0.2.53:53
+
+      ;; QUESTION
+      proxy.atlanta.example.        IN  AAAA
+
+  - from: resolver
+    to: alice
+    proto: dns
+    label: DNS answer (AAAA)
+    caption: The name also has an IPv6 address. This phone has only IPv4, so it uses the A record.
+    detail: |
+      UDP  192.0.2.53:53 → 192.0.2.10:51735
+
+      ;; ANSWER
+      proxy.atlanta.example.  300  IN  AAAA  2001:db8:100::10
+
+  - from: alice
+    to: proxyA
+    label: OPTIONS
+    caption: Now the phone sends SIP to 198.51.100.10. The Request-URI still contains the name.
+    message: |
+      OPTIONS sip:proxy.atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKopt8814
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=8a2b0e91
+      To: <sip:proxy.atlanta.example>
+      Call-ID: 5k2Lq9sT1@192.0.2.10
+      CSeq: 1 OPTIONS
+      Accept: application/sdp
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: alice
+    label: 200 OK
+    caption: Proxy A answers. DNS cost two round trips before the first SIP packet.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKopt8814
+      From: Alice <sip:alice@atlanta.example>;tag=8a2b0e91
+      To: <sip:proxy.atlanta.example>;tag=c4f1d9
+      Call-ID: 5k2Lq9sT1@192.0.2.10
+      CSeq: 1 OPTIONS
+      Allow: INVITE, ACK, CANCEL, BYE, OPTIONS, REGISTER, PRACK, UPDATE, REFER, NOTIFY
+      Accept: application/sdp
+      Content-Length: {auto}

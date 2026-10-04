@@ -1,0 +1,176 @@
+---
+module: 2
+title: Networking for SIP
+part: 1
+level: [basic]
+paths: { noc: core, dev: core }
+summary: The networking you need before SIP makes sense — addresses and ports, UDP and TCP, DNS, what a NAT router does to a packet, and how a packet capture shows all of it.
+objectives:
+  - Tell a private address from a public one, and say why a private address in a SIP message can break a call.
+  - Explain what a port and a socket are, and name the ports that SIP, RTP, and DNS use.
+  - Compare UDP and TCP, and say who retransmits a lost SIP message in each case.
+  - Describe how DNS turns a SIP server name into an IP address.
+  - Describe what a NAT router changes in a SIP packet — and what it does not change.
+  - Find the Ethernet, IP, UDP, and SIP layers in a packet capture.
+status: draft
+---
+
+## 2.1 Addresses, ports, and sockets
+
+Every SIP message travels inside an IP packet. Three ideas explain where it goes.
+
+- An **<Term t="IP address" />** identifies a network interface. IPv4 addresses have four numbers, such as `192.0.2.10`. IPv6 addresses have up to eight groups of hexadecimal digits, such as `2001:db8::10`.
+- A **<Term t="port" />** selects one application on that interface. A SIP phone usually listens on port `5060`.
+- A **<Term t="socket" />** is the combination: `192.0.2.10:5060`. A conversation between two sockets, over one transport, is a *flow*:
+
+```
+UDP   192.0.2.10:5060   →   198.51.100.10:5060
+      source socket         destination socket
+```
+
+### Ports you will see in SIP traces
+
+| Port | Transport | Used for |
+|---|---|---|
+| `5060` | UDP or TCP | SIP |
+| `5061` | TLS (over TCP) | SIP, encrypted |
+| `53` | UDP (and TCP) | DNS |
+| `3478` | UDP or TCP | STUN and TURN (Module 20) |
+| A range, often `10000`–`20000` | UDP | RTP and RTCP. Each device chooses its own range. |
+| `443` | TCP | Secure WebSocket, often used by WebRTC clients (Module 26) |
+
+<RfcQuote id="rfc3550-11-even-port" />
+
+### Private and public addresses
+
+Some IPv4 ranges are reserved for private networks: homes, offices, and the inside of data centres. Routers on the Internet do not forward packets to these addresses.
+
+<RfcQuote id="rfc1918-3-private" />
+
+Type an address, or pick an example. The table shows which range it belongs to.
+
+<AddressClassifier />
+
+<Note title="Why this matters for SIP">
+SIP writes IP addresses *inside* its messages: in the Via header, in the Contact header, and in the SDP `c=` line. When a phone with a private address talks to a server on the Internet, those addresses are wrong on the other side. Section 2.4 shows what happens next.
+</Note>
+
+## 2.2 UDP and TCP, the short version
+
+IP delivers packets, one at a time, without guarantees. A *transport* runs on top of it. SIP can use several transports (Module 19); the two basic ones are UDP and TCP.
+
+<RfcQuote id="rfc3261-18-udp-tcp" />
+
+| | <Term t="UDP" /> | <Term t="TCP" /> |
+|---|---|---|
+| Connection | None. Each packet stands alone. | Opened first, with a three-way handshake |
+| Lost packets | Lost. **SIP itself retransmits.** | TCP retransmits. SIP does not. |
+| Message boundaries | One SIP message per packet | A byte stream. SIP uses `Content-Length` to find where each message ends. |
+| Large messages | Can be fragmented, and fragments get lost | No problem |
+| Typical use | Most phones and trunks | TLS, WebSocket, large messages, some trunks |
+
+Compare the two. In both flows, one packet is lost. Watch *who* sends it again.
+
+<CompareFlows a="udp-options" b="tcp-options" labels={['UDP', 'TCP']} />
+
+<RfcQuote id="rfc3261-17.1.2.2-timer-e" />
+
+UDP has one more limit. A big SIP message — an INVITE with many codecs, video, and encryption keys — may not fit in one packet. RFC 3261 says when to switch to TCP:
+
+<RfcQuote id="rfc3261-18.1.1-1300" />
+
+## 2.3 DNS: from names to addresses
+
+A phone is usually configured with a *name*, such as `proxy.atlanta.example`, not an IP address. Before the first SIP packet, it asks a <Term t="DNS resolver" /> to translate the name.
+
+<Flow id="dns-lookup" eyebrow="Before SIP: DNS" />
+
+- An **A** record holds an IPv4 address; an **AAAA** record holds an IPv6 address.
+- Every answer has a **TTL** (time to live): how many seconds the answer may be cached.
+- SIP also uses **SRV** and **NAPTR** records, which tell a client which server, port, and transport to use. Module 11 covers them.
+
+<Note title="For support engineers">
+When DNS fails, the phone often sends no SIP at all, or reports a timeout. If a trace shows *no* SIP packets, look for DNS queries first: did the phone ask, and did it get an answer?
+</Note>
+
+## 2.4 What NAT does to a packet
+
+Most phones sit behind a <Term t="NAT" /> router. The router lets many private addresses share one public address. For every packet that goes out, it rewrites the **IP source address** and the **UDP source port**, and remembers the change in a mapping table, so it can send replies back.
+
+The router changes the IP and UDP headers. It does **not** change the addresses written inside the SIP text. Step through a registration, then turn rport off.
+
+<NatRewrite />
+
+<RfcQuote id="rfc3581-4-rport" />
+
+Two more facts explain most NAT problems in SIP:
+
+- The mapping lasts only while packets flow. If nothing passes for a while, the router forgets it, and incoming requests can no longer get in.
+
+<RfcQuote id="rfc4787-4.3-mapping-timer" />
+
+- The private Contact address means that nobody outside can reach the phone directly — unless something fixes it. Module 20 covers the fixes: rport, keepalives, Contact rewriting, SIP Outbound, and media relays.
+
+## 2.5 How a packet capture shows the layers
+
+A packet capture (from Wireshark, tcpdump, or sngrep) shows each packet as a stack of layers. This is the first REGISTER from Module 13, wrapped in real Ethernet, IPv4, and UDP headers. Select a layer or a field to see its bytes; point at the bytes to find their field.
+
+<PacketExplorer flow="register-401" step={1} />
+
+### Capture tips
+
+Where you capture changes what you see. On the phone, you see private addresses. Outside the NAT router, you see public ones. On the server, you see the server's view. Always note *where* a trace was taken.
+
+| Goal | Wireshark display filter | tcpdump capture filter |
+|---|---|---|
+| All SIP | `sip` | `port 5060 or port 5061` |
+| SIP and its media | `sip or rtp or rtcp` | `port 5060 or udp portrange 10000-20000` |
+| One call | `sip.Call-ID == "3848276298220188511@192.0.2.10"` | — (filter later in Wireshark) |
+| DNS too | `sip or dns` | `port 5060 or port 53` |
+
+<Note kind="warn" title="Two things a capture will not show you by default">
+**SIP over TLS** (port 5061) appears as encrypted bytes. To read it, capture inside the server or use the server's own logs. **RTP** is decoded only when Wireshark has seen the SDP that set it up, or when you enable its RTP heuristic (`rtp_udp`).
+</Note>
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="“The source port is the port the phone listens on”">
+    Behind NAT, the router changes the source port: a phone listening on 5060 appears as 40112. Over TCP, the operating system picks a random client port, such as 49152. The port where the phone *listens* is in the Via and Contact headers — not in the UDP or TCP header.
+
+    <p class="fix"><b>Remember:</b> replies follow the Via header, with rport and received (Modules 10 and 20). Requests to the phone follow its Contact.</p>
+  </Mistake>
+
+  <Mistake title="Capturing only port 5060">
+    A filter on port 5060 misses SIP over TLS on 5061, SIP on non-standard ports (5080 and others are common), DNS lookups, and all RTP. The packet that explains the problem is often the one you did not capture.
+
+    <p class="fix"><b>Remember:</b> capture wide first, then filter in Wireshark.</p>
+  </Mistake>
+
+  <Mistake title="“Every private address in a trace is a bug”">
+    Inside a home or office network, private addresses are normal. They become a problem only when they leave the network inside a SIP message: in a Via, a Contact, or an SDP `c=` line that reaches the Internet.
+
+    <p class="fix"><b>Remember:</b> ask "which side of the NAT was this trace captured on, and where is this message going?"</p>
+  </Mistake>
+
+  <Mistake title="“UDP is unreliable, so SIP over UDP is unreliable”">
+    SIP over UDP has its own retransmission timers. A lost request is sent again after 500 ms, then 1 s, 2 s, and so on. That is why you often see the same message several times in a UDP trace — and why those copies are not separate calls.
+
+    <p class="fix"><b>Remember:</b> retransmissions have the same Via branch and CSeq. Module 8 covers the timers.</p>
+  </Mistake>
+
+  <Mistake title="Ignoring DNS">
+    A wrong or slow DNS answer looks like a SIP problem: timeouts, calls to an old server, or failures in one site only. Cached answers can keep the wrong address alive for the whole TTL.
+
+    <p class="fix"><b>Remember:</b> include DNS in your captures, and check the TTL of the records you depend on.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- An **IP address** finds the host, a **port** finds the application, and the two together form a **socket**. SIP uses **5060** (UDP or TCP) and **5061** (TLS); RTP uses a range of even ports.
+- **Private addresses** (RFC 1918) are not reachable from the Internet. In SIP, they cause trouble when they appear *inside* messages that leave the network.
+- Over **UDP**, SIP retransmits lost messages itself. Over **TCP**, TCP does it. Large messages must use TCP.
+- **DNS** turns names into addresses before the first SIP packet. A records hold IPv4 addresses; AAAA records hold IPv6 addresses.
+- A **NAT router** rewrites the IP source and the UDP port, but not the addresses inside SIP. **rport** lets replies find their way back; mappings expire when traffic stops.
+- A **capture** shows Ethernet, IP, UDP, and SIP. Note where it was taken, and capture wide before you filter.

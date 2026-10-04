@@ -1,0 +1,53 @@
+id: udp-options
+title: OPTIONS over UDP, with one packet lost
+summary: UDP sends at once and never retransmits. When a packet is lost, SIP itself sends the request again.
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+steps:
+  - from: alice
+    to: proxyA
+    label: OPTIONS
+    caption: Alice's phone sends OPTIONS over UDP, with no connection setup. The network drops this packet.
+    lost: true
+    message: |
+      OPTIONS sip:proxy.atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKopt8812
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=8a2b0e91
+      To: <sip:proxy.atlanta.example>
+      Call-ID: 5k2Lq9sT1@192.0.2.10
+      CSeq: 1 OPTIONS
+      Accept: application/sdp
+      Content-Length: {auto}
+
+  - from: alice
+    to: proxyA
+    label: OPTIONS (retransmission)
+    caption: No response came within 500 ms (Timer E = T1). SIP itself sends the same request again.
+    rfc: rfc3261-17.1.2.2-timer-e
+    message: |
+      OPTIONS sip:proxy.atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKopt8812
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=8a2b0e91
+      To: <sip:proxy.atlanta.example>
+      Call-ID: 5k2Lq9sT1@192.0.2.10
+      CSeq: 1 OPTIONS
+      Accept: application/sdp
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: alice
+    label: 200 OK
+    caption: Proxy A answers. The whole exchange used just three packets.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKopt8812
+      From: Alice <sip:alice@atlanta.example>;tag=8a2b0e91
+      To: <sip:proxy.atlanta.example>;tag=c4f1d9
+      Call-ID: 5k2Lq9sT1@192.0.2.10
+      CSeq: 1 OPTIONS
+      Allow: INVITE, ACK, CANCEL, BYE, OPTIONS, REGISTER, PRACK, UPDATE, REFER, NOTIFY
+      Accept: application/sdp
+      Content-Length: {auto}

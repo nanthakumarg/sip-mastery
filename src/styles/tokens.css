@@ -25,6 +25,7 @@
   --rtp: #3FD0C9;   /* RTP media (always dashed) */
   --rtcp: #7BD88F;  /* RTCP and keepalives */
   --dns: #7FA6FF;   /* DNS, STUN, ICE */
+  --net: #A7AFB9;   /* lower-layer packets: TCP handshakes, ICMP */
   --err: #FF6B5A;   /* errors, failed paths, warnings */
   --down: #FF4F6A;  /* lost packets, elements down */
 

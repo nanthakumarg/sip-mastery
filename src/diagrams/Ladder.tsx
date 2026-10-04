@@ -27,7 +27,7 @@ export function ladderWidth(lanes: number, compact = false): number {
   const g = geometry(lanes, compact);
   return NUM_W + HEAD_W + (lanes - 1) * g.laneGap + 8;
 }
-const PROTOS: Protocol[] = ['sip', 'sdp', 'rtp', 'rtcp', 'dns', 'err', 'down'];
+const PROTOS: Protocol[] = ['sip', 'sdp', 'rtp', 'rtcp', 'dns', 'net', 'err', 'down'];
 
 interface Props {
   flow: ClientFlow;

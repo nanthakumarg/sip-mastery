@@ -148,3 +148,29 @@
   definition: Secure RTP. It encrypts and authenticates media packets.
 - term: TLS
   definition: Transport Layer Security. It encrypts SIP between two hops.
+
+# --- Networking (Module 2) ------------------------------------------------
+- term: IP address
+  definition: The address of a network interface. IPv4 addresses look like 192.0.2.10; IPv6 addresses look like 2001:db8::10.
+- term: port
+  definition: A number from 0 to 65535 that selects one application on a host. SIP usually listens on 5060 (5061 for TLS).
+- term: socket
+  definition: One end of a network conversation, written as IP address and port, such as 192.0.2.10:5060.
+- term: UDP
+  definition: A transport that sends independent packets with no connection and no retransmission. SIP over UDP retransmits by itself.
+- term: TCP
+  aliases: [TCP SYN, TCP SYN-ACK, TCP ACK]
+  definition: A transport that opens a connection and delivers a reliable, ordered byte stream.
+- term: DNS
+  aliases: [DNS query, DNS answer]
+  definition: The Domain Name System. It turns names such as proxy.atlanta.example into IP addresses.
+- term: DNS resolver
+  definition: The server that a device asks to look up DNS names for it.
+- term: NAT
+  aliases: [network address translation]
+  definition: A router function that rewrites private addresses and ports into public ones, and back.
+- term: private address
+  definition: An IPv4 address from the RFC 1918 ranges (10/8, 172.16/12, 192.168/16). It is not reachable from the Internet.
+- term: MTU
+  aliases: [maximum transmission unit]
+  definition: The largest packet a link can carry in one piece. On Ethernet it is usually 1500 bytes.

@@ -258,3 +258,65 @@
   text: >-
     This document updates RFC 2119 by clarifying that only UPPERCASE usage of
     the key words have the defined special meanings.
+
+# --- Module 2 -------------------------------------------------------------
+
+- id: rfc1918-3-private
+  rfc: 1918
+  section: "3"
+  title: Private Address Space
+  text: >-
+    The Internet Assigned Numbers Authority (IANA) has reserved the following
+    three blocks of the IP address space for private internets:
+
+- id: rfc3261-18-udp-tcp
+  rfc: 3261
+  section: "18"
+  title: Transport
+  text: >-
+    All SIP elements MUST implement UDP and TCP.
+
+- id: rfc3261-18.1.1-1300
+  rfc: 3261
+  section: "18.1.1"
+  title: Sending Requests
+  text: >-
+    If a request is within 200 bytes of the path MTU, or if it is larger than
+    1300 bytes and the path MTU is unknown, the request MUST be sent using an
+    RFC 2914 [43] congestion controlled transport protocol, such as TCP.
+
+- id: rfc3261-17.1.2.2-timer-e
+  rfc: 3261
+  section: "17.1.2.2"
+  title: Formal Description
+  text: >-
+    If an unreliable transport is in use, the client transaction MUST set
+    timer E to fire in T1 seconds.
+
+- id: rfc3550-11-even-port
+  rfc: 3550
+  section: "11"
+  title: RTP over Network and Transport Protocols
+  text: >-
+    For UDP and similar protocols, RTP SHOULD use an even destination port
+    number and the corresponding RTCP stream SHOULD use the next higher (odd)
+    destination port number.
+
+- id: rfc3581-4-rport
+  rfc: 3581
+  section: "4"
+  title: Server Behavior
+  text: >-
+    If this Via header field value contains an "rport" parameter with no
+    value, it MUST set the value of the parameter to the source port of the
+    request.
+
+- id: rfc4787-4.3-mapping-timer
+  rfc: 4787
+  section: "4.3"
+  title: Mapping Refresh
+  text: >-
+    There is great variation in the values used by different NATs.
+
+    REQ-5:  A NAT UDP mapping timer MUST NOT expire in less than two minutes,
+    unless REQ-5a applies.

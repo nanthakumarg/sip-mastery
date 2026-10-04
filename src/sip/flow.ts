@@ -7,7 +7,7 @@ import { computeDigest, type DigestAlgorithm } from './digest.ts';
 import { byteLength, parseAuthParams, parseMessage, SipParseError, type SipMessage } from './parse.ts';
 
 /** Protocol colour keys. Each key is one colour in the design tokens. */
-export const PROTOCOLS = ['sip', 'sdp', 'rtp', 'rtcp', 'dns', 'err', 'down'] as const;
+export const PROTOCOLS = ['sip', 'sdp', 'rtp', 'rtcp', 'dns', 'net', 'err', 'down'] as const;
 export type Protocol = (typeof PROTOCOLS)[number];
 
 export const LANE_KINDS = ['ua', 'proxy', 'registrar', 'server', 'b2bua', 'sbc', 'nat'] as const;
@@ -38,6 +38,8 @@ export interface FlowStep {
   lost?: boolean;
   /** A coral "⚠" warning shown with this step. */
   warn?: string;
+  /** For steps without a SIP message (TCP, DNS…): text shown in the inspector, in a monospace font. */
+  detail?: string;
   /** Short state labels shown under nodes on the call map, e.g. { alice: Registered }. They persist until changed. */
   status?: Record<string, string>;
 }

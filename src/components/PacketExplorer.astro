@@ -1,0 +1,16 @@
+---
+/** <PacketExplorer flow="register-401" step={1} /> : one SIP message from a flow, wrapped in a real Ethernet/IPv4/UDP frame. */
+import Island from '../diagrams/PacketExplorer.tsx';
+import { loadFlow } from '../lib/data.ts';
+
+interface Props { flow: string; step: number }
+const flow = await loadFlow(Astro.props.flow);
+const s = flow.steps[Astro.props.step - 1];
+if (!s?.wire) throw new Error(`<PacketExplorer>: step ${Astro.props.step} of ${Astro.props.flow} has no message`);
+const input = {
+  srcMac: '00:00:5e:00:53:0a', dstMac: '00:00:5e:00:53:01',
+  srcIp: '192.0.2.10', dstIp: '198.51.100.20', srcPort: 5060, dstPort: 5060, ttl: 64, id: 0x1c46,
+  payload: s.wire,
+};
+---
+<div class="wide"><Island client:visible input={input} /></div>

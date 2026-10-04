@@ -1,0 +1,12 @@
+---
+/** <CompareFlows a="udp-options" b="tcp-options" labels={['UDP', 'TCP']} /> : a neutral two-way comparison */
+import BrokenFixed from '../diagrams/BrokenFixed.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+
+interface Props { a: string; b: string; labels: [string, string] }
+const { a, b, labels } = Astro.props;
+const [fa, fb] = await flowBundle(a, b);
+---
+<div class="wide">
+  <BrokenFixed client:visible broken={fa!} fixed={fb!} labels={labels} neutral />
+</div>

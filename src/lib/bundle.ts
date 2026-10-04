@@ -26,7 +26,7 @@ export async function flowBundle(...ids: string[]): Promise<FlowBundle[]> {
       phases: f.phases, map: f.map,
       steps: f.steps.map(s => ({
         index: s.index, kind: s.kind, from: s.from, to: s.to, proto: s.proto, label: s.label,
-        caption: s.caption, warn: s.warn, lost: s.lost, rfc: s.rfc, wire: s.wire, status: s.status,
+        caption: s.caption, warn: s.warn, lost: s.lost, rfc: s.rfc, wire: s.wire, status: s.status, detail: s.detail,
       })),
     };
     const quotes: Record<string, ClientQuote> = {};

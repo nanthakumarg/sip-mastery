@@ -42,7 +42,16 @@ export default function Inspector({ step, laneLabel, prev, quote, refData }: Pro
     return (
       <div className="inspector">
         {head}
-        <p className="insp-empty">{step.kind === 'media' ? 'Media packets, not a SIP message. RTP carries the audio between the Contact addresses in the SDP.' : 'No message for this step.'}</p>
+        {step.detail
+          ? <pre className="insp-detail">{step.detail}</pre>
+          : <p className="insp-empty">{step.kind === 'media' ? 'Media packets, not a SIP message. RTP carries the audio between the addresses in the SDP.' : 'No SIP message for this step.'}</p>}
+        {quote && (
+          <blockquote className="insp-quote">
+            <p className="insp-q-src">RFC {quote.rfc} §{quote.section} · {quote.title}</p>
+            <p>“{markKeywords(quote.text)}”</p>
+            <a href={quote.url} target="_blank" rel="noopener">Read the section ↗</a>
+          </blockquote>
+        )}
       </div>
     );
   }

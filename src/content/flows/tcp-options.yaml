@@ -1,0 +1,81 @@
+id: tcp-options
+title: OPTIONS over TCP, with one packet lost
+summary: TCP opens a connection first and repairs losses itself. SIP does not retransmit over TCP.
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+steps:
+  - from: alice
+    to: proxyA
+    proto: net
+    label: TCP SYN
+    caption: Before any SIP, TCP opens a connection. The phone sends SYN from port 49152, not 5060.
+    detail: |
+      TCP  192.0.2.10:49152 → 198.51.100.10:5060
+      Flags: SYN
+      The operating system chooses the client port.
+      The SIP Via header still says 5060: the port where Alice listens.
+
+  - from: proxyA
+    to: alice
+    proto: net
+    label: TCP SYN-ACK
+    caption: Proxy A accepts the connection.
+    detail: |
+      TCP  198.51.100.10:5060 → 192.0.2.10:49152
+      Flags: SYN, ACK
+
+  - from: alice
+    to: proxyA
+    proto: net
+    label: TCP ACK
+    caption: The connection is open after three packets. Only now can SIP send anything.
+    detail: |
+      TCP  192.0.2.10:49152 → 198.51.100.10:5060
+      Flags: ACK
+
+  - from: alice
+    to: proxyA
+    label: OPTIONS
+    caption: The phone sends OPTIONS on the connection. The network drops this TCP segment.
+    lost: true
+    message: |
+      OPTIONS sip:proxy.atlanta.example SIP/2.0
+      Via: SIP/2.0/TCP 192.0.2.10:5060;branch=z9hG4bKopt8813
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=8a2b0e91
+      To: <sip:proxy.atlanta.example>
+      Call-ID: 5k2Lq9sT1@192.0.2.10
+      CSeq: 1 OPTIONS
+      Accept: application/sdp
+      Content-Length: {auto}
+
+  - from: alice
+    to: proxyA
+    label: OPTIONS (TCP resend)
+    caption: TCP notices the loss and sends the segment again. SIP does not retransmit over TCP.
+    message: |
+      OPTIONS sip:proxy.atlanta.example SIP/2.0
+      Via: SIP/2.0/TCP 192.0.2.10:5060;branch=z9hG4bKopt8813
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=8a2b0e91
+      To: <sip:proxy.atlanta.example>
+      Call-ID: 5k2Lq9sT1@192.0.2.10
+      CSeq: 1 OPTIONS
+      Accept: application/sdp
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: alice
+    label: 200 OK
+    caption: Proxy A answers on the same connection. The connection stays open for later requests.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/TCP 192.0.2.10:5060;branch=z9hG4bKopt8813
+      From: Alice <sip:alice@atlanta.example>;tag=8a2b0e91
+      To: <sip:proxy.atlanta.example>;tag=c4f1d9
+      Call-ID: 5k2Lq9sT1@192.0.2.10
+      CSeq: 1 OPTIONS
+      Allow: INVITE, ACK, CANCEL, BYE, OPTIONS, REGISTER, PRACK, UPDATE, REFER, NOTIFY
+      Accept: application/sdp
+      Content-Length: {auto}

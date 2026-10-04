@@ -704,6 +704,7 @@ The course uses the same visual language as both decks. This is a direction, not
 | Cyan (dashed line) | `#3FD0C9` | RTP media |
 | Green | `#7BD88F` | RTCP and keepalives |
 | Blue | `#7FA6FF` | DNS, STUN, ICE |
+| Grey | `#A7AFB9` | Lower-layer packets: TCP handshakes, ICMP |
 | Coral | `#FF6B5A` | Errors, failed paths, attacks |
 | Red | `#FF4F6A` | Lost packets and elements that are down |
 | 🔒 + double line | (any colour) | Encrypted (TLS, SRTP, DTLS) |
