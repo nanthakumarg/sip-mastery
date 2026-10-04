@@ -27,6 +27,9 @@ import AddressClassifier from '../../components/AddressClassifier.astro';
 import CompareFlows from '../../components/CompareFlows.astro';
 import NatRewrite from '../../components/NatRewrite.astro';
 import PacketExplorer from '../../components/PacketExplorer.astro';
+import UriDissector from '../../components/UriDissector.astro';
+import ElementGallery from '../../components/ElementGallery.astro';
+import LocationService from '../../components/LocationService.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -50,7 +53,8 @@ const nextPlanned = flat.find(m => m.n === d.module + 1);
 
 const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mistakes, Mistake, Term, Stats, Stat, Digest, CallPlayer, TwoPaths, ProtocolStack, ColourKey,
   CircuitVsPacket, ProtocolCompare, HttpVsSip, RfcMap, Landscape,
-  AddressClassifier, CompareFlows, NatRewrite, PacketExplorer };
+  AddressClassifier, CompareFlows, NatRewrite, PacketExplorer,
+  UriDissector, ElementGallery, LocationService };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

@@ -87,6 +87,7 @@ rfcs:
   - { n: 8224, area: sec, proto: sip, short: Identity header, summary: "The Identity header signs the caller identity of a request.", modules: [28] }
   - { n: 8225, area: sec, short: PASSporT, summary: "The signed token that the Identity header carries.", modules: [28] }
   - { n: 8588, area: sec, short: SHAKEN extension, summary: "The PASSporT extension for SHAKEN attestation levels.", modules: [28] }
+  - { n: 5630, area: sec, proto: sip, short: SIPS, summary: "How to use the sips: scheme correctly: TLS on every hop up to the target.", modules: [3, 14, 19] }
   - { n: 8946, area: sec, short: Diverted calls, summary: "A PASSporT extension for calls that were diverted.", modules: [28] }
 
   # --- WebRTC and IMS ---------------------------------------------------------------
@@ -108,3 +109,5 @@ rfcs:
   - { n: 3725, area: guide, proto: sip, short: Third-party call control, summary: "Best current practices for third-party call control.", modules: [22] }
   - { n: 5359, area: guide, proto: sip, short: Service examples, summary: "Example flows for services such as hold, transfer, and call forwarding.", modules: [22] }
   - { n: 6141, area: guide, proto: sip, short: re-INVITE handling, summary: "How to handle re-INVITEs and their failures correctly.", modules: [9, 22] }
+  - { n: 5853, area: guide, proto: sip, short: SBC requirements, summary: "What Session Border Controllers do in real networks, and the problems they cause for SIP.", modules: [3, 25] }
+  - { n: 7092, area: guide, proto: sip, short: B2BUA taxonomy, summary: "Names the common kinds of B2BUA, from a proxy-like B2BUA to a full media terminator.", modules: [3, 25] }

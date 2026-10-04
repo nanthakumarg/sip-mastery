@@ -37,3 +37,13 @@ export async function flowBundle(...ids: string[]): Promise<FlowBundle[]> {
     return { flow, quotes, refData: clientRef };
   }));
 }
+
+/** Quotes by id, with links, for islands that show RFC text outside a flow. */
+export function quoteMap(ids: string[]): Record<string, ClientQuote> {
+  const all = loadQuotes();
+  return Object.fromEntries(ids.map(id => {
+    const q = all.find(x => x.id === id);
+    if (!q) throw new Error(`Unknown RFC quote id "${id}" (add it to src/content/rfc-quotes.yaml)`);
+    return [id, { ...q, url: rfcUrl(q.rfc, q.section) }];
+  }));
+}

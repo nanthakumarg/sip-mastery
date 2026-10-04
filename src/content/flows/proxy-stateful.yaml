@@ -1,0 +1,184 @@
+id: proxy-stateful
+title: A stateful proxy that stays in the path
+summary: Proxy B keeps transaction state, answers 100 Trying itself, and adds Record-Route so that later requests also pass through it.
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: stateful }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: alice
+    to: proxyB
+    label: INVITE
+    caption: Alice's phone sends the INVITE to Proxy B. The Request-URI is Bob's AOR.
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: proxyB
+    to: alice
+    label: 100 Trying
+    caption: Proxy B answers 100 Trying at once. It now holds a transaction, so Alice's phone stops retransmitting.
+    rfc: rfc3261-16.1-stateless-stateful
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: bob
+    label: INVITE
+    caption: Proxy B changes the Request-URI and adds a Via. It also adds Record-Route to stay in the path.
+    rfc: rfc3261-16.6-copy
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb721e
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Max-Forwards: 69
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: bob
+    to: proxyB
+    label: 180 Ringing
+    caption: Bob's phone rings. The response copies the Record-Route header from the request.
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb721e
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: alice
+    label: 180 Ringing
+    caption: Proxy B removes its own Via and forwards the response to Alice's phone.
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}
+
+  - from: bob
+    to: proxyB
+    label: 200 OK
+    caption: Bob answers. The 200 OK carries the SDP of Bob's phone.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb721e
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: alice
+    label: 200 OK
+    caption: Proxy B forwards the 200 OK. It does not touch the SDP body.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: alice
+    to: proxyB
+    label: ACK
+    caption: Alice's phone sends the ACK to Proxy B, because of the Record-Route. Module 10 explains the Route header.
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b76
+      Max-Forwards: 70
+      Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: bob
+    label: ACK
+    caption: Proxy B removes its Route entry, adds a Via, and forwards the ACK to Bob's phone.
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb721f
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b76
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}

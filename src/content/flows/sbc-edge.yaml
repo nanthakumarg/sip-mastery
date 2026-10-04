@@ -1,0 +1,74 @@
+id: sbc-edge
+title: An SBC rewrites the INVITE at the network edge
+summary: The SBC hides the network behind it. It replaces the Via, Record-Route, Contact, Call-ID, tags, and the media address in the SDP.
+lanes:
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  - { id: sbc, label: SBC, kind: sbc, sub: 198.51.100.200 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+steps:
+  - from: proxyA
+    to: sbc
+    label: INVITE
+    caption: Proxy A sends Alice's INVITE to the SBC at the edge of atlanta.example.
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa4790
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Max-Forwards: 69
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: sbc
+    to: proxyA
+    label: 100 Trying
+    caption: The SBC answers as a UAS on the inner side.
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa4790
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: sbc
+    to: proxyB
+    label: INVITE (outer side)
+    caption: The SBC sends a new INVITE on the outer side. No inner address remains, and the media now flows through the SBC.
+    rfc: rfc7092-4.3-sbc-default
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.200:5060;branch=z9hG4bK-sbc-5b2e
+      Max-Forwards: 68
+      From: Alice <sip:alice@atlanta.example>;tag=sbc-3c9d0f
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 9e7d6c5b4a21@198.51.100.200
+      CSeq: 1 INVITE
+      Contact: <sip:alice@198.51.100.200:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=sbc 1700000 1700000 IN IP4 198.51.100.200
+      s=-
+      c=IN IP4 198.51.100.200
+      t=0 0
+      m=audio 40000 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000

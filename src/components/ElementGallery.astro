@@ -1,0 +1,14 @@
+---
+/** <ElementGallery initial="stateful" /> : one card per SIP element (src/content/elements.yaml) */
+import Island from '../diagrams/ElementGallery.tsx';
+import { flowBundle, quoteMap } from '../lib/bundle.ts';
+import { loadElements } from '../lib/data.ts';
+
+interface Props { initial?: string }
+const cards = loadElements();
+const ids = [...new Set(cards.map(c => c.flow))];
+const bundles = await flowBundle(...ids);
+const flows = Object.fromEntries(bundles.map(b => [b.flow.id, b.flow]));
+const quotes = quoteMap([...new Set(cards.map(c => c.quote))]);
+---
+<div class="wide"><Island client:visible cards={cards} flows={flows} refData={bundles[0]!.refData} quotes={quotes} initial={Astro.props.initial} /></div>

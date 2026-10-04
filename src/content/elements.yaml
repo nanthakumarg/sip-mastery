@@ -1,0 +1,147 @@
+# The element gallery (Module 3). One card per SIP element.
+# flow / in / out: the flow and the 1-based step numbers of the message the
+# element receives and the message it sends. The inspector shows "out" with
+# the changes since "in" when both are requests of the same method.
+# changes: each item starts with the inspector glyph: "+" adds, "~" changes, "−" removes.
+
+- id: ua
+  name: User agent
+  short: UAC and UAS
+  kind: ua
+  flow: roles-uac-uas
+  in: 1
+  out: 2
+  role: Starts requests as a UAC and answers them as a UAS. Phones, softphones, and gateways are user agents.
+  state: Its own transactions and dialogs.
+  media: Yes. It sends and receives the RTP.
+  changes:
+    - "+ Creates each new request: Call-ID, From tag, CSeq, and Via"
+    - "+ Adds its own To tag to its responses"
+  keeps:
+    - Copies Via, From, Call-ID, and CSeq of a request into each response
+  examples: Desk phones, softphones, mobile apps, PSTN gateways
+  quote: rfc3261-6-uas
+
+- id: stateless
+  name: Stateless proxy
+  short: Forwards and forgets
+  kind: proxy
+  flow: proxy-stateless
+  in: 1
+  out: 2
+  role: Routes each request one hop closer to the target, then forgets it. Responses find the way back through the Via headers.
+  state: None. It forgets each message once it forwards it.
+  media: "No"
+  changes:
+    - "~ Request-URI: the new target"
+    - "~ Max-Forwards: minus 1"
+    - "+ Its own Via at the top"
+    - "− Its own Via, from each response"
+  keeps:
+    - From, To, Call-ID, and CSeq
+    - Contact
+    - The body (SDP)
+    - The order of the other headers
+  examples: Load balancers in front of a group of proxies
+  quote: rfc3261-16.1-stateless-stateful
+
+- id: stateful
+  name: Stateful proxy
+  short: Remembers each transaction
+  kind: proxy
+  flow: proxy-stateful
+  in: 1
+  out: 3
+  role: A proxy that keeps each transaction until it ends. It can send 100 Trying, retransmit, fork, and try the next target after a failure.
+  state: Each transaction. A dialog-stateful proxy also tracks each call until BYE.
+  media: "No"
+  changes:
+    - "~ Request-URI: the new target"
+    - "~ Max-Forwards: minus 1"
+    - "+ Its own Via at the top"
+    - "+ Record-Route, if it wants to stay in the path"
+    - "+ Its own 100 Trying"
+  keeps:
+    - From, To, Call-ID, and CSeq
+    - Contact
+    - The body (SDP)
+  examples: Kamailio and OpenSIPS; the CSCFs of IMS (Module 27)
+  quote: rfc3261-16.6-copy
+
+- id: registrar
+  name: Registrar
+  short: Stores bindings
+  kind: registrar
+  flow: register-401
+  in: 3
+  out: 4
+  role: Accepts REGISTER requests and stores each binding, from an AOR to a Contact, in the location service.
+  state: The location service. Each binding expires unless the user agent refreshes it.
+  media: "No"
+  changes:
+    - "+ A binding in the location service: AOR → Contact"
+    - "+ Its 200 OK lists every current Contact, with its expiry time"
+  keeps:
+    - It never forwards the REGISTER
+  examples: Usually built into the proxy of the domain
+  quote: rfc3261-6-registrar
+
+- id: redirect
+  name: Redirect server
+  short: Answers with 3xx
+  kind: server
+  flow: redirect-302
+  in: 1
+  out: 2
+  role: Looks up the target, then answers with a 3xx response and the Contact addresses to try. The caller sends the new request itself.
+  state: None after the transaction.
+  media: "No"
+  changes:
+    - "+ A 3xx response with one or more Contact URIs"
+  keeps:
+    - It never forwards the request
+    - It leaves the path after its answer
+  examples: Number portability lookups, routing servers in front of carrier networks
+  quote: rfc3261-6-redirect
+
+- id: b2bua
+  name: B2BUA
+  short: Two calls, back to back
+  kind: b2bua
+  flow: b2bua-call
+  in: 1
+  out: 3
+  role: Ends the incoming call as a UAS and starts a new call as a UAC. It joins the two calls with its own logic.
+  state: Both dialogs, until the call ends. It handles every request in each dialog.
+  media: Sometimes. Many PBXs also relay, record, or transcode the media.
+  changes:
+    - "~ A new Call-ID"
+    - "~ New From and To tags"
+    - "~ New CSeq numbers"
+    - "~ Only its own Via"
+    - "~ Its own Contact"
+    - "~ Any other header, or the SDP, if its logic wants"
+  keeps:
+    - Nothing is guaranteed. It copies only what its logic chooses.
+  examples: Asterisk, FreeSWITCH, most PBXs, application servers
+  quote: rfc3261-6-b2bua
+
+- id: sbc
+  name: SBC
+  short: A B2BUA at the border
+  kind: sbc
+  flow: sbc-edge
+  in: 1
+  out: 3
+  role: A B2BUA at the edge of a network. It protects the network, hides its addresses, fixes interoperability problems, and usually relays the media.
+  state: Both dialogs, and the media relay for each call.
+  media: Yes, usually. The RTP flows through the SBC.
+  changes:
+    - "− Inner Via and Record-Route headers (topology hiding)"
+    - "~ A new Call-ID, new tags, and its own Contact"
+    - "~ The SDP: its own media address and port"
+    - "~ Headers that the far side cannot read"
+  keeps:
+    - Usually the AORs in From and To
+  examples: Enterprise SBCs at a SIP trunk, carrier SBCs at every interconnect
+  quote: rfc5853-2-sbc-b2bua

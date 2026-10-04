@@ -1,0 +1,11 @@
+---
+import Island from '../diagrams/UriDissector.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+// Quotes referenced by notes in src/sip/uri.ts
+const quotes = quoteMap([
+  'rfc3261-19.1.1-password', 'rfc3261-19.1.1-user-phone', 'rfc3261-19.1.1-ignore-params',
+  'rfc3261-26.2.2-sips-hops', 'rfc3966-5.1.4-global', 'rfc3966-5.1.5-phone-context',
+]);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

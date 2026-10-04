@@ -1,0 +1,275 @@
+---
+module: 3
+title: SIP elements and addresses
+part: 2
+level: [basic]
+paths: { noc: core, dev: core }
+summary: Who is who in a SIP network — user agents, proxies, registrars, redirect servers, B2BUAs, and SBCs — what each one may change in a message, and how SIP names users and devices with URIs.
+objectives:
+  - Tell the UAC role from the UAS role, and explain why one device plays both.
+  - Explain what a stateless, a stateful, and a dialog-stateful proxy remember, and what any proxy may change in a request.
+  - Describe what a registrar, a location service, and a redirect server do.
+  - Tell a B2BUA from a proxy in a trace, and explain why an SBC is a B2BUA.
+  - "Read every part of a sip:, sips:, or tel: URI."
+  - Explain the difference between an AOR and a Contact address.
+status: draft
+---
+
+## 3.1 User agents: UAC and UAS
+
+A **<Term t="user agent" />** is an endpoint: a desk phone, a softphone, a mobile app, or a gateway to the telephone network. It starts and ends calls, and it sends and receives the media.
+
+SIP gives a user agent one of two roles, and the role belongs to **one transaction** — one request and its responses:
+
+- The **<Term t="UAC" />** (user agent client) sends a request.
+- The **<Term t="UAS" />** (user agent server) answers it.
+
+<RfcQuote id="rfc3261-6-uac" />
+
+So "UAC" does not mean "the caller". In one call, Alice's phone is the UAC for the INVITE. When Bob hangs up, Bob's phone sends the BYE: now Bob's phone is the UAC, and Alice's phone is the UAS. Step through the call and watch the roles swap.
+
+<Flow id="roles-uac-uas" eyebrow="Call flow · roles" />
+
+<Note title="Caller and callee stay; UAC and UAS change">
+"Caller" and "callee" describe the whole call. "UAC" and "UAS" describe one transaction. When a log line says "UAS", ask: *for which request?*
+</Note>
+
+## 3.2 Proxies
+
+A **<Term t="proxy" />** sits between user agents. It receives a request, decides where it goes next, and forwards it. It never starts or ends a call, and it never answers on behalf of the callee — except to reject a request or to ask for credentials.
+
+<RfcQuote id="rfc3261-6-proxy" />
+
+RFC 3261 §16.6 lists the steps a proxy follows for each request it forwards. The main ones:
+
+1. Copies the request.
+2. Replaces the **Request-URI** with the next target — for example, Bob's AOR becomes the address of Bob's phone.
+3. Decreases **Max-Forwards** by one.
+4. Adds **Record-Route**, if it wants to stay in the path of later requests (optional).
+5. Adds other header fields, if its policy wants (optional).
+6. Processes the **Route** headers.
+7. Chooses the next hop: address, port, and transport.
+8. Adds its own **Via** at the top.
+
+Everything else stays as it is. In particular, a proxy must not touch the body:
+
+<RfcQuote id="rfc3261-16.6-copy" />
+
+### Stateless, stateful, and dialog-stateful
+
+Proxies differ in what they **remember**.
+
+| Kind | Remembers | So it can |
+|---|---|---|
+| <Term t="stateless proxy" /> | Nothing. It forgets each message once it forwards it. | Forward very fast. It cannot fork, retransmit, or try another target. |
+| <Term t="stateful proxy" /> (transaction-stateful) | Each transaction, until the final response | Send 100 Trying, retransmit over UDP, fork, and try the next target after a failure |
+| <Term t="dialog-stateful proxy" /> (call-stateful) | Each dialog, from INVITE to BYE | Also count calls, write billing records, and limit calls per user |
+
+<RfcQuote id="rfc3261-16.1-stateless-stateful" />
+
+Compare the two. In both flows, Proxy B changes the Request-URI and adds a Via. Only the stateful proxy answers 100 Trying itself. In this example, it also adds Record-Route — so the ACK passes through it too.
+
+<CompareFlows a="proxy-stateless" b="proxy-stateful" labels={['Stateless', 'Stateful']} />
+
+A proxy that sends one request to several targets — **<Term t="forking" />** — must keep state, because it must collect all the responses and choose the best one:
+
+<RfcQuote id="rfc3261-16.1-fork-stateful" />
+
+<Note title="Outbound and inbound proxies">
+In the course examples, **Proxy A** is Alice's <Term t="outbound proxy" />: her phone sends every request to it, whatever the destination. **Proxy B** is the inbound proxy for biloxi.example: it receives requests for the users of its domain and finds them through its location service.
+</Note>
+
+## 3.3 Registrar, location service, and redirect server
+
+How does Proxy B know where Bob's phone is? Bob's phone told it. When the phone starts, it sends a REGISTER request to the **<Term t="Registrar" />** of its domain.
+
+<RfcQuote id="rfc3261-6-registrar" />
+
+The registrar stores a **<Term t="binding" />**: "requests for `sip:bob@biloxi.example` go to `sip:bob@203.0.113.20:5060`". The database of bindings is the **<Term t="location service" />**. Each binding expires, so the phone must register again before the time runs out. Module 12 covers registration in detail.
+
+<RfcQuote id="rfc3261-6-location-service" />
+
+A **<Term t="Redirect server" />** also uses the location service, but it does not forward the request. It answers with a 3xx response that lists the Contact addresses, and the caller sends a new request itself.
+
+<RfcQuote id="rfc3261-6-redirect" />
+
+<Flow id="redirect-302" eyebrow="Call flow · redirect" />
+
+| | Proxy | Redirect server |
+|---|---|---|
+| Who sends the INVITE to Bob's phone | The proxy | Alice's phone, after the 3xx |
+| In the path after the first request | Yes, if it adds Record-Route | No |
+| Work for the server | Every message of the transaction | One response |
+| INVITEs the caller sends | One | Two: one to the Redirect server, one to Bob's phone |
+
+<RfcQuote id="rfc3261-8.1.3.4-3xx" />
+
+<Note title="Roles, not boxes">
+In real networks, one server is often the registrar, the proxy, and sometimes the redirect server for its domain, all at once. Kamailio, OpenSIPS, and the CSCFs of IMS all combine these roles. When you read a trace, name the **role** that the element plays for that request.
+</Note>
+
+## 3.4 The B2BUA: two user agents back to back
+
+A **<Term t="B2BUA" />** (back-to-back user agent) is not a proxy. It answers the incoming INVITE as a UAS, and then starts a **new** INVITE as a UAC. Between the two, its own logic decides what to copy: a PBX dial plan, a prepaid platform, a call recorder.
+
+<RfcQuote id="rfc3261-6-b2bua" />
+
+Compare a proxy and a B2BUA on the same call. Select **F3** in each, and look at the changes since F1. The proxy changes four lines. The B2BUA changes almost everything: Call-ID, From tag, CSeq, Via, and Contact are new.
+
+<CompareFlows a="proxy-stateful" b="b2bua-call" labels={['Proxy', 'B2BUA']} />
+
+The result is **two dialogs**, one on each side. Alice's phone and Bob's phone never see each other's Call-ID, tags, or Contact.
+
+<RfcQuote id="rfc7092-3.1.2-signaling-only" />
+
+### Kinds of B2BUA
+
+RFC 7092 names the common kinds, from the most transparent to the least:
+
+| Kind | Changes | Example |
+|---|---|---|
+| Proxy-B2BUA | Acts as a proxy, but can send its own BYE to end a dead call | A proxy with a call-length limit |
+| Signaling-only | Any header, but not the SDP | An application server |
+| SDP-modifying | Headers and the SDP, but stays out of the media path | A PBX that removes codecs |
+| Media relay | Headers, SDP, and relays the RTP packets | Most SBCs |
+| Media aware | Also reads or changes RTP headers, for example for SRTP | An SRTP gateway |
+| Media termination | Also decodes the media itself | A transcoder, a conference bridge, a voicemail server |
+
+<Note title="For support engineers: one call, two Call-IDs">
+Behind a B2BUA, one phone call has a different Call-ID on each side. To follow it, match the legs by time and by the numbers in From and To, or by a correlation header. Some B2BUAs keep a `Session-ID` header (RFC 7989), or add a vendor header, that is the same on both legs.
+</Note>
+
+## 3.5 The SBC: a B2BUA at the border
+
+A **<Term t="SBC" />** (Session Border Controller) is a B2BUA at the edge of a network: between an enterprise and its SIP trunk provider, or between two carriers. "SBC" is a product category, not a standard. RFC 5853 describes what SBCs do in practice:
+
+- **Protect** the network: access control, rate limits, and protection against floods of requests.
+- **Hide the topology**: no inner address leaves the network (<Term t="topology hiding" />).
+- **Fix what the endpoints cannot**: NAT traversal (Module 20), and protocol repair between equipment that does not understand each other.
+- **Control the media**: relay the RTP, measure its quality, and sometimes transcode it.
+
+<RfcQuote id="rfc5853-2-sbc-b2bua" />
+
+Watch an SBC forward Alice's INVITE out of atlanta.example. In F3, select the changes since F1: the Vias and Record-Route of the inner network are gone, and the SDP points to the SBC.
+
+<Flow id="sbc-edge" eyebrow="Call flow · SBC" />
+
+<RfcQuote id="rfc7092-4.3-sbc-default" />
+
+### All the elements, side by side
+
+Select an element to see the message it receives, the message it sends, and every line it changes. Select an arrow, or use the buttons, to switch between the two messages.
+
+<ElementGallery initial="stateful" />
+
+| | Stateless proxy | Stateful proxy | Registrar | Redirect server | B2BUA | SBC |
+|---|---|---|---|---|---|---|
+| Forwards requests | Yes | Yes | No | No | Makes new ones | Makes new ones |
+| Changes Call-ID or tags | No | No | — | — | Yes | Yes |
+| Changes the SDP | No | No | — | — | Sometimes | Usually |
+| Keeps state | None | Transactions | Bindings | None | Dialogs | Dialogs and media |
+| In the media path | No | No | No | No | Sometimes | Usually |
+
+## 3.6 SIP URIs
+
+SIP names users, devices, and servers with a **<Term t="URI" />**. The general form of a <Term t="SIP URI" /> is:
+
+<RfcQuote id="rfc3261-19.1.1-general-form" />
+
+Three schemes are common in SIP:
+
+- `sip:` — the normal scheme. Any transport.
+- `sips:` — a <Term t="SIPS URI" />: the request must use TLS on every hop.
+- `tel:` — a <Term t="tel URI" />: a telephone number, with no host.
+
+Type a URI, or pick an example. You can also paste a header value with a <Term t="display name" /> and angle brackets, such as the value of a To header. Select a part to read about it.
+
+<UriDissector />
+
+### Rules worth remembering
+
+**Angle brackets decide who owns a parameter.** In `<sip:bob@biloxi.example;transport=tcp>;tag=314159`, `transport` is inside the brackets, so it belongs to the URI. `tag` is outside, so it belongs to the header. Module 4 shows what goes wrong without the brackets.
+
+**The user part is case-sensitive; the rest is not.** `sip:Alice@ATLANTA.example` and `sip:alice@atlanta.example` are *different* URIs, because the user parts differ.
+
+<RfcQuote id="rfc3261-19.1.4-case" />
+
+**sips: means TLS on every hop**, not only on the first one:
+
+<RfcQuote id="rfc3261-26.2.2-sips-hops" />
+
+RFC 3261 allowed one exception for the last hop. RFC 5630 removed it:
+
+<RfcQuote id="rfc5630-4-all-hops" />
+
+**Phone numbers** can appear in two ways: as a tel URI, or as the user part of a SIP URI with `;user=phone`. A global number starts with `+` and the country code. A local number, such as an extension, needs a `phone-context`:
+
+<RfcQuote id="rfc3966-5.1.4-global" />
+
+<RfcQuote id="rfc3966-5.1.5-phone-context" />
+
+## 3.7 Address of Record and Contact
+
+Every user has two kinds of SIP address:
+
+- The **<Term t="AOR" />** (address of record) is the public address of the user, like an email address: `sip:bob@biloxi.example`. It appears on business cards, and in the To and From headers. It does not change when Bob moves.
+- A **<Term t="Contact" />** address is where one **device** of the user can be reached *now*: `sip:bob@203.0.113.20:5060`. It contains an IP address or a host name, and often a port. It changes when the device moves, restarts, or gets a new address.
+
+<RfcQuote id="rfc3261-6-aor" />
+
+The registrar joins the two: each REGISTER adds a binding from the AOR to a Contact. One AOR can have several Contacts — a desk phone, a softphone, and a mobile app. Register and unregister Bob's devices, and see where Proxy B sends Alice's INVITE.
+
+<LocationService />
+
+<RfcQuote id="rfc3261-10.1-bindings" />
+
+| | AOR | Contact |
+|---|---|---|
+| Example | `sip:bob@biloxi.example` | `sip:bob@203.0.113.20:5060` |
+| Names | A user | One device of the user |
+| Chosen by | The service provider | The device |
+| Changes | Rarely | Whenever the device moves or restarts |
+| Where you see it | To and From headers; the Request-URI of a new request | The Contact header; the Request-URI after the proxy, and of every request inside the dialog |
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="“Asterisk is a SIP proxy”">
+    Asterisk, FreeSWITCH, and most PBXs are B2BUAs. They answer the call on one side and start a new call on the other. Expect a different Call-ID, new tags, and a new Contact on each side — and do not expect headers to pass through unchanged.
+
+    <p class="fix"><b>Remember:</b> compare the Call-ID on both sides of the element. The same Call-ID with one more Via means a proxy. A new Call-ID means a B2BUA.</p>
+  </Mistake>
+
+  <Mistake title="Confusing the AOR with the Contact">
+    The AOR (`sip:alice@atlanta.example`) is the public address of a user. The Contact (`sip:alice@192.0.2.10:5060`) is the current address of one device. Storing a Contact as if it were the user's address breaks as soon as the device moves. A call to an AOR with no registered Contacts usually fails with 480 Temporarily Unavailable.
+
+    <p class="fix"><b>Remember:</b> people call AORs; proxies deliver to Contacts. The location service joins them.</p>
+  </Mistake>
+
+  <Mistake title="“sips: only protects the first hop”">
+    A sips: Request-URI requires TLS on every hop up to the target domain, and RFC 5630 extends this to the last hop. TLS on the first hop alone is just a TLS connection to the outbound proxy. The old `;transport=tls` parameter is deprecated.
+
+    <p class="fix"><b>Remember:</b> `sips:` = TLS all the way. `transport=tls` = do not use.</p>
+  </Mistake>
+
+  <Mistake title="Expecting a proxy to fix the SDP">
+    A proxy must not add to, change, or remove the message body. If a private address in the SDP must change, or a codec must go, a proxy cannot do it. That is the work of a B2BUA or an SBC.
+
+    <p class="fix"><b>Remember:</b> a proxy routes. To change the session, you need an element that ends the session: a B2BUA.</p>
+  </Mistake>
+
+  <Mistake title="Ignoring case in the user part">
+    `sip:Alice@atlanta.example` and `sip:alice@atlanta.example` are different URIs. A phone that registers as `Alice` may not receive calls for `alice` — the call can fail with 404 Not Found, although "the user is registered".
+
+    <p class="fix"><b>Remember:</b> the user part is case-sensitive. Scheme, host, and parameter names are not.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A **user agent** is an endpoint. It is the **UAC** when it sends a request and the **UAS** when it answers. The role lasts for one transaction.
+- A **proxy** routes requests. It changes the Request-URI and Max-Forwards, adds a Via, and may add Record-Route — nothing else, and never the body. **Stateless** proxies remember nothing; **stateful** proxies remember transactions and can fork.
+- A **registrar** stores bindings from AORs to Contacts in the **location service**. A **redirect server** answers with 3xx and stays out of the path.
+- A **B2BUA** ends one call and starts another: new Call-ID, tags, CSeq, Via, and Contact. An **SBC** is a B2BUA at the network border; it usually hides the topology and relays the media.
+- A **SIP URI** has the form `sip:user:password@host:port;parameters?headers`. The user part is case-sensitive. `sips:` requires TLS on every hop. `tel:` holds a phone number.
+- The **AOR** names a user; a **Contact** names a device. One AOR can have several Contacts, and a proxy forks to all of them.

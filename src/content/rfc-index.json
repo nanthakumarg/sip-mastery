@@ -626,6 +626,19 @@
   "updates": [],
   "updatedBy": []
  },
+ "5630": {
+  "title": "The Use of the SIPS URI Scheme in the Session Initiation Protocol (SIP)",
+  "month": "October",
+  "year": 2009,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   3261,
+   3608
+  ],
+  "updatedBy": []
+ },
  "5761": {
   "title": "Multiplexing RTP Data and Control Packets on a Single Port",
   "month": "April",
@@ -681,6 +694,16 @@
    8155,
    8553
   ]
+ },
+ "5853": {
+  "title": "Requirements from Session Initiation Protocol (SIP) Session Border Control (SBC) Deployments",
+  "month": "April",
+  "year": 2010,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
  },
  "5922": {
   "title": "Domain Certificates in the Session Initiation Protocol (SIP)",
@@ -795,6 +818,16 @@
   "obsoletes": [
    4244
   ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "7092": {
+  "title": "A Taxonomy of Session Initiation Protocol (SIP) Back-to-Back User Agents",
+  "month": "December",
+  "year": 2013,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
   "obsoletedBy": [],
   "updates": [],
   "updatedBy": []

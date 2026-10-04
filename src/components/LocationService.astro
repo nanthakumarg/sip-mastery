@@ -1,0 +1,7 @@
+---
+import Island from '../diagrams/LocationService.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap(['rfc3261-16.5-empty-480', 'rfc3261-10.1-bindings', 'rfc3261-16.1-fork-stateful']);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

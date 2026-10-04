@@ -40,6 +40,7 @@ All course content lives in `src/content/`.
 | `rfc-index.json` | Generated from the official RFC index. Do not edit by hand. |
 | `glossary.yaml` | The controlled vocabulary. Lane labels and diagram labels must use these terms. |
 | `headers.yaml` | Explanations for the message inspector |
+| `elements.yaml` | The element gallery cards: each points at a flow and the steps the element receives and sends |
 
 ### Components available in MDX (no import needed)
 
@@ -53,6 +54,9 @@ All course content lives in `src/content/`.
 <Note kind="tip|warn|note">…</Note>
 <Mistakes><Mistake title="…">…</Mistake></Mistakes>
 <Stats><Stat value="407" label="…" /></Stats>
+<CompareFlows a="udp-options" b="tcp-options" labels={['UDP', 'TCP']} />   two flows behind a switch
+<ElementGallery initial="stateful" />                         one card per SIP element (elements.yaml)
+<UriDissector />  <LocationService />  <AddressClassifier />  <NatRewrite />  <PacketExplorer flow="…" step={1} />
 ```
 
 ### Flow file rules

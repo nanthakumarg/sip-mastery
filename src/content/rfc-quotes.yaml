@@ -320,3 +320,238 @@
 
     REQ-5:  A NAT UDP mapping timer MUST NOT expire in less than two minutes,
     unless REQ-5a applies.
+
+# --- Module 3: SIP elements and addresses ------------------------------------
+- id: rfc3261-6-uac
+  rfc: 3261
+  section: "6"
+  title: Definitions (User Agent Client)
+  text: >-
+    A user agent client is a logical entity that creates a new request, and
+    then uses the client transaction state machinery to send it. The role of
+    UAC lasts only for the duration of that transaction.
+
+- id: rfc3261-6-uas
+  rfc: 3261
+  section: "6"
+  title: Definitions (User Agent Server)
+  text: >-
+    A user agent server is a logical entity that generates a response to a SIP
+    request. The response accepts, rejects, or redirects the request.
+
+- id: rfc3261-6-proxy
+  rfc: 3261
+  section: "6"
+  title: Definitions (Proxy Server)
+  text: >-
+    A proxy server primarily plays the role of routing, which means its job is
+    to ensure that a request is sent to another entity "closer" to the
+    targeted user.
+
+- id: rfc3261-16.1-stateless-stateful
+  rfc: 3261
+  section: "16.1"
+  title: Proxy Behavior, Overview
+  text: >-
+    A stateless proxy discards information about a message once the message
+    has been forwarded. A stateful proxy remembers information (specifically,
+    transaction state) about each incoming request and any requests it sends
+    as a result of processing the incoming request.
+
+- id: rfc3261-16.1-fork-stateful
+  rfc: 3261
+  section: "16.1"
+  title: Proxy Behavior, Overview
+  text: >-
+    Any request that is forwarded to more than one location MUST be handled
+    statefully.
+
+- id: rfc3261-16.6-copy
+  rfc: 3261
+  section: "16.6"
+  title: Request Forwarding
+  text: >-
+    The proxy MUST NOT reorder field values with a common field name (See
+    Section 7.3.1). The proxy MUST NOT add to, modify, or remove the message
+    body.
+
+- id: rfc3261-16.6-request-uri
+  rfc: 3261
+  section: "16.6"
+  title: Request Forwarding
+  text: >-
+    The Request-URI in the copy's start line MUST be replaced with the URI for
+    this target.
+
+- id: rfc3261-6-registrar
+  rfc: 3261
+  section: "6"
+  title: Definitions (Registrar)
+  text: >-
+    A registrar is a server that accepts REGISTER requests and places the
+    information it receives in those requests into the location service for
+    the domain it handles.
+
+- id: rfc3261-6-location-service
+  rfc: 3261
+  section: "6"
+  title: Definitions (Location Service)
+  text: >-
+    It contains a list of bindings of address-of-record keys to zero or more
+    contact addresses.
+
+- id: rfc3261-6-redirect
+  rfc: 3261
+  section: "6"
+  title: Definitions (Redirect Server)
+  text: >-
+    A redirect server is a user agent server that generates 3xx responses to
+    requests it receives, directing the client to contact an alternate set of
+    URIs.
+
+- id: rfc3261-8.1.3.4-3xx
+  rfc: 3261
+  section: "8.1.3.4"
+  title: Processing 3xx Responses
+  text: >-
+    Upon receipt of a redirection response (for example, a 301 response
+    status code), clients SHOULD use the URI(s) in the Contact header field to
+    formulate one or more new requests based on the redirected request.
+
+- id: rfc3261-6-b2bua
+  rfc: 3261
+  section: "6"
+  title: Definitions (Back-to-Back User Agent)
+  text: >-
+    Unlike a proxy server, it maintains dialog state and must participate in
+    all requests sent on the dialogs it has established.
+
+- id: rfc7092-3.1.2-signaling-only
+  rfc: 7092
+  section: "3.1.2"
+  title: Signaling-only B2BUA
+  text: >-
+    No SIP header field is guaranteed to be copied from the received request
+    on the UAS side to the generated request on the UAC side.
+
+- id: rfc5853-2-sbc-b2bua
+  rfc: 5853
+  section: "2"
+  title: Background on SBCs
+  text: >-
+    SBCs often modify certain SIP headers and message bodies that proxies are
+    not allowed to modify. Consequently, they are, by definition, B2BUAs
+    (Back-to-Back User Agents).
+
+- id: rfc7092-4.3-sbc-default
+  rfc: 7092
+  section: "4.3"
+  title: Session Border Controllers
+  text: >-
+    By default, most SBCs are either Media-relay or Media-aware B2BUAs and
+    replace the Contact URI; remove the Via and Record-Route headers; modify
+    Call-ID, To, From, and various other headers; and modify SDP.
+
+- id: rfc3261-19.1.1-general-form
+  rfc: 3261
+  section: "19.1.1"
+  title: SIP and SIPS URI Components
+  text: >-
+    Its general form, in the case of a SIP URI, is:
+    sip:user:password@host:port;uri-parameters?headers
+
+- id: rfc3261-19.1.1-password
+  rfc: 3261
+  section: "19.1.1"
+  title: SIP and SIPS URI Components
+  text: >-
+    While the SIP and SIPS URI syntax allows this field to be present, its use
+    is NOT RECOMMENDED, because the passing of authentication information in
+    clear text (such as URIs) has proven to be a security risk in almost every
+    case where it has been used.
+
+- id: rfc3261-19.1.1-user-phone
+  rfc: 3261
+  section: "19.1.1"
+  title: SIP and SIPS URI Components
+  text: >-
+    If the user string contains a telephone number formatted as a
+    telephone-subscriber, the user parameter value "phone" SHOULD be present.
+
+- id: rfc3261-19.1.1-ignore-params
+  rfc: 3261
+  section: "19.1.1"
+  title: SIP and SIPS URI Components
+  text: >-
+    Since the uri-parameter mechanism is extensible, SIP elements MUST
+    silently ignore any uri-parameters that they do not understand.
+
+- id: rfc3261-19.1.4-case
+  rfc: 3261
+  section: "19.1.4"
+  title: URI Comparison
+  text: >-
+    Comparison of the userinfo of SIP and SIPS URIs is case-sensitive. This
+    includes userinfo containing passwords or formatted as
+    telephone-subscribers. Comparison of all other components of the URI is
+    case-insensitive unless explicitly defined otherwise.
+
+- id: rfc3261-26.2.2-sips-hops
+  rfc: 3261
+  section: "26.2.2"
+  title: SIPS URI Scheme
+  text: >-
+    When used as the Request-URI of a request, the SIPS scheme signifies that
+    each hop over which the request is forwarded, until the request reaches
+    the SIP entity responsible for the domain portion of the Request-URI, must
+    be secured with TLS;
+
+- id: rfc5630-4-all-hops
+  rfc: 5630
+  section: "4"
+  title: Overview of Operations
+  text: >-
+    This will ensure that TLS is used on all hops all the way up to the remote
+    target.
+
+- id: rfc3966-5.1.4-global
+  rfc: 3966
+  section: "5.1.4"
+  title: Global Numbers
+  text: >-
+    Globally unique numbers are identified by the leading "+" character.
+
+- id: rfc3966-5.1.5-phone-context
+  rfc: 3966
+  section: "5.1.5"
+  title: Local Numbers
+  text: >-
+    Local numbers MUST have a 'phone-context' parameter that identifies the
+    scope of their validity.
+
+- id: rfc3261-6-aor
+  rfc: 3261
+  section: "6"
+  title: Definitions (Address-of-Record)
+  text: >-
+    An address-of-record (AOR) is a SIP or SIPS URI that points to a domain
+    with a location service that can map the URI to another URI where the user
+    might be available.
+
+- id: rfc3261-10.1-bindings
+  rfc: 3261
+  section: "10.1"
+  title: Registrations, Overview
+  text: >-
+    Thus, when a proxy for that domain receives a request whose Request-URI
+    matches the address-of-record, the proxy will forward the request to the
+    contact addresses registered to that address-of-record.
+
+- id: rfc3261-16.5-empty-480
+  rfc: 3261
+  section: "16.5"
+  title: Determining Request Targets
+  text: >-
+    If the target set remains empty after applying all of the above, the
+    proxy MUST return an error response, which SHOULD be the 480 (Temporarily
+    Unavailable) response.

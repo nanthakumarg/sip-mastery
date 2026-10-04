@@ -3,7 +3,7 @@
  * and checks that every quote id used by a flow exists.
  * Exit code 1 on any error. Warnings are printed but do not fail the build.
  */
-import { glossaryTerms, listFlowIds, loadFlow, loadQuotes } from '../src/lib/data.ts';
+import { glossaryTerms, listFlowIds, loadElements, loadFlow, loadQuotes } from '../src/lib/data.ts';
 import { lintDiagram } from '../src/sip/lint-diagram.ts';
 import { lintFlow, type LintIssue } from '../src/sip/lint-flow.ts';
 
@@ -41,6 +41,20 @@ for (const id of listFlowIds()) {
 
   console.log(`${out.some(l => l.includes('✗')) ? '✗' : '✓'} ${id}${flow.broken ? ` (broken on purpose: ${flow.breaks?.join(', ')})` : ''}`);
   for (const l of out) console.log(l);
+}
+
+// Element gallery: every card points at a real flow, real steps, and a real quote.
+const flowIds = new Set(listFlowIds());
+for (const c of loadElements()) {
+  const bad: string[] = [];
+  if (!flowIds.has(c.flow)) bad.push(`unknown flow "${c.flow}"`);
+  else {
+    const f = await loadFlow(c.flow);
+    for (const n of [c.in, c.out]) if (!f.steps[n - 1]?.wire) bad.push(`step ${n} of ${c.flow} has no SIP message`);
+  }
+  if (!quoteIds.has(c.quote)) bad.push(`unknown quote id "${c.quote}"`);
+  console.log(`${bad.length ? '✗' : '✓'} element ${c.id}`);
+  for (const b of bad) { console.log(`  ✗ ${b}`); errors++; }
 }
 
 console.log(`\n${errors} error(s), ${warnings} warning(s)`);

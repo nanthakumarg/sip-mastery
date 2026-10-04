@@ -96,3 +96,24 @@ export function loadHeaderRef(): HeaderRef {
 
 export const rfcUrl = (rfc: number, section?: string) =>
   `https://www.rfc-editor.org/rfc/rfc${rfc}${section ? `#section-${section}` : ''}`;
+
+export interface ElementCard {
+  id: string;
+  name: string;
+  short: string;
+  kind: string;
+  flow: string;
+  in: number;
+  out: number;
+  role: string;
+  state: string;
+  media: string;
+  changes: string[];
+  keeps: string[];
+  examples: string;
+  quote: string;
+}
+
+export function loadElements(): ElementCard[] {
+  return read('elements.yaml') as ElementCard[];
+}

@@ -81,6 +81,24 @@
   definition: An element that ends one call leg as a UAS and starts a new leg as a UAC.
 - term: location service
   definition: The database of bindings from AORs to Contact addresses.
+- term: stateless proxy
+  definition: A proxy that forgets each message as soon as it forwards it. It keeps no transaction state.
+- term: stateful proxy
+  aliases: [transaction-stateful proxy]
+  definition: A proxy that keeps the state of each transaction until the transaction ends. It can fork and retransmit.
+- term: dialog-stateful proxy
+  aliases: [call-stateful proxy]
+  definition: A stateful proxy that also remembers each dialog until the call ends.
+- term: outbound proxy
+  definition: The proxy that a user agent sends all its requests to first, whatever the destination.
+- term: Redirect server
+  definition: A UAS that answers a request with a 3xx response and a list of Contact addresses to try.
+- term: forking
+  definition: A proxy sends one request to several Contact addresses, in parallel or one after another.
+- term: topology hiding
+  definition: An SBC removes or replaces the addresses of the inner network in each message it forwards.
+- term: media relay
+  definition: An element that receives RTP on one side and sends it out on the other. SBCs often do this.
 
 # --- Addresses -------------------------------------------------------------
 - term: AOR
@@ -90,6 +108,19 @@
   definition: The address where a user agent can be reached directly at this time.
 - term: binding
   definition: One entry in the location service that maps an AOR to a Contact.
+- term: URI
+  aliases: [uniform resource identifier]
+  definition: A text address for a resource, such as sip:alice@atlanta.example or tel:+12025550123.
+- term: SIP URI
+  definition: A URI with the sip scheme. It names a user or a server, such as sip:alice@atlanta.example.
+- term: SIPS URI
+  definition: A URI with the sips scheme. It requires TLS on every hop up to the target domain.
+- term: tel URI
+  definition: A URI that holds a telephone number, such as tel:+12025550123.
+- term: Request-URI
+  definition: The URI in the request line. It names the target of the request, and each proxy can replace it.
+- term: display name
+  definition: The optional human-readable name before a URI, such as "Alice" in Alice <sip:alice@atlanta.example>.
 
 # --- Message structure ------------------------------------------------------
 - term: branch
