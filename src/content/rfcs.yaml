@@ -19,6 +19,7 @@ rfcs:
   - { n: 2543, area: core, proto: sip, short: SIP (first version), summary: "The first SIP specification. In 2002, RFC 3261 and four companion RFCs (3262 to 3265) replaced it.", modules: [1] }
   - { n: 3261, area: core, proto: sip, short: SIP, summary: "The core of SIP: messages, transactions, dialogs, proxies, registration, and authentication.", modules: [3, 4, 5, 6, 7, 8, 9, 10, 12, 13] }
   - { n: 3263, area: core, proto: dns, short: Locating SIP servers, summary: "How a client uses DNS (NAPTR, SRV, A and AAAA records) to find a SIP server.", modules: [11] }
+  - { n: 2782, area: core, proto: dns, short: DNS SRV, summary: "The SRV record: which servers offer a service in a domain, at which port, with priority for failover and weight for load sharing.", modules: [11] }
   - { n: 3581, area: core, proto: sip, short: rport, summary: "The rport parameter sends a response back to the source IP address and port of the request. This helps behind NAT.", modules: [10, 20] }
   - { n: 3966, area: core, proto: sip, short: tel URI, summary: "The tel URI for telephone numbers.", modules: [3, 24] }
   - { n: 4320, area: core, proto: sip, short: Non-INVITE fixes, summary: "Fixes problems with non-INVITE transactions. For example, an element no longer sends 408 to a non-INVITE request.", modules: [8] }

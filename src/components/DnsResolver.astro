@@ -1,0 +1,12 @@
+---
+/** <DnsResolver /> : NAPTR, SRV, and A lookups for a Request-URI, then failover across the servers (Module 11) */
+import Island from '../diagrams/DnsResolver.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap([
+  'rfc3263-4.1-transport-param', 'rfc3263-4.1-numeric', 'rfc3263-4.1-naptr', 'rfc3263-4.1-sips-discard',
+  'rfc3263-4.1-no-naptr', 'rfc3263-4.1-no-srv', 'rfc3263-4.2-port', 'rfc3263-4.2-no-srv',
+  'rfc3263-4.3-failure', 'rfc3263-4.3-new-branch', 'rfc3263-4-same-host', 'rfc2782-priority',
+]);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

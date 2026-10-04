@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import Ladder from './Ladder.tsx';
 import { markKeywords } from './Inspector.tsx';
 import type { ClientFlow, ClientQuote } from './types.ts';
+import { quoteSource } from '../lib/rfc-ref.ts';
 
 interface Props { quotes: Record<string, ClientQuote> }
 
@@ -170,7 +171,7 @@ export default function CapabilityLab({ quotes }: Props) {
           </div>
           {quote && (
             <blockquote className="insp-quote">
-              <p className="insp-q-src">RFC {quote.rfc} §{quote.section} · {quote.title}</p>
+              <p className="insp-q-src">{quoteSource(quote)}</p>
               <p>“{markKeywords(quote.text)}”</p>
               <a href={quote.url} target="_blank" rel="noopener">Read the section ↗</a>
             </blockquote>

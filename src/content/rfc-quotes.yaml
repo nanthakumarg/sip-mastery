@@ -1938,3 +1938,201 @@
     If the route set is empty, the UAC MUST place the remote target URI into
     the Request-URI.  The UAC MUST NOT add a Route header field to the
     request.
+
+# --- Module 11: Finding SIP servers with DNS ---------------------------------
+- id: rfc3263-4-not-rewritten
+  rfc: 3263
+  section: "4"
+  title: Client Usage
+  text: >-
+    The procedures defined here in no way affect this URI (i.e., the URI is
+    not rewritten with the result of the DNS lookup), they only result in an
+    IP address, port and transport protocol where the request can be sent.
+
+- id: rfc3263-4-same-host
+  rfc: 3263
+  section: "4"
+  title: Client Usage
+  text: >-
+    The procedures here MUST be done exactly once per transaction, where
+    transaction is as defined in [1].  That is, once a SIP server has
+    successfully been contacted (success is defined below), all
+    retransmissions of the SIP request and the ACK for non-2xx SIP responses
+    to INVITE MUST be sent to the same host.  Furthermore, a CANCEL for a
+    particular SIP request MUST be sent to the same SIP server that the SIP
+    request was delivered to.
+
+- id: rfc3263-4-ack-2xx
+  rfc: 3263
+  section: "4"
+  title: Client Usage
+  text: >-
+    Because the ACK request for 2xx responses to INVITE constitutes a
+    different transaction, there is no requirement that it be delivered to the
+    same server that received the original request (indeed, if that server did
+    not record-route, it will not get the ACK).
+
+- id: rfc3263-4.1-transport-param
+  rfc: 3263
+  section: "4.1"
+  title: Selecting a Transport Protocol
+  text: >-
+    If the URI specifies a transport protocol in the transport parameter,
+    that transport protocol SHOULD be used.
+
+- id: rfc3263-4.1-numeric
+  rfc: 3263
+  section: "4.1"
+  title: Selecting a Transport Protocol
+  text: >-
+    Otherwise, if no transport protocol is specified, but the TARGET is a
+    numeric IP address, the client SHOULD use UDP for a SIP URI, and TCP for a
+    SIPS URI.  Similarly, if no transport protocol is specified, and the
+    TARGET is not numeric, but an explicit port is provided, the client SHOULD
+    use UDP for a SIP URI, and TCP for a SIPS URI.
+
+- id: rfc3263-4.1-naptr
+  rfc: 3263
+  section: "4.1"
+  title: Selecting a Transport Protocol
+  text: >-
+    Otherwise, if no transport protocol or port is specified, and the target
+    is not a numeric IP address, the client SHOULD perform a NAPTR query for
+    the domain in the URI.
+
+- id: rfc3263-4.1-sips-discard
+  rfc: 3263
+  section: "4.1"
+  title: Selecting a Transport Protocol
+  text: >-
+    First, a client resolving a SIPS URI MUST discard any services that do
+    not contain "SIPS" as the protocol in the service field.  The converse is
+    not true, however.  A client resolving a SIP URI SHOULD retain records
+    with "SIPS" as the protocol, if the client supports TLS.
+
+- id: rfc3263-4.1-three-records
+  rfc: 3263
+  section: "4.1"
+  title: Selecting a Transport Protocol
+  text: >-
+    If a SIP proxy, redirect server, or registrar is to be contacted through
+    the lookup of NAPTR records, there MUST be at least three records - one
+    with a "SIP+D2T" service field, one with a "SIP+D2U" service field, and
+    one with a "SIPS+D2T" service field.
+
+- id: rfc3263-4.1-no-naptr
+  rfc: 3263
+  section: "4.1"
+  title: Selecting a Transport Protocol
+  text: >-
+    If no NAPTR records are found, the client constructs SRV queries for
+    those transport protocols it supports, and does a query for each.
+
+- id: rfc3263-4.1-no-srv
+  rfc: 3263
+  section: "4.1"
+  title: Selecting a Transport Protocol
+  text: >-
+    If no SRV records are found, the client SHOULD use TCP for a SIPS URI,
+    and UDP for a SIP URI.
+
+- id: rfc3263-4.2-port
+  rfc: 3263
+  section: "4.2"
+  title: Determining Port and IP Address
+  text: >-
+    If the TARGET was not a numeric IP address, but a port is present in the
+    URI, the client performs an A or AAAA record lookup of the domain name.
+
+- id: rfc3263-4.2-port-change
+  rfc: 3263
+  section: "4.2"
+  title: Determining Port and IP Address
+  text: >-
+    This is a change from RFC 2543.  Previously, if the port was explicit,
+    but with a value of 5060, SRV records were used.  Now, A or AAAA records
+    will be used.
+
+- id: rfc3263-4.2-no-srv
+  rfc: 3263
+  section: "4.2"
+  title: Determining Port and IP Address
+  text: >-
+    If no SRV records were found, the client performs an A or AAAA record
+    lookup of the domain name.  The result will be a list of IP addresses,
+    each of which can be contacted using the transport protocol determined
+    previously, at the default port for that transport.
+
+- id: rfc3263-4.3-failure
+  rfc: 3263
+  section: "4.3"
+  title: Details of RFC 2782 Process
+  text: >-
+    For SIP requests, failure occurs if the transaction layer reports a 503
+    error response or a transport failure of some sort (generally, due to
+    fatal ICMP errors in UDP or connection failures in TCP).  Failure also
+    occurs if the transaction layer times out without ever having received
+    any response, provisional or final (i.e., timer B or timer F in RFC 3261
+    [1] fires).
+
+- id: rfc3263-4.3-new-branch
+  rfc: 3263
+  section: "4.3"
+  title: Details of RFC 2782 Process
+  text: >-
+    If a failure occurs, the client SHOULD create a new request, which is
+    identical to the previous, but has a different value of the Via branch ID
+    than the previous (and therefore constitutes a new SIP transaction).
+    That request is sent to the next element in the list as specified by RFC
+    2782.
+
+- id: rfc2782-priority
+  rfc: 2782
+  section: "The format of the SRV RR"
+  title: The format of the SRV RR
+  text: >-
+    A client MUST attempt to contact the target host with the lowest-numbered
+    priority it can reach; target hosts with the same priority SHOULD be tried
+    in an order defined by the weight field.
+
+- id: rfc2782-weight
+  rfc: 2782
+  section: "The format of the SRV RR"
+  title: The format of the SRV RR
+  text: >-
+    The weight field specifies a relative weight for entries with the same
+    priority. Larger weights SHOULD be given a proportionately higher
+    probability of being selected.
+
+- id: rfc2782-weight-zero
+  rfc: 2782
+  section: "The format of the SRV RR"
+  title: The format of the SRV RR
+  text: >-
+    Domain administrators SHOULD use Weight 0 when there isn't any server
+    selection to do, to make the RR easier to read for humans (less noisy).
+    In the presence of records containing weights greater than 0, records with
+    weight 0 should have a very small chance of being selected.
+
+- id: rfc2782-target
+  rfc: 2782
+  section: "The format of the SRV RR"
+  title: The format of the SRV RR
+  text: >-
+    There MUST be one or more address records for this name, the name MUST
+    NOT be an alias (in the sense of RFC 1034 or RFC 2181).
+
+- id: rfc2782-target-dot
+  rfc: 2782
+  section: "The format of the SRV RR"
+  title: The format of the SRV RR
+  text: >-
+    A Target of "." means that the service is decidedly not available at
+    this domain.
+
+- id: rfc2782-static
+  rfc: 2782
+  section: 'The "Weight" field'
+  title: The "Weight" field
+  text: >-
+    Weight is only intended for static, not dynamic, server selection.

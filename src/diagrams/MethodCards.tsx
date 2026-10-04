@@ -8,6 +8,7 @@ import Ladder from './Ladder.tsx';
 import { markKeywords } from './Inspector.tsx';
 import { PlayerControls, usePlayer } from './player.tsx';
 import type { ClientFlow, ClientQuote } from './types.ts';
+import { quoteSource } from '../lib/rfc-ref.ts';
 
 export interface CardInfo {
   method: string;
@@ -47,7 +48,7 @@ function Detail({ card, flow, quote }: { card: CardInfo; flow: ClientFlow; quote
         <p className="mc-note">{card.note}</p>
         {quote && (
           <blockquote className="insp-quote">
-            <p className="insp-q-src">RFC {quote.rfc} §{quote.section} · {quote.title}</p>
+            <p className="insp-q-src">{quoteSource(quote)}</p>
             <p>“{markKeywords(quote.text)}”</p>
             <a href={quote.url} target="_blank" rel="noopener">Read the section ↗</a>
           </blockquote>

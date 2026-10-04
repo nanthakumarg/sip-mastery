@@ -1,0 +1,154 @@
+id: dns-port-in-uri
+title: "Broken: a port in the URI stops SRV"
+summary: "Proxy A's route to biloxi.example has a port, so it looks up only an A record. sip1 is down, sip2 is never tried, and the call fails."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  - { id: resolver, label: DNS resolver, kind: server, sub: 192.0.2.53 }
+  - { id: proxyB1, label: Proxy B1, kind: proxy, sub: sip1 · 203.0.113.11 }
+  - { id: proxyB2, label: Proxy B2, kind: proxy, sub: sip2 · 203.0.113.12 }
+steps:
+  - from: alice
+    to: proxyA
+    label: "INVITE"
+    caption: "Alice calls Bob. Her phone sends the INVITE to Proxy A, her outbound proxy."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdp1
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c1
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e89@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: alice
+    label: "100 Trying"
+    caption: "Proxy A answers 100 Trying on this hop, before it looks up biloxi.example."
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdp1
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c1
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e89@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: resolver
+    proto: dns
+    label: "DNS query (A)"
+    caption: "Proxy A's route to biloxi.example has a port: sip:biloxi.example:5060. With a port, it asks only for A records."
+    rfc: rfc3263-4.2-port
+    detail: |
+      UDP  198.51.100.10:41030 → 192.0.2.53:53
+
+      ;; QUESTION
+      biloxi.example.                 IN  A
+
+  - from: resolver
+    to: proxyA
+    proto: dns
+    label: "DNS answer (A)"
+    caption: "One address: 203.0.113.11, which is sip1. Proxy A never sees sip2 or the backup in SRV."
+    rfc: rfc3263-4.2-port-change
+    detail: |
+      UDP  192.0.2.53:53 → 198.51.100.10:41030
+
+      ;; ANSWER
+      biloxi.example.  3600  IN  A  203.0.113.11
+
+  - from: proxyA
+    to: proxyB1
+    label: "INVITE"
+    caption: "Proxy A sends the INVITE to 203.0.113.11, port 5060. sip1 is down."
+    lost: true
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.dp1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdp1
+      Max-Forwards: 69
+      Route: <sip:biloxi.example:5060;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c1
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e89@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: proxyB1
+    label: "INVITE (again)"
+    caption: "Proxy A retransmits for 32 seconds. Nothing answers."
+    lost: true
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.dp1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdp1
+      Max-Forwards: 69
+      Route: <sip:biloxi.example:5060;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c1
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e89@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: alice
+    label: "408 Request Timeout"
+    caption: "Timer B fires. Proxy A has no other address to try, so the call fails."
+    warn: "sip2 was up the whole time. The port in the URI hid it."
+    message: |
+      SIP/2.0 408 Request Timeout
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdp1
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c1
+      To: Bob <sip:bob@biloxi.example>;tag=2f7c55
+      Call-ID: 6c1d4e89@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: alice
+    to: proxyA
+    label: "ACK"
+    caption: "Alice's phone ACKs the 408 on this hop."
+    message: |
+      ACK sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdp1
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c1
+      To: Bob <sip:bob@biloxi.example>;tag=2f7c55
+      Call-ID: 6c1d4e89@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}

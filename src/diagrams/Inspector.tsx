@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import { inspect, type InspectLine } from './diff.ts';
 import type { ClientQuote, ClientRef, ClientRefEntry, ClientStep } from './types.ts';
+import { quoteSource } from '../lib/rfc-ref.ts';
 
 interface Props {
   step: ClientStep;
@@ -47,7 +48,7 @@ export default function Inspector({ step, laneLabel, prev, quote, refData }: Pro
           : <p className="insp-empty">{step.kind === 'media' ? 'Media packets, not a SIP message. RTP carries the audio between the addresses in the SDP.' : 'No SIP message for this step.'}</p>}
         {quote && (
           <blockquote className="insp-quote">
-            <p className="insp-q-src">RFC {quote.rfc} §{quote.section} · {quote.title}</p>
+            <p className="insp-q-src">{quoteSource(quote)}</p>
             <p>“{markKeywords(quote.text)}”</p>
             <a href={quote.url} target="_blank" rel="noopener">Read the section ↗</a>
           </blockquote>
@@ -114,7 +115,7 @@ export default function Inspector({ step, laneLabel, prev, quote, refData }: Pro
 
       {quote && (
         <blockquote className="insp-quote">
-          <p className="insp-q-src">RFC {quote.rfc} §{quote.section} · {quote.title}</p>
+          <p className="insp-q-src">{quoteSource(quote)}</p>
           <p>“{markKeywords(quote.text)}”</p>
           <a href={quote.url} target="_blank" rel="noopener">Read the section ↗</a>
         </blockquote>

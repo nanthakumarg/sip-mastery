@@ -44,6 +44,7 @@ import DialogTable from '../../components/DialogTable.astro';
 import ForkingTree from '../../components/ForkingTree.astro';
 import RoutingLab from '../../components/RoutingLab.astro';
 import ViaStack from '../../components/ViaStack.astro';
+import DnsResolver from '../../components/DnsResolver.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -73,7 +74,8 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   HeaderReference, HeaderJourney,
   TransactionPlayer, TimerTimeline, TransactionMatcher,
   DialogTable, ForkingTree,
-  RoutingLab, ViaStack };
+  RoutingLab, ViaStack,
+  DnsResolver };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

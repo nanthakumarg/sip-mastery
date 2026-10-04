@@ -15,6 +15,10 @@
   definition: The server that accepts REGISTER requests for atlanta.example and stores bindings.
 - term: Carol
   definition: A third user. Bob is transferred to Carol in transfer examples; she is another support agent in Module 9.
+- term: Proxy B1
+  definition: One of the two proxies of biloxi.example in Module 11, sip1.biloxi.example (203.0.113.11).
+- term: Proxy B2
+  definition: One of the two proxies of biloxi.example in Module 11, sip2.biloxi.example (203.0.113.12).
 - term: Desk phone
   definition: One of Bob's three registered devices in the forking examples.
 - term: Mobile
@@ -299,6 +303,24 @@
   definition: The Domain Name System. It turns names such as proxy.atlanta.example into IP addresses.
 - term: DNS resolver
   definition: The server that a device asks to look up DNS names for it.
+- term: A record
+  aliases: [AAAA record, address record]
+  definition: A DNS record that gives the IPv4 address (A) or IPv6 address (AAAA) of a name.
+- term: SRV record
+  aliases: [SRV]
+  definition: A DNS record that lists the servers for a service, such as _sip._udp.biloxi.example, each with a priority, a weight, a port, and a host name (RFC 2782).
+- term: NAPTR record
+  aliases: [NAPTR]
+  definition: A DNS record that says which transports a SIP domain offers, in order of preference, and which SRV name to query for each (RFC 3263).
+- term: priority
+  definition: The SRV field for failover. A client tries the lowest number first, and a higher number only when all lower ones fail.
+- term: weight
+  definition: The SRV field for load sharing. Among servers with the same priority, a larger weight gets a larger share of the requests.
+- term: TTL
+  aliases: [time to live]
+  definition: How long, in seconds, a resolver may keep a DNS answer before it asks again.
+- term: failover
+  definition: Moving to the next server when one fails, for example after a 503, a refused connection, or a Timer B timeout.
 - term: NAT
   aliases: [network address translation]
   definition: A router function that rewrites private addresses and ports into public ones, and back.

@@ -152,6 +152,8 @@ Rules:
 ```
 The component builds the link `https://www.rfc-editor.org/rfc/rfc3261#section-17.1.1.3` and highlights RFC 2119 keywords.
 
+A few older RFCs, such as RFC 2782, have headings without numbers. For them, `section` is the heading text (`section: The format of the SRV RR`); the quote shows as "RFC 2782 · The format of the SRV RR" and links to the whole RFC (`src/lib/rfc-ref.ts`).
+
 ### 4.4 Glossary and header reference (YAML)
 - `glossary.yaml` is the controlled vocabulary. Every lane label and diagram term must exist here.
 - `headers.yaml` gives the inspector a short explanation, the RFC section, and the "who adds / who changes" data for each header.
@@ -218,7 +220,7 @@ Rendering choices:
 
 ### 6.3 RFC quote verification (`verify-rfc-quotes.ts`)
 - Downloads each cited RFC as plain text from `https://www.rfc-editor.org/rfc/rfcNNNN.txt` once, and caches it in `.cache/rfc/` (CI uses `actions/cache`).
-- Removes page headers and footers, finds the cited section, normalises whitespace, and checks that the quote appears word for word in that section.
+- Removes page headers and footers, finds the cited section, normalises whitespace, and checks that the quote appears word for word in that section. A section without a number runs from its heading line to the next line at column 0.
 - Fails on a missing section or a quote that doesn't match.
 
 ## 7. Deployment

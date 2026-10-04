@@ -70,6 +70,21 @@
   "updates": [],
   "updatedBy": []
  },
+ "2782": {
+  "title": "A DNS RR for specifying the location of services (DNS SRV)",
+  "month": "February",
+  "year": 2000,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2052
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   6335,
+   8553
+  ]
+ },
  "3261": {
   "title": "SIP: Session Initiation Protocol",
   "month": "July",

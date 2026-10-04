@@ -1,0 +1,187 @@
+---
+module: 11
+title: Finding SIP servers with DNS
+part: 3
+level: [advanced]
+paths: { noc: optional, dev: core }
+summary: How a client turns sip:bob@biloxi.example into an address, a port, and a transport — NAPTR for the transport, SRV for the servers, A and AAAA for the addresses — and how SRV priority and weight give failover and load sharing.
+objectives:
+  - Say which URI a client resolves, and what each of NAPTR, SRV, and A/AAAA records tells it.
+  - Order a set of SRV records by priority and weight, as RFC 2782 does.
+  - Follow the rules of RFC 3263 that choose the transport for a URI.
+  - Say when a client moves to the next server, and how long that takes.
+  - Explain why a port or an IP address in a URI removes failover.
+status: draft
+---
+
+## 11.1 NAPTR → SRV → A/AAAA
+
+A SIP URI names a domain, such as `sip:bob@biloxi.example`, not a server. Before Proxy A can send anything, it needs three things: a **transport**, a **port**, and an **IP address**. RFC 3263 gets them from DNS, with three kinds of records, in this order:
+
+| Record | Question it answers | biloxi.example has |
+|---|---|---|
+| **NAPTR** | Which transports does the domain offer, and which does it prefer? | TLS first, then TCP, then UDP |
+| **SRV** | Which servers offer SIP over this transport, on which port? | sip1 and sip2 sharing the load, backup on standby |
+| **A / AAAA** | What is the IP address of each server? | 203.0.113.11, 203.0.113.12, 198.51.100.50 |
+
+```
+biloxi.example.            IN NAPTR  50 50 "s" "SIPS+D2T" "" _sips._tcp.biloxi.example.
+biloxi.example.            IN NAPTR  90 50 "s" "SIP+D2T"  "" _sip._tcp.biloxi.example.
+biloxi.example.            IN NAPTR 100 50 "s" "SIP+D2U"  "" _sip._udp.biloxi.example.
+
+_sip._udp.biloxi.example.  IN SRV   10 60 5060 sip1.biloxi.example.
+_sip._udp.biloxi.example.  IN SRV   10 40 5060 sip2.biloxi.example.
+_sip._udp.biloxi.example.  IN SRV   20  0 5060 backup.biloxi.example.
+
+sip1.biloxi.example.       IN A     203.0.113.11
+sip2.biloxi.example.       IN A     203.0.113.12
+backup.biloxi.example.     IN A     198.51.100.50
+```
+
+(`_sip._tcp` and `_sips._tcp` have the same three servers; `_sips._tcp` uses port 5061.)
+
+The client resolves the URI that decides the next hop: the first Route value, or the Request-URI when there is no Route (Module 10). DNS gives it somewhere to send the request. It does **not** change the request:
+
+<RfcQuote id="rfc3263-4-not-rewritten" />
+
+Step through the lookups below. Change the Request-URI, the transports Proxy A supports, and the zone; then select a server to take it down, and watch the failover. The rest of this module explains each rule.
+
+<DnsResolver />
+
+## 11.2 SRV priority and weight: failover and load sharing
+
+Each SRV record has two numbers that decide the order in which the client tries the servers. **Priority** is for failover: lower first, always.
+
+<RfcQuote id="rfc2782-priority" />
+
+**Weight** is for load sharing among servers with the **same** priority:
+
+<RfcQuote id="rfc2782-weight" />
+
+RFC 2782 turns the weights into an order with a random draw. Put the records of one priority in a list, add up the weights as a **running sum**, draw a random number from 0 to the total, and take the first record whose running sum reaches it. Then repeat with the records that are left.
+
+| Record | Weight | Running sum | Picked first when the draw is |
+|---|---|---|---|
+| sip1 | 60 | 60 | 0–60 |
+| sip2 | 40 | 100 | 61–100 |
+| backup | 0 | — | never first: priority 20 waits until sip1 and sip2 both fail |
+
+Over many requests, sip1 gets about 60% and sip2 about 40%. Select **Draw again** in the step-through above to see a new draw. Weight 0 means "no preference":
+
+<RfcQuote id="rfc2782-weight-zero" />
+
+The numbers in DNS are static. They say "this server is bigger", not "this server is busy now": DNS answers are cached for the TTL, and the client cannot know the current load.
+
+<RfcQuote id="rfc2782-static" />
+
+| You want | Use |
+|---|---|
+| Active and standby | Different priorities: 10 for the active server, 20 for the standby |
+| Two equal servers | One priority, equal weights (50 and 50) |
+| One server twice as big | One priority, weights 2 and 1 |
+| No SIP over this transport | One SRV record with the target `.` |
+
+<RfcQuote id="rfc2782-target-dot" />
+
+## 11.3 How the client selects a transport
+
+The client chooses the transport first, with the first rule that applies:
+
+| The URI has… | Transport | Then for the address |
+|---|---|---|
+| `;transport=` | The one it names | SRV for that transport |
+| An IP address as host | UDP (TLS for a SIPS URI) | No DNS at all |
+| A port, such as `:5060` | UDP (TLS for a SIPS URI) | A/AAAA of the domain, at that port |
+| A domain only | The most preferred NAPTR service that the client supports | SRV named in the NAPTR record |
+| A domain only, and no NAPTR | The first transport with SRV records | Those SRV records |
+| A domain only, no NAPTR, no SRV | UDP (TLS for a SIPS URI) | A/AAAA of the domain, default port |
+
+<RfcQuote id="rfc3263-4.1-transport-param" />
+
+<RfcQuote id="rfc3263-4.1-numeric" />
+
+<RfcQuote id="rfc3263-4.1-naptr" />
+
+The NAPTR service names the transport: `SIP+D2U` is UDP, `SIP+D2T` is TCP, and `SIPS+D2T` is TLS over TCP. The client drops the services it cannot use and takes the lowest **order**. In the example, a client that supports UDP and TCP picks TCP, because `SIP+D2T` has order 90 and `SIP+D2U` 100. A client with TLS takes `SIPS+D2T`, even for a SIP URI:
+
+<RfcQuote id="rfc3263-4.1-sips-discard" />
+
+A SIP server that publishes NAPTR must list at least the three services:
+
+<RfcQuote id="rfc3263-4.1-three-records" />
+
+Many domains publish no NAPTR records, only SRV. The client then asks for each transport it supports, and without SRV, it uses the A record:
+
+<RfcQuote id="rfc3263-4.1-no-naptr" />
+
+<RfcQuote id="rfc3263-4.1-no-srv" />
+
+<RfcQuote id="rfc3263-4.2-no-srv" />
+
+The transport from DNS is not the last word. A large request — over 1300 bytes when the path MTU is unknown — must use a congestion-controlled transport such as TCP, even when DNS chose UDP (Modules 2 and 19):
+
+<RfcQuote id="rfc3261-18.1.1-1300" />
+
+## 11.4 Failover on 503 and on transport errors
+
+The client tries the first address in its list. It moves to the next one when the attempt **fails**:
+
+<RfcQuote id="rfc3263-4.3-failure" />
+
+| What happens | The client moves on… |
+|---|---|
+| The server answers **503 Service Unavailable** | At once |
+| An ICMP port unreachable (UDP), or the TCP connection is refused | At once |
+| Nothing answers at all | When Timer B (INVITE) or Timer F (other requests) fires: **32 seconds** |
+| Any other response — 100 Trying, a 4xx, a 2xx | Never: the server has the request |
+
+Each new try is a new transaction, with a new branch:
+
+<RfcQuote id="rfc3263-4.3-new-branch" />
+
+Once a server answers, the transaction stays there. Retransmissions, the ACK for a non-2xx, and CANCEL go to the same address. The ACK for a 2xx is a new transaction, so it follows the route set instead (Module 10):
+
+<RfcQuote id="rfc3263-4-same-host" />
+
+<RfcQuote id="rfc3263-4-ack-2xx" />
+
+A server that is switched off is the slow case: the caller waits 32 seconds in silence before the second server rings. That is why many proxies use a shorter timer for each DNS target, and remember a failed address for a while, so that the next call goes straight to a server that works. A server that is up but overloaded should answer 503, so that clients move on at once.
+
+<Flow id="dns-srv-failover" eyebrow="Call flow · NAPTR, SRV, and failover" />
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="A port in the URI stops the SRV lookup">
+    A trunk or route configured as `sip:biloxi.example:5060` looks harmless: 5060 is the SIP port anyway. But a port in the URI tells the client to skip NAPTR and SRV and to look up only the A record of the domain. All the priorities, weights, and backup servers in SRV are never seen. When the one address in the A record is down, the call fails — while sip2 is up.
+
+    <RfcQuote id="rfc3263-4.2-port-change" />
+
+    <BrokenFixedFlow broken="dns-port-in-uri" fixed="dns-srv-failover" />
+
+    <p class="fix"><b>Remember:</b> configure the domain with no port, as <code>sip:biloxi.example</code>. Add a port or a transport only when the other side asks for it — and then check that its SRV records are not needed.</p>
+  </Mistake>
+
+  <Mistake title="Hard-coding IP addresses">
+    `sip:bob@203.0.113.11` needs no DNS at all: the client sends to that address, with UDP, on port 5060. It works until that server is down, replaced, or moved — and then there is nothing to fail over to. A carrier that adds a server, changes an address, or moves traffic during maintenance does it in DNS; a hard-coded address sees none of it. TLS also needs the name: the certificate names the domain, not the address (Module 14).
+
+    <p class="fix"><b>Remember:</b> if a trace shows every request going to one address, and the calls fail when that server is down, look at the configuration for a hard-coded address or a port.</p>
+  </Mistake>
+
+  <Mistake title="An SRV target that is an alias, or has no address">
+    The SRV target must be a host name with its own A or AAAA records. A target that is a CNAME — or a name with no address records — breaks the rule below. Some clients follow the alias anyway and others give up, so the failure can appear on some clients only.
+
+    <RfcQuote id="rfc2782-target" />
+
+    <p class="fix"><b>Remember:</b> check every SRV target with <code>dig A</code> and <code>dig AAAA</code>, and make sure it returns addresses directly, not a CNAME.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A client resolves the **first Route value**, or the **Request-URI**. DNS gives an address, a port, and a transport; it never changes the URI.
+- **NAPTR** chooses the transport; **SRV** lists the servers and ports; **A/AAAA** give the addresses.
+- **Priority** is for failover: the lowest number first. **Weight** shares the load among servers of the same priority, with a random draw.
+- The transport comes from `;transport=`, else from the defaults for an IP address or a port, else from NAPTR, else from SRV, else UDP (TLS for SIPS).
+- The client moves to the next server after a **503**, a **transport error**, or **no answer at all** — the last takes 32 seconds. Each try is a new transaction with a new branch.
+- A **port** or an **IP address** in the URI turns off SRV, and with it all failover.

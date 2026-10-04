@@ -1,0 +1,268 @@
+id: dns-srv-failover
+title: "Fixed: SRV lists a second server"
+summary: "Proxy A finds biloxi.example with NAPTR and SRV. sip1 is down; after Timer B, Proxy A tries sip2, and the call goes through."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  - { id: resolver, label: DNS resolver, kind: server, sub: 192.0.2.53 }
+  - { id: proxyB1, label: Proxy B1, kind: proxy, sub: sip1 · 203.0.113.11 }
+  - { id: proxyB2, label: Proxy B2, kind: proxy, sub: sip2 · 203.0.113.12 }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: alice
+    to: proxyA
+    label: "INVITE"
+    caption: "Alice calls Bob. Her phone sends the INVITE to Proxy A, her outbound proxy."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: alice
+    label: "100 Trying"
+    caption: "Proxy A answers 100 Trying on this hop, before it looks up biloxi.example."
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: resolver
+    proto: dns
+    label: "DNS query (NAPTR)"
+    caption: "The Request-URI has a domain, no port, and no transport. Proxy A asks which transports biloxi.example offers."
+    rfc: rfc3263-4.1-naptr
+    detail: |
+      UDP  198.51.100.10:41022 → 192.0.2.53:53
+
+      ;; QUESTION
+      biloxi.example.                 IN  NAPTR
+
+  - from: resolver
+    to: proxyA
+    proto: dns
+    label: "DNS answer (NAPTR)"
+    caption: "Three services: TLS, TCP, and UDP, in that order. Proxy A supports only UDP, so it keeps SIP+D2U."
+    detail: |
+      UDP  192.0.2.53:53 → 198.51.100.10:41022
+
+      ;; ANSWER
+      biloxi.example.  3600  IN  NAPTR  50  50 "s" "SIPS+D2T" "" _sips._tcp.biloxi.example.
+      biloxi.example.  3600  IN  NAPTR  90  50 "s" "SIP+D2T"  "" _sip._tcp.biloxi.example.
+      biloxi.example.  3600  IN  NAPTR  100 50 "s" "SIP+D2U"  "" _sip._udp.biloxi.example.
+
+  - from: proxyA
+    to: resolver
+    proto: dns
+    label: "DNS query (SRV)"
+    caption: "Proxy A asks for the UDP servers: the SRV name from the NAPTR record."
+    detail: |
+      UDP  198.51.100.10:41023 → 192.0.2.53:53
+
+      ;; QUESTION
+      _sip._udp.biloxi.example.       IN  SRV
+
+  - from: resolver
+    to: proxyA
+    proto: dns
+    label: "DNS answer (SRV)"
+    caption: "Two servers at priority 10 share the load 60:40; a backup waits at priority 20. The addresses come in the same answer."
+    rfc: rfc2782-priority
+    detail: |
+      UDP  192.0.2.53:53 → 198.51.100.10:41023
+
+      ;; ANSWER
+      _sip._udp.biloxi.example.  3600  IN  SRV  10 60 5060 sip1.biloxi.example.
+      _sip._udp.biloxi.example.  3600  IN  SRV  10 40 5060 sip2.biloxi.example.
+      _sip._udp.biloxi.example.  3600  IN  SRV  20  0 5060 backup.biloxi.example.
+
+      ;; ADDITIONAL
+      sip1.biloxi.example.       3600  IN  A    203.0.113.11
+      sip2.biloxi.example.       3600  IN  A    203.0.113.12
+      backup.biloxi.example.     3600  IN  A    198.51.100.50
+
+  - from: proxyA
+    to: proxyB1
+    label: "INVITE"
+    caption: "The weight draw picks sip1 first. Proxy A sends the INVITE to 203.0.113.11, but sip1 is down."
+    lost: true
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.dn1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: proxyB1
+    label: "INVITE (again)"
+    caption: "Proxy A retransmits at intervals of 0.5, 1, 2, 4, 8, and 16 seconds. Nothing answers."
+    lost: true
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.dn1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: proxyB2
+    label: "INVITE"
+    caption: "After 32 seconds Timer B fires. Proxy A sends a new INVITE, with a new branch, to the next server: sip2."
+    rfc: rfc3263-4.3-new-branch
+    warn: "Alice heard nothing for 32 seconds. Many proxies use a shorter timer for this reason."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.dn2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB2
+    to: proxyA
+    label: "100 Trying"
+    caption: "sip2 answers. Retransmissions and a CANCEL for this INVITE now go only to sip2."
+    rfc: rfc3263-4-same-host
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.dn2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyB2
+    to: bob
+    label: "INVITE"
+    caption: "sip2 finds Bob's Contact and forwards the INVITE."
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.12:5060;branch=z9hG4bKb2.dn2
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.dn2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      Max-Forwards: 68
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: bob
+    to: proxyB2
+    label: "180 Ringing"
+    caption: "Bob's phone rings."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 203.0.113.12:5060;branch=z9hG4bKb2.dn2
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.dn2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>;tag=91e0ab
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}
+
+  - from: proxyB2
+    to: proxyA
+    label: "180 Ringing"
+    caption: "sip2 forwards the 180 Ringing to Proxy A."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.dn2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>;tag=91e0ab
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: alice
+    label: "180 Ringing"
+    caption: "Alice hears ringing, 32 seconds late. The call works only because DNS listed a second server."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKdn1
+      From: Alice <sip:alice@atlanta.example>;tag=e5a2c0
+      To: Bob <sip:bob@biloxi.example>;tag=91e0ab
+      Call-ID: 6c1d4e88@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}

@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadQuotes } from '../src/lib/data.ts';
+import { isNumberedSection } from '../src/lib/rfc-ref.ts';
 
 const CACHE = path.join(process.cwd(), '.cache', 'rfc');
 
@@ -28,6 +29,14 @@ function stripPages(text: string): string[] {
 
 /** Returns the text of one section: from its heading (number removed) to the next heading at column 0. */
 function sectionText(lines: string[], section: string): string | undefined {
+  // Older RFCs (such as RFC 2782) have headings without numbers: the section runs to the next line at column 0.
+  if (!isNumberedSection(section)) {
+    const start = lines.findIndex(l => l.trimEnd() === section);
+    if (start === -1) return undefined;
+    const rest = lines.slice(start + 1);
+    const end = rest.findIndex(l => /^\S/.test(l));
+    return (end === -1 ? rest : rest.slice(0, end)).join('\n');
+  }
   const esc = section.replace(/\./g, '\\.');
   const start = lines.findIndex(l => new RegExp(`^${esc}\\.?\\s+\\S`).test(l));
   if (start === -1) return undefined;

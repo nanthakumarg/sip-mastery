@@ -1,6 +1,7 @@
 ---
 /** <RfcQuote id="rfc3261-22.2-cseq-increment" /> : exact quote, verified by npm run verify:rfc */
 import { quoteById, rfcUrl } from '../lib/data.ts';
+import { isNumberedSection } from '../lib/rfc-ref.ts';
 
 interface Props { id: string }
 const q = quoteById(Astro.props.id);
@@ -8,7 +9,7 @@ const KW = /\b(MUST NOT|MUST|SHALL NOT|SHALL|SHOULD NOT|SHOULD|NOT RECOMMENDED|R
 const parts = q.text.replace(/\s+/g, ' ').split(KW);
 ---
 <figure class="rfcq">
-  <figcaption class="src"><b>RFC {q.rfc} §{q.section}</b> · {q.title}</figcaption>
+  <figcaption class="src"><b>RFC {q.rfc}{isNumberedSection(q.section) && ` §${q.section}`}</b> · {q.title}</figcaption>
   <blockquote cite={rfcUrl(q.rfc, q.section)}>
     “{parts.map((p, i) => (i % 2 ? <strong class="kw">{p}</strong> : p))}”
   </blockquote>
