@@ -3,27 +3,12 @@
  * Controls are the same in every diagram (COURSE_STRUCTURE §5.5):
  * ⏮ first · ◀ back · ▶ play / ❚❚ pause · ▶| next · ↺ reset; ←/→ and Space on the stage.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import Inspector from './Inspector.tsx';
 import Ladder, { ladderWidth, usedProtocols } from './Ladder.tsx';
 import { comparableIndex } from './diff.ts';
+import { ExpandButton, PlayerControls, useExpand, usePlayer } from './player.tsx';
 import { PROTO_LABEL, type FlowBundle } from './types.ts';
-
-/** Player icons (14×14), drawn so they look the same on every platform. */
-const ICON = {
-  first: 'M2 2h2v10H2zM12 2v10L5 7z',
-  prev: 'M11 2v10L4 7z',
-  play: 'M4 2v10l8-5z',
-  pause: 'M3 2h3v10H3zM8 2h3v10H8z',
-  next: 'M3 2v10l7-5zM10 2h2v10h-2z',
-};
-const ResetIcon = () => (
-  <svg viewBox="0 0 14 14" aria-hidden="true">
-    <path d="M11.6 7.4A4.6 4.6 0 1 1 7 2.4h1.6" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.6 }} />
-    <path d="M8 .2l3 2.2-3 2.2z" />
-  </svg>
-);
-const Icon = ({ d }: { d: string }) => <svg viewBox="0 0 14 14" aria-hidden="true"><path d={d} /></svg>;
 
 interface Props extends FlowBundle {
   /** Label above the title, e.g. "Call flow" or "Broken". */
@@ -33,26 +18,16 @@ interface Props extends FlowBundle {
 }
 
 export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow', speed = 2400 }: Props) {
-  const [current, setCurrent] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const p = usePlayer(flow.steps.length, speed);
+  const { current, go } = p;
   const figureRef = useRef<HTMLElement>(null);
-  const expandBtn = useRef<HTMLButtonElement>(null);
+  const x = useExpand(figureRef);
   const ladderBox = useRef<HTMLDivElement>(null);
-  const last = flow.steps.length - 1;
   const step = flow.steps[current]!;
 
   const wires = useMemo(() => flow.steps.map(s => s.wire), [flow]);
   const prevIndex = useMemo(() => comparableIndex(wires, current), [wires, current]);
   const laneLabel = (id: string) => flow.lanes.find(l => l.id === id)?.label ?? id;
-
-  // Autoplay: one step per `speed` ms, stop at the end.
-  useEffect(() => {
-    if (!playing) return;
-    if (current >= last) { setPlaying(false); return; }
-    const t = setTimeout(() => setCurrent(c => Math.min(c + 1, last)), speed);
-    return () => clearTimeout(t);
-  }, [playing, current, last, speed]);
 
   // Keep the current row visible inside the ladder box (without moving the page).
   useEffect(() => {
@@ -66,43 +41,17 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
     }
   }, [current]);
 
-  // Expanded view: full screen, page scroll locked, Esc closes, focus returns to the button.
-  useEffect(() => {
-    if (!expanded) return;
-    const root = document.documentElement;
-    root.classList.add('stage-open');
-    figureRef.current?.focus();
-    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
-    window.addEventListener('keydown', onEsc);
-    return () => {
-      root.classList.remove('stage-open');
-      window.removeEventListener('keydown', onEsc);
-      expandBtn.current?.focus();
-    };
-  }, [expanded]);
-
-  const go = (i: number) => { setPlaying(false); setCurrent(Math.max(0, Math.min(last, i))); };
-
-  const onKey = (e: React.KeyboardEvent) => {
-    if ((e.target as HTMLElement).closest('.insp-msg, input, button')) return;
-    if (e.key === 'ArrowRight') { e.preventDefault(); go(current + 1); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(current - 1); }
-    else if (e.key === ' ') { e.preventDefault(); setPlaying(p => !p); }
-    else if (e.key === 'Home') { e.preventDefault(); go(0); }
-    else if (e.key === 'End') { e.preventDefault(); go(last); }
-  };
-
   const quote = step.rfc ? quotes[step.rfc] : undefined;
 
   return (
     <figure
       ref={figureRef}
-      className={`stage${flow.broken ? ' is-broken' : ''}${expanded ? ' is-expanded' : ''}`}
+      className={`stage${flow.broken ? ' is-broken' : ''}${x.expanded ? ' is-expanded' : ''}`}
       style={{ ['--lw' as string]: `${ladderWidth(flow.lanes.length)}px` }}
       tabIndex={0}
-      onKeyDown={onKey}
-      role={expanded ? 'dialog' : undefined}
-      aria-modal={expanded ? true : undefined}
+      onKeyDown={p.onKey}
+      role={x.expanded ? 'dialog' : undefined}
+      aria-modal={x.expanded ? true : undefined}
       aria-label={`Interactive call flow: ${flow.title}`}
     >
       <header className="stage-head">
@@ -116,11 +65,7 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
           ))}
           {flow.steps.some(s => s.warn) && <li><span className="lg-warn">⚠</span>Problem</li>}
         </ul>
-        <button type="button" ref={expandBtn} className="stage-expand" onClick={() => setExpanded(x => !x)}
-          aria-pressed={expanded} title={expanded ? 'Close full screen (Esc)' : 'Open full screen'}>
-          <svg viewBox="0 0 14 14" aria-hidden="true"><path d={expanded ? 'M5 1v4H1M9 1v4h4M5 13V9H1M9 13V9h4' : 'M1 5V1h4M13 5V1H9M1 9v4h4M13 9v4H9'} /></svg>
-          {expanded ? 'Close' : 'Expand'}
-        </button>
+        <ExpandButton x={x} />
       </header>
 
       <div className="stage-main">
@@ -135,15 +80,7 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
               {step.warn && <p className="cap-warn"><span aria-hidden="true">⚠</span> {step.warn}</p>}
             </div>
           </div>
-          <div className="stage-controls" role="group" aria-label="Player">
-            <button type="button" onClick={() => go(0)} disabled={current === 0} aria-label="First step" title="First step (Home)"><Icon d={ICON.first} /></button>
-            <button type="button" onClick={() => go(current - 1)} disabled={current === 0} aria-label="Previous step" title="Previous step (←)"><Icon d={ICON.prev} /></button>
-            <button type="button" className="play" onClick={() => (current >= last ? (setCurrent(0), setPlaying(true)) : setPlaying(p => !p))}
-              aria-label={playing ? 'Pause' : 'Play'} title="Play / pause (Space)"><Icon d={playing ? ICON.pause : ICON.play} /></button>
-            <button type="button" onClick={() => go(current + 1)} disabled={current === last} aria-label="Next step" title="Next step (→)"><Icon d={ICON.next} /></button>
-            <button type="button" onClick={() => go(0)} aria-label="Reset" title="Reset"><ResetIcon /></button>
-            <input type="range" min={0} max={last} value={current} onChange={e => go(Number(e.target.value))} aria-label="Step" />
-          </div>
+          <PlayerControls p={p} />
         </div>
         <aside className="stage-inspector">
           <Inspector

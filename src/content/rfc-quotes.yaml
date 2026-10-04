@@ -144,3 +144,58 @@
     The UAS MUST add these header fields to the response in the order in which
     it would prefer to see them used, starting with the most preferred
     algorithm at the top.
+
+# --- Module 0 -------------------------------------------------------------
+
+- id: rfc3261-2-control-protocol
+  rfc: 3261
+  section: "2"
+  title: Overview of SIP Functionality
+  text: >-
+    SIP is an application-layer control protocol that can establish, modify,
+    and terminate multimedia sessions (conferences) such as Internet telephony
+    calls.
+
+- id: rfc3261-2-component
+  rfc: 3261
+  section: "2"
+  title: Overview of SIP Functionality
+  text: >-
+    SIP is not a vertically integrated communications system.  SIP is rather a
+    component that can be used with other IETF protocols to build a complete
+    multimedia architecture.
+
+- id: rfc3261-4-media-path
+  rfc: 3261
+  section: "4"
+  title: Overview of Operation
+  text: >-
+    In general, the end-to-end media packets take a different path from the
+    SIP signaling messages.
+
+- id: rfc3550-1-rtp
+  rfc: 3550
+  section: "1"
+  title: Introduction
+  text: >-
+    This memorandum specifies the real-time transport protocol (RTP), which
+    provides end-to-end delivery services for data with real-time
+    characteristics, such as interactive audio and video.
+
+- id: rfc8866-1-format
+  rfc: 8866
+  section: "1"
+  title: Introduction
+  text: >-
+    SDP is purely a format for session description -- it does not incorporate
+    a transport protocol, and it is intended to use different transport
+    protocols as appropriate
+
+- id: rfc3261-4-transaction-model
+  rfc: 3261
+  section: "4"
+  title: Overview of Operation
+  text: >-
+    SIP is based on an HTTP-like request/response transaction model.  Each
+    transaction consists of a request that invokes a particular method, or
+    function, on the server and at least one response.

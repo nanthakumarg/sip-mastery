@@ -38,6 +38,19 @@ export function lintDiagram(flow: PreparedFlow, glossary: string[]): LintIssue[]
   }
 
   const laneIds = new Set(flow.lanes.map(l => l.id));
+
+  if (flow.map) {
+    for (const id of laneIds) if (!flow.map.nodes[id]) add('map-nodes', -1, `The map has no position for lane "${id}"`);
+  }
+  if (flow.phases) {
+    let prev = 0;
+    for (const p of flow.phases) {
+      if (p.from <= prev || p.from > flow.steps.length) add('phases', -1, `Phase "${p.label}" starts at step ${p.from}; phases must start in order, inside the flow`);
+      if (words(p.label).length > 3) add('phases', -1, `Phase label "${p.label}" has more than 3 words`);
+      prev = p.from;
+    }
+    if (flow.phases[0]?.from !== 1) add('phases', -1, 'The first phase must start at step 1');
+  }
   for (const s of flow.steps) {
     if (!laneIds.has(s.from) || !laneIds.has(s.to)) add('lane-ref', s.index, `Step uses an unknown lane (${s.from} → ${s.to})`);
 
@@ -47,6 +60,11 @@ export function lintDiagram(flow: PreparedFlow, glossary: string[]): LintIssue[]
     const lower = s.label.toLowerCase();
     const startsOk = METHODS.has(first) || /^\d{3}$/.test(first) || terms.some(t => lower === t || lower.startsWith(t + ' '));
     if (!startsOk) add('label-start', s.index, `Label "${s.label}" must start with a SIP method, a status code, or a glossary term`);
+
+    for (const [lane, text] of Object.entries(s.status ?? {})) {
+      if (!laneIds.has(lane)) add('status', s.index, `Status for unknown lane "${lane}"`);
+      if (words(text).length > 2) add('status', s.index, `Status "${text}" has more than 2 words`);
+    }
 
     if (!(PROTOCOLS as readonly string[]).includes(s.proto)) add('proto-color', s.index, `Unknown protocol colour "${s.proto}"`);
 

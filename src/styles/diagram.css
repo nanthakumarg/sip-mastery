@@ -253,3 +253,94 @@ html.stage-open { overflow: hidden; }
 .stage.is-expanded .insp-msg { max-height: calc(100vh - 420px); }
 .stage.is-expanded .stage-steps { display: none; }
 .stage.is-expanded .stage-expand { color: var(--text); border-color: var(--dim); }
+
+/* ---------- Speed and segmented controls ---------- */
+.speed, .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.speed button, .seg button { height: 34px; min-width: 0; padding: 0 11px; border: 0; border-radius: 0; background: var(--panel); color: var(--dim); font: 400 12.5px var(--mono); }
+.speed button + button, .seg button + button { border-left: 1px solid var(--line); }
+.speed button[aria-checked=true], .seg button[aria-checked=true] { background: var(--text); color: var(--bg); font-weight: 500; }
+.stage-controls .speed button { height: 34px; }
+
+/* ---------- Call player (Module 0) ---------- */
+.callplayer { max-width: 1320px; }
+.phases { position: relative; list-style: none; display: flex; gap: 6px; margin-top: 14px; overflow-x: auto; scrollbar-width: none; counter-reset: ph; }
+.phases li { flex: 1 1 0; min-width: max-content; }
+.phases button { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 5px; background: var(--panel); color: var(--muted); font: 500 13.5px var(--display); text-align: left; position: relative; overflow: hidden; }
+.phases button:hover { color: var(--text); border-color: var(--line); }
+.phases .ph-num { font: 500 11px var(--mono); color: var(--muted); }
+.phases .is-past button { color: var(--dim); }
+.phases .is-past button::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(255,176,0,.45); }
+.phases .is-current button { color: var(--text); border-color: var(--sip); background: var(--panel-2); }
+.phases .is-current .ph-num { color: var(--sip); }
+
+.cp-body { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "cap" "bar" "insp" "learn"; column-gap: 18px; margin-top: 14px; align-items: start; }
+.cp-body > .cp-map { grid-area: map; }
+.cp-body > .stage-caption { grid-area: cap; }
+.cp-body > .cp-bar { grid-area: bar; }
+.cp-body > .cp-inspector { grid-area: insp; margin-top: 12px; }
+.cp-body > .cp-learn { grid-area: learn; }
+/* The map needs about 900px to stay readable, so the message sits beside it only on very wide screens (and in full screen). */
+@media (min-width: 2100px) {
+  .callplayer.show-msg { max-width: 1780px; }
+  .callplayer.show-msg .cp-body { grid-template-columns: minmax(0, 1fr) minmax(360px, 520px); grid-template-rows: auto auto auto 1fr; grid-template-areas: "map insp" "cap insp" "bar insp" "learn insp"; }
+  .callplayer.show-msg .cp-inspector { margin-top: 0; }
+}
+.stage.is-expanded.callplayer.show-msg .cp-body { grid-template-columns: minmax(0, 1fr) minmax(360px, 560px); grid-template-rows: auto auto auto 1fr; grid-template-areas: "map insp" "cap insp" "bar insp" "learn insp"; }
+.stage.is-expanded.callplayer.show-msg .cp-inspector { margin-top: 0; }
+.cp-map { background: var(--bg-deep); border-radius: 6px; overflow-x: auto; }
+.cp-inspector { min-width: 0; }
+.callplayer .stage-caption { margin-top: 12px; }
+.cap-route { font: 400 12.5px var(--mono); color: var(--muted); margin-bottom: 2px; }
+.cp-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 12px; }
+.cp-bar .stage-controls { flex: 1 1 520px; }
+.cp-msg-toggle { height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--dim); font: 400 13px var(--mono); }
+.cp-msg-toggle:hover:not(:disabled) { color: var(--text); border-color: #3a414c; }
+.cp-msg-toggle[aria-pressed=true] { color: var(--text); border-color: var(--dim); }
+.cp-msg-toggle:disabled { opacity: .35; cursor: default; }
+.cp-learn { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-2); }
+.cp-learn ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.cp-learn a, .cp-learn span:not(.eyebrow) { display: inline-flex; gap: 6px; align-items: baseline; padding: 6px 10px; border: 1px solid var(--line); border-radius: 5px; font-size: 14px; text-decoration: none; color: var(--text); }
+.cp-learn a:hover { border-color: var(--sip); }
+.cp-learn b { font: 500 11.5px var(--mono); color: var(--sip); }
+.cp-learn li > span { color: var(--muted) !important; border-style: dashed !important; }
+.cp-learn li > span b { color: var(--muted); }
+.cp-learn em { font: 400 10.5px var(--mono); font-style: normal; text-transform: uppercase; letter-spacing: .06em; }
+
+.stage.is-expanded.callplayer .cp-map svg { max-height: calc(100vh - 360px); }
+
+/* ---------- Call map (SVG) ---------- */
+svg.callmap { display: block; width: 100%; min-width: 600px; height: auto; font-family: var(--mono); }
+.callmap .cm-group rect { fill: var(--panel); fill-opacity: .35; stroke: var(--line); stroke-width: 1.4; stroke-dasharray: 6 6; }
+.callmap .cm-group text { font-size: 13px; fill: var(--muted); }
+.callmap .cm-link { fill: none; stroke: var(--line); stroke-width: 2; transition: stroke .3s, opacity .3s; }
+.callmap .cm-link.is-on { stroke: var(--sip); stroke-width: 2.6; }
+.callmap .cm-media-path { fill: none; stroke: var(--line); stroke-width: 2; stroke-dasharray: 8 6; transition: stroke .3s; }
+.callmap .cm-media.is-live .cm-media-path { stroke: rgba(63,208,201,.5); }
+.callmap .cm-media.is-on .cm-media-path { stroke: var(--rtp); stroke-width: 2.6; }
+.callmap .cm-media-dot { fill: var(--rtp); }
+.callmap .cm-media.is-live:not(.is-on) .cm-media-dot { opacity: .5; }
+.callmap .cm-path-label { font-size: 13px; paint-order: stroke; stroke: var(--bg-deep); stroke-width: 6px; }
+.callmap .cm-path-label.sip { fill: var(--sip); }
+.callmap .cm-path-label.rtp { fill: var(--rtp); }
+.callmap .cm-msg { fill: none; stroke-width: 3; }
+.callmap .cm-pill rect { fill: var(--bg-deep); stroke-width: 1.4; }
+.callmap .cm-pill text { font-size: 13px; font-weight: 500; fill: var(--text); }
+.callmap .cm-current { animation: cm-in .35s var(--ease) both; }
+@keyframes cm-in { from { opacity: 0; } to { opacity: 1; } }
+.callmap .cm-box { fill: var(--panel-2); stroke: var(--line); stroke-width: 1.6; transition: stroke .25s; }
+.callmap .cm-box-inner { fill: none; stroke: var(--line); }
+.callmap .cm-node.is-active .cm-box { stroke: var(--text); stroke-width: 2.2; }
+.callmap .cm-label { font: 700 17px var(--display); fill: var(--text); }
+.callmap .cm-sub { font-size: 11px; fill: var(--muted); }
+.callmap .cm-status { font-size: 11.5px; fill: var(--text); }
+.callmap .cm-tick { stroke-width: 1.2; stroke-dasharray: 2 3; }
+
+@media (max-width: 560px) {
+  .phases button { padding: 6px 9px; font-size: 12.5px; }
+  .cp-bar .stage-controls { flex-basis: 100%; }
+}
+
+/* ---------- Two paths ---------- */
+.twopaths { max-width: 1320px; }
+.twopaths .cp-map { margin-top: 14px; }
+.twopaths .stage-caption { margin-top: 12px; }

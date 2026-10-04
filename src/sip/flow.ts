@@ -38,6 +38,28 @@ export interface FlowStep {
   lost?: boolean;
   /** A coral "⚠" warning shown with this step. */
   warn?: string;
+  /** Short state labels shown under nodes on the call map, e.g. { alice: Registered }. They persist until changed. */
+  status?: Record<string, string>;
+}
+
+/** A chapter of a flow: steps from `from` (1-based) to the next phase. */
+export interface FlowPhase {
+  from: number;
+  label: string;
+  /** Course modules that explain this part of the call. */
+  modules?: number[];
+}
+
+/** Positions for the network-map view of a flow (Module 0 call player). */
+export interface FlowMap {
+  width: number;
+  height: number;
+  /** Node centre [x, y] for each lane id. */
+  nodes: Record<string, [number, number]>;
+  /** Dashed boxes, e.g. one per domain. */
+  groups?: { label: string; x: number; y: number; w: number; h: number }[];
+  /** y of the curved media path under the nodes. */
+  mediaY?: number;
 }
 
 export interface FlowData {
@@ -52,6 +74,8 @@ export interface FlowData {
   breaks?: string[];
   /** Example credentials used to fill `response="{digest}"` placeholders. */
   credentials?: { username: string; password: string };
+  phases?: FlowPhase[];
+  map?: FlowMap;
 }
 
 export interface PreparedStep extends FlowStep {

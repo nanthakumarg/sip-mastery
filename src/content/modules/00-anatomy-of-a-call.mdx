@@ -1,0 +1,167 @@
+---
+module: 0
+title: Anatomy of one phone call
+part: 0
+level: [basic]
+paths: { noc: core, dev: core }
+summary: Watch one complete SIP call, from the moment Alice's phone starts to the moment Bob hangs up. Every later module zooms into one part of this call.
+objectives:
+  - Name the elements of a SIP call — user agents, a registrar, and proxies — and say what each one does.
+  - Tell signaling from media, and name the protocol that carries each.
+  - Follow one call from registration to hang-up, in seven chapters.
+  - Read the diagrams in this course — colours, shapes, and controls.
+status: draft
+---
+
+## 0.1 One call in seven chapters
+
+This course follows one small cast through every module. Meet them first.
+
+| Who | What it is | Where |
+|---|---|---|
+| **Alice** | A <Term t="user agent" />: the phone that makes the call | `sip:alice@atlanta.example` |
+| **Registrar** | The server that remembers where each user of `atlanta.example` is | `atlanta.example` |
+| **Proxy A** | The server that handles calls for `atlanta.example` | `atlanta.example` |
+| **Proxy B** | The server that handles calls for `biloxi.example` | `biloxi.example` |
+| **Bob** | The phone that receives the call | `sip:bob@biloxi.example` |
+
+Now watch the whole call. Press **▶** to play it, or step through it with **←** and **→**. The chapters at the top jump to each part of the call. Under the player, each chapter links to the module that explains it in detail.
+
+<CallPlayer flow="full-call" />
+
+You do not need to understand every message yet. Look for the pattern:
+
+1. **Register.** Alice's phone tells the <Term t="Registrar" /> where Alice is. Without this, nobody can find Alice.
+2. **Prove identity.** Proxy A will not connect a call for a stranger. Alice's phone proves that it knows the password — without sending it.
+3. **Find Bob.** Proxy A passes the call to Proxy B, and Proxy B finds Bob's phone.
+4. **Ring and answer.** Bob's phone rings (`180 Ringing`), then Bob answers (`200 OK`). The answer also says how Bob's phone wants to receive audio.
+5. **Confirm.** Alice's phone confirms the answer with an `ACK`. Now the call is set up.
+6. **Talk.** The audio flows — and it takes a different path from all the messages before it.
+7. **Hang up.** Bob's phone sends `BYE`. Alice's phone confirms with `200 OK`. Both phones are idle again.
+
+<Note kind="tip" title="Want to see the real messages?">
+Select **Show the message** under the player. It opens the actual SIP text of each step, with an explanation for every line. Module 4 teaches you to read these messages; for now, notice that they are plain text that you can read.
+</Note>
+
+This shape — two phones, two proxies — is so common that RFC 3261 gives it a name: the **SIP trapezoid**. The RFC's own first example in [§4](https://www.rfc-editor.org/rfc/rfc3261#section-4) is this same call between Alice and Bob.
+
+<RfcQuote id="rfc3261-4-transaction-model" />
+
+## 0.2 Two paths: signaling and media
+
+A phone call needs two different things:
+
+- **<Term t="signaling">Signaling</Term>**: messages that find the other person, ring the phone, and end the call. In this course, signaling is **SIP**.
+- **<Term t="media">Media</Term>**: the voice itself. In this course, media is **RTP**.
+
+The two travel on **different paths**. Switch between them:
+
+<TwoPaths flow="full-call" />
+
+<RfcQuote id="rfc3261-4-media-path" />
+
+Why separate them? SIP messages need decisions: which server handles `biloxi.example`? Which phone is Bob's? The proxies make these decisions. Audio needs speed: fifty small packets every second, in each direction. Sending them through every proxy would add delay and load, and nothing needs to decide anything about them.
+
+| | Signaling | Media |
+|---|---|---|
+| Protocol | SIP (with SDP inside) | RTP (and RTCP) |
+| Path | Phone → proxies → phone | Phone → phone, directly |
+| How many packets | A few dozen per call | About 50 per second, each way |
+| Typical port | 5060 (UDP or TCP), 5061 (TLS) | A random even port, for example 49170 |
+
+<Note title="Why this matters when you troubleshoot">
+Because the paths are different, they fail differently. **"The phone does not ring"** is almost always a signaling problem. **"The call connects, but there is no audio"** — or audio in one direction only — is almost always a media problem, often caused by NAT. Module 20 covers this in detail.
+</Note>
+
+## 0.3 The protocol family
+
+SIP never works alone. A complete call uses a family of protocols. Each one does one job.
+
+<ProtocolStack />
+
+<RfcQuote id="rfc3261-2-control-protocol" />
+
+<RfcQuote id="rfc3261-2-component" />
+
+The other members of the family:
+
+- **SDP** describes the media: the IP address, the port, and the <Term t="codec">codecs</Term> that a phone can use. SDP travels as the body of a SIP message. In our call, it is in the INVITE and in the 200 OK.
+- **RTP** carries the audio in small packets. Each packet has a sequence number and a timestamp, so the receiver can play the sound in the right order and at the right speed.
+- **RTCP** travels next to RTP and reports quality: lost packets, delay, and jitter.
+- **TLS** and **SRTP** add encryption — TLS for SIP, SRTP for the media.
+
+<RfcQuote id="rfc8866-1-format" />
+
+<RfcQuote id="rfc3550-1-rtp" />
+
+## 0.4 How to read this course
+
+Every diagram in this course uses the same visual language. One colour, one shape, or one mark always has the same meaning.
+
+<ColourKey />
+
+### Ladder diagrams
+
+Most modules draw a call as a **ladder**: one vertical line for each element, time running down, and one arrow for each message. The caller is always on the left. Here is the same call as a ladder:
+
+<Flow id="full-call" eyebrow="The same call, as a ladder" />
+
+Every interactive diagram has the same controls:
+
+| Control | Key | What it does |
+|---|---|---|
+| ▶ / ❚❚ | <kbd>Space</kbd> | Play or pause |
+| ◀ and ▶\| | <kbd>←</kbd> <kbd>→</kbd> | One step back or forward |
+| ⏮ | <kbd>Home</kbd> | Go to the first step |
+| Expand | <kbd>Esc</kbd> to close | Open the diagram full screen |
+| Select an arrow | — | Jump to that step |
+| Select a line in the inspector | <kbd>Enter</kbd> | Pin the explanation of that line |
+
+### Other building blocks
+
+- **RFC quotes.** Rules come with the exact sentence from the RFC that defines them, and a link to that section. Words such as **MUST** and **SHOULD** are highlighted: they have a precise meaning in RFCs ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)).
+- **Terms.** A word with a dotted underline, such as <Term t="proxy" />, shows its definition when you point at it.
+- **Broken / Fixed.** Every module ends with common mistakes. Where possible, a switch shows the call going wrong, and then going right. See the end of [Module 13](../13-digest-authentication/) for an example.
+- **Path badges.** `NOC core` and `DEV core` at the top of a module show whether it is essential for the support path, the developer path, or both.
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="“SIP carries the voice”">
+    SIP only sets up, changes, and ends the call. The voice travels as RTP, on its own path. When a call connects but has no audio, the SIP messages are often perfect — look at the media path instead.
+
+    <p class="fix"><b>Remember:</b> signaling and media are two separate problems, with two separate paths.</p>
+  </Mistake>
+
+  <Mistake title="“The proxies carry the audio”">
+    In a plain SIP network, proxies handle only SIP. The audio goes directly between the phones. Some networks do put a box in the media path — a session border controller or a media relay — but that is a choice, not part of SIP. Module 25 shows these designs.
+
+    <p class="fix"><b>Remember:</b> to find where audio goes, read the IP address and port in the SDP, not the list of proxies.</p>
+  </Mistake>
+
+  <Mistake title="“One request, one response”">
+    Alice's second INVITE received three responses: `100 Trying`, `180 Ringing`, and `200 OK`. Then Alice's phone sent an `ACK` for the `200 OK`. SIP has *provisional* responses (1xx) that report progress, and one *final* response (2xx to 6xx) that ends the request.
+
+    <p class="fix"><b>Remember:</b> look for the final response. Module 6 explains every response class.</p>
+  </Mistake>
+
+  <Mistake title="“Registration lets the phone make calls”">
+    Registration lets *other people reach you*: it stores your current address. It does not, by itself, allow outgoing calls. In our call, Proxy A challenged the INVITE separately, even though Alice had just registered.
+
+    <p class="fix"><b>Remember:</b> REGISTER problems break *incoming* calls first. Modules 12 and 13 cover registration and authentication.</p>
+  </Mistake>
+
+  <Mistake title="Learning SIP from very old examples">
+    SIP was first defined in RFC 2543 (1999). RFC 3261 replaced it in 2002 and changed important details. Many old guides and traces still show the old behaviour.
+
+    <p class="fix"><b>Remember:</b> check that examples follow RFC 3261. One quick sign: every Via `branch` value starts with `z9hG4bK`.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A SIP call involves **user agents** (the phones), a **registrar** (which remembers where users are), and **proxies** (which route the call).
+- One call has seven chapters: **register, prove identity, find the callee, ring and answer, confirm, talk, hang up**.
+- **Signaling** (SIP) goes through the proxies. **Media** (RTP) goes directly between the phones.
+- SIP works with a family of protocols: **SDP** describes the media, **RTP** carries it, **RTCP** reports on it, and **TLS** and **SRTP** protect it.
+- In every diagram, **colour means protocol**, **dashed means media**, and a **white outline** marks what the current step is about.

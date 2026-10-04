@@ -1,0 +1,14 @@
+---
+/** <TwoPaths flow="full-call" /> : signaling path vs media path */
+import TwoPathsIsland from '../diagrams/TwoPaths.tsx';
+import type { FlowMap } from '../sip/flow.ts';
+import type { ClientFlow } from '../diagrams/types.ts';
+import { flowBundle } from '../lib/bundle.ts';
+
+interface Props { flow: string }
+const [bundle] = await flowBundle(Astro.props.flow);
+const flow = bundle!.flow as ClientFlow & { map: FlowMap };
+---
+<div class="wide">
+  <TwoPathsIsland client:visible flow={flow} />
+</div>

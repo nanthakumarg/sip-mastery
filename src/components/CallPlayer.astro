@@ -1,0 +1,21 @@
+---
+/** <CallPlayer flow="full-call" /> : the whole call on a network map, in chapters. */
+import { getCollection } from 'astro:content';
+import CallPlayerIsland from '../diagrams/CallPlayer.tsx';
+import type { ModuleLink } from '../diagrams/CallPlayer.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+import { OUTLINE } from '../lib/outline.ts';
+import { url } from '../lib/url.ts';
+
+interface Props { flow: string }
+const [bundle] = await flowBundle(Astro.props.flow);
+if (!bundle!.flow.map) throw new Error(`<CallPlayer flow="${Astro.props.flow}">: the flow has no map`);
+const live = new Map((await getCollection('modules')).map(m => [m.data.module, m.id]));
+const modules: Record<number, ModuleLink> = {};
+for (const m of OUTLINE.flatMap(p => p.modules)) {
+  modules[m.n] = { n: m.n, title: m.title, url: live.has(m.n) ? url(`modules/${live.get(m.n)}/`) : undefined };
+}
+---
+<div class="wide">
+  <CallPlayerIsland client:visible {...bundle!} modules={modules} />
+</div>

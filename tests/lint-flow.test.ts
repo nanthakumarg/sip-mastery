@@ -109,3 +109,19 @@ describe('lintDiagram', () => {
     expect(r).toEqual(['caption-words', 'label-start', 'label-words', 'lane-glossary']);
   });
 });
+
+describe('lintDiagram: map, phases, status', () => {
+  it('finds a missing map node, phases out of order, and a bad status', async () => {
+    const f = await prepareFlow({
+      id: 't', title: 't', lanes,
+      phases: [{ from: 2, label: 'Late start' }, { from: 1, label: 'Way too many words here' }],
+      map: { width: 100, height: 100, nodes: { a: [10, 10] } },
+      steps: [
+        { from: 'a', to: 'p', label: 'INVITE', caption: 'Alice sends an INVITE.', status: { a: 'Calling', x: 'Lost' } },
+        { from: 'p', to: 'a', label: '100 Trying', caption: 'Proxy A answers.', status: { a: 'Still waiting for it' } },
+      ],
+    });
+    const r = lintDiagram(f, ['Alice', 'Proxy A']).map(i => i.rule).sort();
+    expect(r).toEqual(['map-nodes', 'phases', 'phases', 'phases', 'status', 'status']);
+  });
+});

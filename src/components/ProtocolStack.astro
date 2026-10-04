@@ -1,0 +1,64 @@
+---
+/**
+ * The protocol family of a SIP call, as two stacks side by side:
+ * signaling (left) and media (right), sharing IP at the bottom.
+ */
+import { getCollection } from 'astro:content';
+import { url } from '../lib/url.ts';
+
+const live = new Map((await getCollection('modules')).map(m => [m.data.module, m.id]));
+const link = (n: number) => (live.has(n) ? url(`modules/${live.get(n)}/`) : undefined);
+
+interface Cell { name: string; proto: string; text: string; modules: number[] }
+const rows: { layer: string; sig: Cell; med: Cell }[] = [
+  {
+    layer: 'Description',
+    sig: { name: 'SDP', proto: 'sdp', text: 'The body of an INVITE or 200 OK. It lists the IP address, port, and codecs for the media.', modules: [15] },
+    med: { name: 'Codecs', proto: 'rtp', text: 'G.711, G.722, Opus, AMR-WB… The format of the audio inside each packet.', modules: [16] },
+  },
+  {
+    layer: 'Protocol',
+    sig: { name: 'SIP', proto: 'sip', text: 'Finds the other user, sets up the call, changes it, and ends it.', modules: [3, 4, 5, 6] },
+    med: { name: 'RTP + RTCP', proto: 'rtp', text: 'RTP carries the audio in small packets. RTCP reports loss, delay, and jitter.', modules: [16, 17] },
+  },
+  {
+    layer: 'Security',
+    sig: { name: 'TLS', proto: 'sip', text: 'Encrypts SIP between two hops. Port 5061.', modules: [14, 19] },
+    med: { name: 'SRTP', proto: 'rtp', text: 'Encrypts and authenticates each RTP packet.', modules: [18] },
+  },
+  {
+    layer: 'Transport',
+    sig: { name: 'UDP · TCP · WebSocket', proto: 'sip', text: 'SIP runs over any of these. UDP is the most common; port 5060.', modules: [19] },
+    med: { name: 'UDP', proto: 'rtp', text: 'Audio needs speed more than perfect delivery, so RTP uses UDP.', modules: [16] },
+  },
+];
+---
+<div class="stack wide" role="table" aria-label="The protocols in a SIP call">
+  <div class="stack-head" role="row">
+    <span role="columnheader"></span>
+    <span role="columnheader" class="sh-sip"><i class="lg-sip"></i>Signaling: setting up the call</span>
+    <span role="columnheader" class="sh-rtp"><i class="lg-rtp"></i>Media: the voice itself</span>
+  </div>
+  {rows.map(r => (
+    <div class="stack-row" role="row">
+      <span class="stack-layer" role="rowheader">{r.layer}</span>
+      {[r.sig, r.med].map(c => (
+        <div class={`stack-cell p-${c.proto}`} role="cell">
+          <p class="sc-name">{c.name}</p>
+          <p class="sc-text">{c.text}</p>
+          <p class="sc-mods">
+            {c.modules.map(n => (link(n) ? <a href={link(n)}>{String(n).padStart(2, '0')}</a> : <span title="Coming soon">{String(n).padStart(2, '0')}</span>))}
+          </p>
+        </div>
+      ))}
+    </div>
+  ))}
+  <div class="stack-row" role="row">
+    <span class="stack-layer" role="rowheader">Network</span>
+    <div class="stack-cell stack-ip" role="cell">
+      <p class="sc-name">IP</p>
+      <p class="sc-text">Both stacks run over IP. NAT routers change IP addresses and ports on the way, which causes many SIP problems.</p>
+      <p class="sc-mods">{[2, 20].map(n => (link(n) ? <a href={link(n)}>{String(n).padStart(2, '0')}</a> : <span title="Coming soon">{String(n).padStart(2, '0')}</span>))}</p>
+    </div>
+  </div>
+</div>

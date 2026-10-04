@@ -20,6 +20,22 @@
 - term: Carrier gateway
   definition: The gateway between SIP and the public telephone network.
 
+# --- Basics ----------------------------------------------------------------
+- term: SIP
+  aliases: [Session Initiation Protocol]
+  definition: The protocol that finds users and sets up, changes, and ends calls and other sessions.
+- term: signaling
+  definition: The messages that set up, change, and end a call. In SIP calls, signaling is SIP.
+- term: media
+  definition: The audio or video itself. In SIP calls, media travels as RTP, on a different path from signaling.
+- term: session
+  definition: An exchange of media between participants, such as a phone call.
+- term: user agent
+  aliases: [UA]
+  definition: An endpoint that sends and receives SIP, such as a phone, a softphone, or a gateway.
+- term: codec
+  definition: The method that turns sound into data and back, such as G.711 or Opus.
+
 # --- Elements and roles ----------------------------------------------------
 - term: UAC
   aliases: [user agent client]
@@ -95,4 +111,9 @@
 - term: RTCP
   definition: The control protocol that reports RTP quality.
 - term: SDP
+  aliases: [Session Description Protocol]
   definition: The body format that describes media sessions.
+- term: SRTP
+  definition: Secure RTP. It encrypts and authenticates media packets.
+- term: TLS
+  definition: Transport Layer Security. It encrypts SIP between two hops.

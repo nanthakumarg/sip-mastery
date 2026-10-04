@@ -9,7 +9,17 @@ import YAML from 'yaml';
 import { prepareFlow, type FlowData, type PreparedFlow } from '../sip/flow.ts';
 
 const CONTENT = path.join(process.cwd(), 'src', 'content');
-const read = (rel: string) => YAML.parse(fs.readFileSync(path.join(CONTENT, rel), 'utf8'));
+/** Parsed YAML, cached until the file changes on disk (so the dev server sees edits). */
+const yamlCache = new Map<string, { mtime: number; data: unknown }>();
+function read(rel: string): unknown {
+  const file = path.join(CONTENT, rel);
+  const mtime = fs.statSync(file).mtimeMs;
+  const hit = yamlCache.get(file);
+  if (hit && hit.mtime === mtime) return hit.data;
+  const data = YAML.parse(fs.readFileSync(file, 'utf8'));
+  yamlCache.set(file, { mtime, data });
+  return data;
+}
 
 export interface RfcQuote {
   id: string;
@@ -51,16 +61,18 @@ export function loadFlowData(id: string): FlowData {
   return data;
 }
 
-const flowCache = new Map<string, Promise<PreparedFlow>>();
+const flowCache = new Map<string, { data: FlowData; flow: Promise<PreparedFlow> }>();
 export function loadFlow(id: string): Promise<PreparedFlow> {
-  if (!flowCache.has(id)) flowCache.set(id, prepareFlow(loadFlowData(id)));
-  return flowCache.get(id)!;
+  const data = loadFlowData(id);
+  const hit = flowCache.get(id);
+  if (hit && hit.data === data) return hit.flow;
+  const flow = prepareFlow(data);
+  flowCache.set(id, { data, flow });
+  return flow;
 }
 
-let quotes: RfcQuote[] | undefined;
 export function loadQuotes(): RfcQuote[] {
-  quotes ??= (read('rfc-quotes.yaml') as RfcQuote[]).map(q => ({ ...q, section: String(q.section) }));
-  return quotes;
+  return (read('rfc-quotes.yaml') as RfcQuote[]).map(q => ({ ...q, section: String(q.section) }));
 }
 
 export function quoteById(id: string): RfcQuote {

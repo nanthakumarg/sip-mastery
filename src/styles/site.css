@@ -105,3 +105,42 @@
 /* ---------- Footer ---------- */
 .site-foot { border-top: 1px solid var(--line-2); padding: 28px var(--gutter) 40px; font: 400 12.5px/1.7 var(--mono); color: var(--muted); }
 .site-foot a { color: var(--dim); }
+
+/* ---------- Protocol stack (Module 0.3) ---------- */
+.prose > .stack { max-width: 1100px; }
+.stack { display: grid; gap: 8px; }
+.stack-head, .stack-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.stack-head span { font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 10px; padding: 0 4px 4px; }
+.stack-head i { display: inline-block; width: 24px; height: 3px; }
+.stack-layer { font: 400 12px/1.4 var(--mono); color: var(--muted); padding-top: 16px; }
+.stack-cell { background: var(--panel); border: 1px solid var(--line-2); border-left: 3px solid var(--line); border-radius: 0 6px 6px 0; padding: 12px 16px; }
+.stack-cell.p-sip { border-left-color: var(--sip); }
+.stack-cell.p-sdp { border-left-color: var(--sdp); }
+.stack-cell.p-rtp { border-left-color: var(--rtp); border-left-style: dashed; }
+.stack-ip { grid-column: 2 / 4; border-left-color: var(--text); }
+.sc-name { font: 700 17px var(--display); color: var(--text); }
+.sc-text { margin-top: 4px; font-size: 15px; line-height: 1.5; color: var(--dim); }
+.sc-mods { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.sc-mods a, .sc-mods span { font: 500 11px var(--mono); padding: 3px 7px; border-radius: 3px; border: 1px solid var(--line); text-decoration: none; }
+.sc-mods a { color: var(--sip); border-color: rgba(255,176,0,.5); }
+.sc-mods span { color: var(--muted); border-style: dashed; }
+@media (max-width: 700px) {
+  .stack-head, .stack-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .stack-head > :first-child { display: none; }
+  .stack-layer { grid-column: 1 / -1; padding-top: 8px; }
+  .stack-ip { grid-column: 1 / -1; }
+}
+
+/* ---------- Colour key (Module 0.4) ---------- */
+.prose > .key { max-width: 1100px; }
+.key { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+.key-col { background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; padding: 16px 18px; }
+.key-list { list-style: none; margin-top: 10px; display: grid; gap: 10px; }
+.key-list li { display: grid; grid-template-columns: 40px 130px minmax(0, 1fr); gap: 12px; align-items: center; font-size: 15px; }
+.key-list i { display: block; height: 3px; border-radius: 2px; }
+.key-list b { color: var(--text); font-weight: 600; }
+.key-list span { color: var(--dim); }
+.key-list svg { width: 40px; height: 22px; fill: var(--panel-2); stroke: var(--line); stroke-width: 1.4; }
+.key-list svg .hot { stroke: var(--text); stroke-width: 2; }
+.key-list .mark.down { color: var(--down); font-size: 18px; text-align: center; }
+@media (max-width: 560px) { .key-list li { grid-template-columns: 34px minmax(0, 1fr); } .key-list li > span { grid-column: 2; } }

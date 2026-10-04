@@ -1,0 +1,29 @@
+---
+/** The controlled diagram language (COURSE_STRUCTURE §5.2), as a key for readers. */
+const colours = [
+  ['lg-sip', 'SIP signaling', 'Requests and responses that set up, change, and end calls'],
+  ['lg-sdp', 'SDP', 'The media description inside a SIP message'],
+  ['lg-rtp', 'RTP media', 'Audio and video packets. Always a dashed line.'],
+  ['lg-rtcp', 'RTCP', 'Quality reports and keepalives'],
+  ['lg-dns', 'DNS, STUN, ICE', 'Finding servers and finding a path through NAT'],
+  ['lg-err', 'Error', 'A failed path, a problem, or a warning (⚠)'],
+];
+---
+<div class="key wide">
+  <div class="key-col">
+    <p class="eyebrow">Colour means protocol</p>
+    <ul class="key-list">
+      {colours.map(([cls, name, text]) => <li><i class={cls}></i><b>{name}</b><span>{text}</span></li>)}
+    </ul>
+  </div>
+  <div class="key-col">
+    <p class="eyebrow">Shapes and marks</p>
+    <ul class="key-list shapes">
+      <li><svg viewBox="0 0 40 22" aria-hidden="true"><rect x="1" y="1" width="38" height="20" rx="8" /></svg><b>Rounded box</b><span>A user agent: a phone or a softphone</span></li>
+      <li><svg viewBox="0 0 40 22" aria-hidden="true"><rect x="1" y="1" width="38" height="20" rx="2" /></svg><b>Square box</b><span>A proxy, registrar, or other server</span></li>
+      <li><svg viewBox="0 0 40 22" aria-hidden="true"><rect x="1" y="1" width="38" height="20" rx="2" /><rect x="4" y="4" width="32" height="14" rx="1" /></svg><b>Double border</b><span>A B2BUA or SBC</span></li>
+      <li><svg viewBox="0 0 40 22" aria-hidden="true"><rect class="hot" x="1" y="1" width="38" height="20" rx="8" /></svg><b>White outline</b><span>What the current step is about</span></li>
+      <li><span class="mark down">✕</span><b>Red cross</b><span>A lost packet, or an element that is down</span></li>
+    </ul>
+  </div>
+</div>
