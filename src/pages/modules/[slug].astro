@@ -18,6 +18,11 @@ import CallPlayer from '../../components/CallPlayer.astro';
 import TwoPaths from '../../components/TwoPaths.astro';
 import ProtocolStack from '../../components/ProtocolStack.astro';
 import ColourKey from '../../components/ColourKey.astro';
+import CircuitVsPacket from '../../components/CircuitVsPacket.astro';
+import ProtocolCompare from '../../components/ProtocolCompare.astro';
+import HttpVsSip from '../../components/HttpVsSip.astro';
+import RfcMap from '../../components/RfcMap.astro';
+import Landscape from '../../components/Landscape.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -39,7 +44,8 @@ const next = all[i + 1];
 const flat = OUTLINE.flatMap(p => p.modules);
 const nextPlanned = flat.find(m => m.n === d.module + 1);
 
-const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mistakes, Mistake, Term, Stats, Stat, Digest, CallPlayer, TwoPaths, ProtocolStack, ColourKey };
+const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mistakes, Mistake, Term, Stats, Stat, Digest, CallPlayer, TwoPaths, ProtocolStack, ColourKey,
+  CircuitVsPacket, ProtocolCompare, HttpVsSip, RfcMap, Landscape };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

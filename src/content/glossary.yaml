@@ -36,6 +36,37 @@
 - term: codec
   definition: The method that turns sound into data and back, such as G.711 or Opus.
 
+- term: VoIP
+  aliases: [voice over IP]
+  definition: Voice calls carried as packets over an IP network. SIP is one way to set them up.
+- term: PSTN
+  aliases: [public switched telephone network]
+  definition: The traditional telephone network, built on circuits between telephone exchanges.
+- term: circuit switching
+  definition: A network that reserves a fixed path and capacity for each call, for the whole call.
+- term: packet switching
+  definition: A network that cuts data into packets. Packets from many sources share the same links.
+- term: SS7
+  aliases: [Signalling System No. 7]
+  definition: The signaling network of the PSTN. Telephone exchanges use it to set up calls.
+- term: ISUP
+  definition: The SS7 protocol that sets up and ends calls between telephone exchanges.
+- term: gateway
+  definition: An element that connects two different networks, for example SIP and the PSTN.
+- term: PBX
+  aliases: [private branch exchange]
+  definition: The phone system of an organisation. Modern PBXs use SIP.
+- term: SIP trunk
+  definition: A SIP connection between an organisation's PBX and a carrier, in place of physical phone lines.
+- term: RFC
+  aliases: [Request for Comments]
+  definition: A numbered document from the IETF and other groups. The SIP standards are RFCs.
+- term: IETF
+  aliases: [Internet Engineering Task Force]
+  definition: The organisation that develops Internet standards, including SIP, SDP, and RTP.
+- term: ITU-T
+  definition: The standards body of the International Telecommunication Union. It defined H.323, ISUP, and G.711.
+
 # --- Elements and roles ----------------------------------------------------
 - term: UAC
   aliases: [user agent client]

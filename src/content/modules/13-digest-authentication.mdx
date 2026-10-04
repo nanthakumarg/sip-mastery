@@ -139,7 +139,7 @@ The same flow, with the full inspector. Use ← and → on your keyboard, or sel
 <Flow id="invite-407" eyebrow="Call flow · INVITE with 407 through two proxies" />
 
 <Note title="Corrections to RFC 3665 §3.2">
-RFC 3665 is an informational collection of examples, and some of its messages have errors. This course follows the normative text of RFC 3261:
+RFC 3665 is a collection of examples (a Best Current Practice), not the protocol specification, and some of its messages have errors. This course follows the normative text of RFC 3261:
 
 - **F2** has the reason phrase "Proxy Authentication Required" (RFC 3665 writes "Proxy Authorization Required"). Only the code matters to software, but traces should be correct.
 - **F4** sends `qop=auth`, `nc`, and `cnonce`, because the challenge has `qop` (RFC 3261 §22.4).

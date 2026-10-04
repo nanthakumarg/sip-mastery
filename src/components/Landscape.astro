@@ -1,0 +1,32 @@
+---
+/** Where SIP runs today (Module 1.5). Static cards, each linked to the modules that go deeper. */
+import { getCollection } from 'astro:content';
+import { url } from '../lib/url.ts';
+import { OUTLINE } from '../lib/outline.ts';
+
+const live = new Map((await getCollection('modules')).map(m => [m.data.module, m.id]));
+const title = (n: number) => OUTLINE.flatMap(p => p.modules).find(m => m.n === n)?.title ?? '';
+
+const places: { name: string; text: string; elements: string; modules: number[] }[] = [
+  { name: 'Office phone systems (PBX)', text: 'Desk phones and softphones register to a PBX. The PBX connects internal calls and sends outside calls to a SIP trunk.', elements: 'IP phones, PBX (often a B2BUA), voicemail', modules: [12, 21, 25] },
+  { name: 'SIP trunks', text: 'A company connects its PBX to a carrier over SIP instead of physical phone lines. Numbers, caller ID, and fraud protection matter here.', elements: 'PBX, SBC, carrier proxy, PSTN gateway', modules: [24, 14] },
+  { name: 'Carrier networks', text: 'Carriers exchange calls with each other over SIP. In some countries they also sign the caller identity, to fight spoofed numbers.', elements: 'SBCs, routing proxies, STIR/SHAKEN services', modules: [25, 28] },
+  { name: 'Mobile networks (VoLTE)', text: 'Calls on 4G and 5G phones are SIP calls inside the IMS. The SIM card authenticates the phone.', elements: 'Phone, P-CSCF, S-CSCF, media gateways', modules: [27] },
+  { name: 'Browsers (WebRTC)', text: 'A web page can make calls. SIP often runs over WebSocket to a gateway, which connects to the normal SIP network.', elements: 'Browser, WebSocket proxy, media gateway', modules: [26, 19] },
+  { name: 'UC and contact centres', text: 'Collaboration and contact-centre platforms connect to phone networks through SBCs over SIP.', elements: 'UC platform, SBC, SIP trunk', modules: [25, 21] },
+];
+---
+<div class="landscape wide">
+  {places.map(p => (
+    <section class="ls-card">
+      <h3 class="ls-name">{p.name}</h3>
+      <p class="ls-text">{p.text}</p>
+      <p class="ls-el"><span>Typical elements</span>{p.elements}</p>
+      <p class="sc-mods">
+        {p.modules.map(n => (live.has(n)
+          ? <a href={url(`modules/${live.get(n)}/`)} title={title(n)}>{String(n).padStart(2, '0')} {title(n)}</a>
+          : <span title="Coming soon">{String(n).padStart(2, '0')} {title(n)}</span>))}
+      </p>
+    </section>
+  ))}
+</div>

@@ -26,7 +26,7 @@ function stripPages(text: string): string[] {
     !l.includes('\f') && !/^RFC \d+ {2,}.* {2,}\w+ \d{4}\s*$/.test(l) && !/\[Page \d+\]\s*$/.test(l));
 }
 
-/** Returns the text of one section: from its heading to the next heading at column 0. */
+/** Returns the text of one section: from its heading (number removed) to the next heading at column 0. */
 function sectionText(lines: string[], section: string): string | undefined {
   const esc = section.replace(/\./g, '\\.');
   const start = lines.findIndex(l => new RegExp(`^${esc}\\.?\\s+\\S`).test(l));
@@ -35,7 +35,9 @@ function sectionText(lines: string[], section: string): string | undefined {
   for (let i = start + 1; i < lines.length; i++) {
     if (/^(\d+(\.\d+)*\.?|Appendix [A-Z]\.?|[A-Z]\.(\d+\.?)*)\s+[A-Z]/.test(lines[i]!)) { end = i; break; }
   }
-  return lines.slice(start + 1, end).join('\n');
+  // Keep the rest of the heading line: some RFCs (such as RFC 2119) start the text there.
+  const heading = lines[start]!.replace(new RegExp(`^${esc}\\.?\\s+`), '');
+  return [heading, ...lines.slice(start + 1, end)].join('\n');
 }
 
 /** Joins words split at a hyphen or slash across lines, then collapses whitespace. */

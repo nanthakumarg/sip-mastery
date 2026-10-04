@@ -22,8 +22,9 @@ npm run dev        # http://localhost:4321
 | `npm run build` | Content checks, then the static site in `dist/` |
 | `npm run check:content` | Protocol checks and diagram language checks on every flow |
 | `npm run verify:rfc` | Checks every RFC quote word for word against rfc-editor.org |
+| `npm run sync:rfc-index` | Refreshes `rfc-index.json` (titles, dates, status, obsoletes/updates) from the official RFC index, for the RFCs in `rfcs.yaml` |
 | `npm test` | Unit tests (parser, checks, digest maths) |
-| `npm run verify` | All three checks above |
+| `npm run verify` | `check:content`, `verify:rfc`, and `test` together |
 | `npm run check` | TypeScript and Astro type check |
 
 ## Writing content
@@ -35,6 +36,8 @@ All course content lives in `src/content/`.
 | `modules/NN-slug.mdx` | One lesson. Frontmatter is validated (see `src/content.config.ts`). |
 | `flows/*.yaml` | Call flows: lanes, steps, captions, and raw SIP messages |
 | `rfc-quotes.yaml` | Exact RFC quotes, referenced by id |
+| `rfcs.yaml` | The RFCs on the RFC map: area, summary, and modules. Run `npm run sync:rfc-index` after editing. |
+| `rfc-index.json` | Generated from the official RFC index. Do not edit by hand. |
 | `glossary.yaml` | The controlled vocabulary. Lane labels and diagram labels must use these terms. |
 | `headers.yaml` | Explanations for the message inspector |
 

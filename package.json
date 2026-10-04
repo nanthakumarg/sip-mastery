@@ -17,7 +17,8 @@
     "check:content": "node scripts/check-content.ts",
     "verify:rfc": "node scripts/verify-rfc-quotes.ts",
     "prebuild": "npm run check:content",
-    "verify": "npm run check:content && npm run verify:rfc && npm test"
+    "verify": "npm run check:content && npm run verify:rfc && npm test",
+    "sync:rfc-index": "node scripts/sync-rfc-index.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.2",

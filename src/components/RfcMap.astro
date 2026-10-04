@@ -1,0 +1,27 @@
+---
+/** <RfcMap /> : every RFC in the course on a timeline (src/content/rfcs.yaml + rfc-index.json). */
+import fs from 'node:fs';
+import path from 'node:path';
+import YAML from 'yaml';
+import { getCollection } from 'astro:content';
+import RfcMapIsland, { type RfcNode } from '../diagrams/RfcMap.tsx';
+import { OUTLINE } from '../lib/outline.ts';
+import { url } from '../lib/url.ts';
+
+interface Props { initial?: number }
+const dir = path.join(process.cwd(), 'src', 'content');
+const list = YAML.parse(fs.readFileSync(path.join(dir, 'rfcs.yaml'), 'utf8'));
+const index = JSON.parse(fs.readFileSync(path.join(dir, 'rfc-index.json'), 'utf8'));
+const live = new Map((await getCollection('modules')).map(m => [m.data.module, m.id]));
+const mods = OUTLINE.flatMap(p => p.modules);
+
+const rfcs: RfcNode[] = list.rfcs.map((r: { n: number; area: string; proto?: string; short: string; summary: string; modules: number[] }) => {
+  const meta = index[r.n];
+  if (!meta) throw new Error(`RFC ${r.n} is in rfcs.yaml but not in rfc-index.json: run npm run sync:rfc-index`);
+  return {
+    ...r, ...meta,
+    modules: r.modules.map(n => ({ n, title: mods.find(m => m.n === n)?.title ?? '', url: live.has(n) ? url(`modules/${live.get(n)}/`) : undefined })),
+  };
+});
+---
+<div class="wide"><RfcMapIsland client:visible areas={list.areas} rfcs={rfcs} initial={Astro.props.initial} /></div>

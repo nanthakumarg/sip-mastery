@@ -199,3 +199,62 @@
     SIP is based on an HTTP-like request/response transaction model.  Each
     transaction consists of a request that invokes a particular method, or
     function, on the server and at least one response.
+
+# --- Module 1 -------------------------------------------------------------
+
+- id: rfc3261-2-primitives
+  rfc: 3261
+  section: "2"
+  title: Overview of SIP Functionality
+  text: >-
+    SIP does not provide services.  Rather, SIP provides primitives that can
+    be used to implement different services.
+
+- id: rfc3261-7-text-based
+  rfc: 3261
+  section: "7"
+  title: SIP Messages
+  text: >-
+    SIP is a text-based protocol and uses the UTF-8 charset (RFC 2279 [7]).
+
+- id: rfc3261-7.3-like-http
+  rfc: 3261
+  section: "7.3"
+  title: Header Fields
+  text: >-
+    SIP header fields are similar to HTTP header fields in both syntax and
+    semantics.
+
+- id: rfc2119-1-must
+  rfc: 2119
+  section: "1"
+  title: MUST
+  text: >-
+    This word, or the terms "REQUIRED" or "SHALL", mean that the definition is
+    an absolute requirement of the specification.
+
+- id: rfc2119-3-should
+  rfc: 2119
+  section: "3"
+  title: SHOULD
+  text: >-
+    This word, or the adjective "RECOMMENDED", mean that there may exist valid
+    reasons in particular circumstances to ignore a particular item, but the
+    full implications must be understood and carefully weighed before
+    choosing a different course.
+
+- id: rfc2119-5-may
+  rfc: 2119
+  section: "5"
+  title: MAY
+  text: >-
+    This word, or the adjective "OPTIONAL", mean that an item is truly
+    optional.
+
+- id: rfc8174-1-uppercase
+  rfc: 8174
+  section: "1"
+  title: Introduction
+  text: >-
+    This document updates RFC 2119 by clarifying that only UPPERCASE usage of
+    the key words have the defined special meanings.

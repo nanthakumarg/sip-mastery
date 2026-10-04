@@ -144,3 +144,13 @@
 .key-list svg .hot { stroke: var(--text); stroke-width: 2; }
 .key-list .mark.down { color: var(--down); font-size: 18px; text-align: center; }
 @media (max-width: 560px) { .key-list li { grid-template-columns: 34px minmax(0, 1fr); } .key-list li > span { grid-column: 2; } }
+
+/* ---------- Landscape (Module 1.5) ---------- */
+.prose > .landscape { max-width: 1240px; }
+.landscape { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.ls-card { background: var(--panel); border: 1px solid var(--line-2); border-top: 2px solid var(--sip); border-radius: 0 0 8px 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.ls-name { font-size: 18px; }
+.ls-text { font-size: 15px; color: var(--dim); line-height: 1.5; }
+.ls-el { font-size: 14px; color: var(--text); }
+.ls-el span { display: block; font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.ls-card .sc-mods { margin-top: auto; padding-top: 4px; }

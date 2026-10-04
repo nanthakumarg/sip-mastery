@@ -1,0 +1,194 @@
+---
+module: 1
+title: VoIP and where SIP fits
+part: 1
+level: [basic]
+paths: { noc: optional, dev: core }
+summary: How telephone calls moved from reserved circuits to shared packets, which protocols compete for the job of setting up calls, why SIP looks so much like HTTP, and how to find your way through the RFCs that define it.
+objectives:
+  - Explain the difference between circuit switching and packet switching, and what it means for a phone call.
+  - Compare SIP with H.323, MGCP/H.248, ISUP, and IAX2, and say where you still meet each one.
+  - Name the design ideas behind SIP, and the important ways in which SIP is not like HTTP.
+  - Find an RFC, read its status, and tell an obsoleted RFC from an updated one.
+  - Read the requirement key words MUST, SHOULD, and MAY correctly.
+status: draft
+---
+
+## 1.1 From circuits to packets
+
+For a hundred years, a phone call meant a **circuit**. The <Term t="PSTN" /> — the public telephone network — connects your phone to a telephone exchange, and exchanges connect to each other over trunks. When you dial, the exchanges reserve a path through the network for your call. In the digital telephone network, that path is a channel of **64 kbit/s**: 8,000 samples per second, 8 bits each. The channel stays yours until you hang up — even while nobody speaks.
+
+The exchanges agree on the path with their own signaling protocol, <Term t="ISUP" />, on a separate network called <Term t="SS7" />. Signaling on one network, voice on another: this idea survives in SIP.
+
+<Term t="VoIP" /> takes another approach. The phone cuts the voice into small pieces — usually 20 milliseconds each — and sends each piece as a packet. Packets from many calls, web pages, and emails share the same links. Nothing is reserved.
+
+Try it: add calls, and make one caller silent.
+
+<CircuitVsPacket />
+
+<Stats>
+  <Stat value="64" label="kbit/s per circuit in the digital PSTN" />
+  <Stat value="20 ms" label="of audio in a typical VoIP packet" />
+  <Stat value="50" label="packets per second, each way" />
+  <Stat value="30" label="voice circuits on one E1 link" />
+</Stats>
+
+What VoIP gains:
+
+- **Cost and flexibility.** One IP network carries voice, video, and data. A phone works wherever it has an IP connection.
+- **New services.** Video, presence, messaging, and web integration use the same protocols as voice.
+
+What VoIP must solve, because nothing is reserved:
+
+- **Delay, jitter, and loss.** Packets can arrive late, unevenly, or not at all (Modules 16 and 29).
+- **NAT and firewalls.** Home and office routers change addresses and block unknown traffic (Module 20).
+- **Security.** Anyone on the Internet can try to make calls on your account (Module 14).
+
+<Note title="Two worlds, connected">
+The PSTN has not disappeared. A <Term t="gateway" /> sits between the two worlds and translates: SIP to ISUP for signaling, RTP packets to circuits for voice. Every time a SIP call reaches a normal phone number, a gateway does this work somewhere.
+</Note>
+
+## 1.2 Signaling protocols side by side
+
+Remember the two jobs from Module 0: **signaling** sets up the call, **media** carries the voice. Almost every VoIP system uses RTP for media. The signaling protocols differ — in who they come from, how they encode messages, and above all in **who controls the call**.
+
+<ProtocolCompare />
+
+| Protocol | From | Encoding | Who controls the call |
+|---|---|---|---|
+| **SIP** | IETF | Text | The endpoints, helped by proxies |
+| **H.323** | ITU-T | Binary | The endpoints, with an optional gatekeeper |
+| **MGCP, H.248** | IETF, ITU-T | Text or binary | A central call agent; gateways only obey |
+| **ISUP** | ITU-T (SS7) | Binary | Telephone exchanges |
+| **IAX2** | Asterisk project | Binary | The two servers, in one UDP flow |
+
+Why did SIP become the main protocol? It is text, so a person can read a trace. It reuses ideas from HTTP and email, which Internet developers already knew. Its core is small, and it grows through extensions. And when the mobile industry (3GPP) chose a protocol for the IP Multimedia Subsystem — the system behind VoLTE — it chose SIP. Module 27 covers IMS.
+
+## 1.3 SIP's design
+
+SIP follows a few clear ideas. Each one explains something that you will see in traces.
+
+**1. SIP is text.** You can read every SIP message without a decoder. That is why this course shows raw messages everywhere.
+
+<RfcQuote id="rfc3261-7-text-based" />
+
+**2. SIP looks like HTTP.** Request line, headers, an empty line, a body; status codes such as `200 OK` and `404 Not Found`. Point at any line below to find its partner.
+
+<HttpVsSip />
+
+<RfcQuote id="rfc3261-7.3-like-http" />
+
+**3. Requests and responses.** Every exchange is a request and its responses: a *transaction* (Module 8).
+
+**4. Addresses like email.** A user has a URI such as `sip:alice@atlanta.example`, independent of the device or the location.
+
+**5. Intelligence at the edges.** A SIP phone is a full <Term t="user agent" />: it creates requests, answers them, and keeps the state of its calls. The same device acts as client (UAC) for one request and server (UAS) for the next.
+
+**6. Primitives, not services.** SIP has no "transfer button" or "call waiting" built in. It has building blocks — INVITE, REFER, re-INVITE, NOTIFY — and services are built from them.
+
+<RfcQuote id="rfc3261-2-primitives" />
+
+**7. Any transport.** SIP runs over UDP, TCP, TLS, and WebSocket (Module 19).
+
+**8. Extensible.** New methods, headers, and option tags are added by new RFCs. Two devices find out what the other supports with headers such as `Allow` and `Supported` (Module 5).
+
+### Where SIP is not like HTTP
+
+The family resemblance is real, but the differences cause many misunderstandings:
+
+| | HTTP | SIP |
+|---|---|---|
+| Usual transport | TCP (or QUIC) | UDP, with its own retransmission timers |
+| Roles | A browser is a client; a server is a server | Every user agent is both client and server |
+| Who sends requests | Only the client | Both sides: Bob's phone can send BYE to Alice |
+| Responses per request | One | Zero or more provisional (1xx), then one final |
+| State | Each request stands alone | Transactions and dialogs keep state for the whole call |
+
+## 1.4 The RFC family
+
+SIP is not one document. RFC 3261 defines the core, and well over a hundred other <Term t="RFC">RFCs</Term> extend it. Some fix it, some add methods or headers, and some replace older documents completely.
+
+Every RFC has a fixed number and a **status**:
+
+- **Proposed Standard** — a standard, in practice. Most SIP RFCs, including RFC 3261, have this status, and they run the world's phone networks.
+- **Best Current Practice (BCP)** — advice on how to do something well. RFC 3665, the call-flow examples, is a BCP. It is still not the specification, and some of its examples have errors (see Module 13).
+- **Informational** — useful information, not a requirement. For example, RFC 6314 describes NAT traversal practices for SIP.
+- **Historic** — no longer in use.
+
+RFCs never change after publication. Instead, a new RFC **updates** an old one (it changes some parts) or **obsoletes** it (it replaces it completely). Errors that people find are listed as *errata*: see the [errata for RFC 3261](https://www.rfc-editor.org/errata/rfc3261).
+
+Explore the RFCs that this course uses. Select an RFC to see what it does, what replaced it, and which module teaches it. Dashed boxes are RFCs that a newer RFC replaced.
+
+<RfcMap initial={3261} />
+
+<Note kind="tip" title="Where to start reading">
+RFC 3261 is 269 pages long. Start with **§4, Overview of Operation**: it is a tutorial, with the same call between Alice and Bob that you saw in Module 0.
+</Note>
+
+### Reading MUST, SHOULD, and MAY
+
+RFCs use a few words with a precise meaning, defined in RFC 2119. They matter: a device that ignores a MUST is broken; a device that ignores a SHOULD may have a good reason.
+
+<RfcQuote id="rfc2119-1-must" />
+
+<RfcQuote id="rfc2119-3-should" />
+
+<RfcQuote id="rfc2119-5-may" />
+
+<RfcQuote id="rfc8174-1-uppercase" />
+
+This course highlights these key words in every RFC quote.
+
+## 1.5 Where SIP runs today
+
+SIP is in more places than desk phones. You meet it in all of these:
+
+<Landscape />
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="“SIP and VoIP mean the same thing”">
+    VoIP is the idea: voice as packets over IP. SIP is one way to set up those calls. H.323, IAX2, and many private app protocols do the same job. Many apps use their own protocols inside, and use SIP only at the edge, where they connect to the phone network.
+
+    <p class="fix"><b>Remember:</b> ask "which signaling protocol?" before you troubleshoot a VoIP problem.</p>
+  </Mistake>
+
+  <Mistake title="“SIP is only for phone calls”">
+    SIP sets up any session: voice, video, games, or file transfer. It also carries instant messages (MESSAGE) and presence (SUBSCRIBE and NOTIFY).
+
+    <p class="fix"><b>Remember:</b> the SDP body, not SIP itself, says what kind of media a session uses.</p>
+  </Mistake>
+
+  <Mistake title="“SIP is like HTTP, so it works like HTTP”">
+    SIP usually runs over UDP and handles its own retransmissions. One request can get several responses. Both sides send requests, and both sides keep state for the whole call.
+
+    <p class="fix"><b>Remember:</b> the table "Where SIP is not like HTTP" above. Most early SIP bugs come from one of those five differences.</p>
+  </Mistake>
+
+  <Mistake title="Trusting an old RFC, or an example">
+    Search results often show RFC 2543, RFC 3265, or RFC 4566. All three are obsoleted. Example RFCs such as RFC 3665 are useful, but they are not the specification, and they contain known errors.
+
+    <p class="fix"><b>Remember:</b> check the status and the "Obsoleted by" line at the top of every RFC, and check the errata.</p>
+  </Mistake>
+
+  <Mistake title="“Every SIP device supports every SIP RFC”">
+    Extensions are optional. A phone may not support PRACK, UPDATE, or REFER. When a request uses an extension that the other side does not support, the result is an error such as `420 Bad Extension` or `501 Not Implemented`.
+
+    <p class="fix"><b>Remember:</b> look at the `Allow` and `Supported` headers in the trace before you blame the network.</p>
+  </Mistake>
+
+  <Mistake title="Reading a lowercase “must” as a requirement">
+    Only the capitalised key words — MUST, SHOULD, MAY — have the special RFC 2119 meaning. A lowercase "must" is ordinary English.
+
+    <p class="fix"><b>Remember:</b> RFC 8174 made this rule explicit.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- The PSTN reserves a **64 kbit/s circuit** for each call. VoIP sends the voice as **packets** — about 50 per second — on links shared with other traffic.
+- SIP is one of several signaling protocols. **H.323** and **ISUP** come from the telephone world; **MGCP** and **H.248** control gateways; **IAX2** links Asterisk servers.
+- SIP is **text**, looks like **HTTP**, keeps the **intelligence in the endpoints**, and provides **primitives** rather than services.
+- SIP is **not** HTTP: it usually runs over UDP, both sides send requests, one request can get several responses, and calls keep state.
+- SIP is a **family of RFCs**. Check each RFC's **status**, whether it is **obsoleted**, and its **errata**. Only capitalised **MUST**, **SHOULD**, and **MAY** are requirements.

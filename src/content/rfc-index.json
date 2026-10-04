@@ -1,0 +1,1039 @@
+{
+ "1889": {
+  "title": "RTP: A Transport Protocol for Real-Time Applications",
+  "month": "January",
+  "year": 1996,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [
+   3550
+  ],
+  "updates": [],
+  "updatedBy": []
+ },
+ "2119": {
+  "title": "Key words for use in RFCs to Indicate Requirement Levels",
+  "month": "March",
+  "year": 1997,
+  "status": "BEST CURRENT PRACTICE",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8174
+  ]
+ },
+ "2327": {
+  "title": "SDP: Session Description Protocol",
+  "month": "April",
+  "year": 1998,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [
+   4566
+  ],
+  "updates": [],
+  "updatedBy": [
+   3266
+  ]
+ },
+ "2543": {
+  "title": "SIP: Session Initiation Protocol",
+  "month": "March",
+  "year": 1999,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [
+   3261,
+   3262,
+   3263,
+   3264,
+   3265
+  ],
+  "updates": [],
+  "updatedBy": []
+ },
+ "2617": {
+  "title": "HTTP Authentication: Basic and Digest Access Authentication",
+  "month": "June",
+  "year": 1999,
+  "status": "DRAFT STANDARD",
+  "obsoletes": [
+   2069
+  ],
+  "obsoletedBy": [
+   7235,
+   7615,
+   7616,
+   7617
+  ],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3261": {
+  "title": "SIP: Session Initiation Protocol",
+  "month": "July",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2543
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   3265,
+   3853,
+   4320,
+   4916,
+   5393,
+   5621,
+   5626,
+   5630,
+   5922,
+   5954,
+   6026,
+   6141,
+   6665,
+   6878,
+   7462,
+   7463,
+   8217,
+   8591,
+   8760,
+   8898,
+   8996
+  ]
+ },
+ "3262": {
+  "title": "Reliability of Provisional Responses in Session Initiation Protocol (SIP)",
+  "month": "July",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2543
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3263": {
+  "title": "Session Initiation Protocol (SIP): Locating SIP Servers",
+  "month": "July",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2543
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   7984,
+   8553
+  ]
+ },
+ "3264": {
+  "title": "An Offer/Answer Model with Session Description Protocol (SDP)",
+  "month": "July",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2543
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   6157,
+   8843,
+   9143
+  ]
+ },
+ "3265": {
+  "title": "Session Initiation Protocol (SIP)-Specific Event Notification",
+  "month": "July",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2543
+  ],
+  "obsoletedBy": [
+   6665
+  ],
+  "updates": [
+   3261
+  ],
+  "updatedBy": [
+   5367,
+   5727,
+   6446
+  ]
+ },
+ "3310": {
+  "title": "Hypertext Transfer Protocol (HTTP) Digest Authentication Using Authentication and Key Agreement (AKA)",
+  "month": "September",
+  "year": 2002,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3311": {
+  "title": "The Session Initiation Protocol (SIP) UPDATE Method",
+  "month": "October",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3323": {
+  "title": "A Privacy Mechanism for the Session Initiation Protocol (SIP)",
+  "month": "December",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3325": {
+  "title": "Private Extensions to the Session Initiation Protocol (SIP) for Asserted Identity within Trusted Networks",
+  "month": "December",
+  "year": 2002,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   5876,
+   8217
+  ]
+ },
+ "3326": {
+  "title": "The Reason Header Field for the Session Initiation Protocol (SIP)",
+  "month": "December",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8606,
+   9366
+  ]
+ },
+ "3327": {
+  "title": "Session Initiation Protocol (SIP) Extension Header Field for Registering Non-Adjacent Contacts",
+  "month": "December",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   5626
+  ]
+ },
+ "3329": {
+  "title": "Security Mechanism Agreement for the Session Initiation Protocol (SIP)",
+  "month": "January",
+  "year": 2003,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8996
+  ]
+ },
+ "3398": {
+  "title": "Integrated Services Digital Network (ISDN) User Part (ISUP) to Session Initiation Protocol (SIP) Mapping",
+  "month": "December",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3428": {
+  "title": "Session Initiation Protocol (SIP) Extension for Instant Messaging",
+  "month": "December",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8591
+  ]
+ },
+ "3455": {
+  "title": "Private Header (P-Header) Extensions to the Session Initiation Protocol (SIP) for the 3rd-Generation Partnership Project (3GPP)",
+  "month": "January",
+  "year": 2003,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [
+   7315
+  ],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3515": {
+  "title": "The Session Initiation Protocol (SIP) Refer Method",
+  "month": "April",
+  "year": 2003,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   7647,
+   8217
+  ]
+ },
+ "3550": {
+  "title": "RTP: A Transport Protocol for Real-Time Applications",
+  "month": "July",
+  "year": 2003,
+  "status": "INTERNET STANDARD",
+  "obsoletes": [
+   1889
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   5506,
+   5761,
+   6051,
+   6222,
+   7022,
+   7160,
+   7164,
+   8083,
+   8108,
+   8860
+  ]
+ },
+ "3551": {
+  "title": "RTP Profile for Audio and Video Conferences with Minimal Control",
+  "month": "July",
+  "year": 2003,
+  "status": "INTERNET STANDARD",
+  "obsoletes": [
+   1890
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   5761,
+   7007,
+   8860
+  ]
+ },
+ "3581": {
+  "title": "An Extension to the Session Initiation Protocol (SIP) for Symmetric Response Routing",
+  "month": "August",
+  "year": 2003,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3608": {
+  "title": "Session Initiation Protocol (SIP) Extension Header Field for Service Route Discovery During Registration",
+  "month": "October",
+  "year": 2003,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   5630
+  ]
+ },
+ "3611": {
+  "title": "RTP Control Protocol Extended Reports (RTCP XR)",
+  "month": "November",
+  "year": 2003,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3665": {
+  "title": "Session Initiation Protocol (SIP) Basic Call Flow Examples",
+  "month": "January",
+  "year": 2004,
+  "status": "BEST CURRENT PRACTICE",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3711": {
+  "title": "The Secure Real-time Transport Protocol (SRTP)",
+  "month": "March",
+  "year": 2004,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   5506,
+   6904,
+   9335
+  ]
+ },
+ "3725": {
+  "title": "Best Current Practices for Third Party Call Control (3pcc) in the Session Initiation Protocol (SIP)",
+  "month": "April",
+  "year": 2004,
+  "status": "BEST CURRENT PRACTICE",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3842": {
+  "title": "A Message Summary and Message Waiting Indication Event Package for the Session Initiation Protocol (SIP)",
+  "month": "August",
+  "year": 2004,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3891": {
+  "title": "The Session Initiation Protocol (SIP) \"Replaces\" Header",
+  "month": "September",
+  "year": 2004,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3903": {
+  "title": "Session Initiation Protocol (SIP) Extension for Event State Publication",
+  "month": "November",
+  "year": 2004,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8996
+  ]
+ },
+ "3966": {
+  "title": "The tel URI for Telephone Numbers",
+  "month": "December",
+  "year": 2004,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2806
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   5341
+  ]
+ },
+ "4028": {
+  "title": "Session Timers in the Session Initiation Protocol (SIP)",
+  "month": "May",
+  "year": 2005,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "4235": {
+  "title": "An INVITE-Initiated Dialog Event Package for the Session Initiation Protocol (SIP)",
+  "month": "November",
+  "year": 2005,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   7463,
+   8996
+  ]
+ },
+ "4320": {
+  "title": "Actions Addressing Identified Issues with the Session Initiation Protocol's (SIP) Non-INVITE Transaction",
+  "month": "January",
+  "year": 2006,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   3261
+  ],
+  "updatedBy": []
+ },
+ "4474": {
+  "title": "Enhancements for Authenticated Identity Management in the Session Initiation Protocol (SIP)",
+  "month": "August",
+  "year": 2006,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [
+   8224
+  ],
+  "updates": [],
+  "updatedBy": []
+ },
+ "4566": {
+  "title": "SDP: Session Description Protocol",
+  "month": "July",
+  "year": 2006,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2327,
+   3266
+  ],
+  "obsoletedBy": [
+   8866
+  ],
+  "updates": [],
+  "updatedBy": []
+ },
+ "4568": {
+  "title": "Session Description Protocol (SDP) Security Descriptions for Media Streams",
+  "month": "July",
+  "year": 2006,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "4585": {
+  "title": "Extended RTP Profile for Real-time Transport Control Protocol (RTCP)-Based Feedback (RTP/AVPF)",
+  "month": "July",
+  "year": 2006,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   5506,
+   8108
+  ]
+ },
+ "4733": {
+  "title": "RTP Payload for DTMF Digits, Telephony Tones, and Telephony Signals",
+  "month": "December",
+  "year": 2006,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2833
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   4734,
+   5244
+  ]
+ },
+ "4787": {
+  "title": "Network Address Translation (NAT) Behavioral Requirements for Unicast UDP",
+  "month": "January",
+  "year": 2007,
+  "status": "BEST CURRENT PRACTICE",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   6888,
+   7857
+  ]
+ },
+ "5245": {
+  "title": "Interactive Connectivity Establishment (ICE): A Protocol for Network Address Translator (NAT) Traversal for Offer/Answer Protocols",
+  "month": "April",
+  "year": 2010,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   4091,
+   4092
+  ],
+  "obsoletedBy": [
+   8445,
+   8839
+  ],
+  "updates": [],
+  "updatedBy": [
+   6336
+  ]
+ },
+ "5359": {
+  "title": "Session Initiation Protocol Service Examples",
+  "month": "October",
+  "year": 2008,
+  "status": "BEST CURRENT PRACTICE",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "5389": {
+  "title": "Session Traversal Utilities for NAT (STUN)",
+  "month": "October",
+  "year": 2008,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   3489
+  ],
+  "obsoletedBy": [
+   8489
+  ],
+  "updates": [],
+  "updatedBy": [
+   7350,
+   8553
+  ]
+ },
+ "5626": {
+  "title": "Managing Client-Initiated Connections in the Session Initiation Protocol (SIP)",
+  "month": "October",
+  "year": 2009,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   3261,
+   3327
+  ],
+  "updatedBy": []
+ },
+ "5627": {
+  "title": "Obtaining and Using Globally Routable User Agent URIs (GRUUs) in the Session Initiation Protocol (SIP)",
+  "month": "October",
+  "year": 2009,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "5761": {
+  "title": "Multiplexing RTP Data and Control Packets on a Single Port",
+  "month": "April",
+  "year": 2010,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   3550,
+   3551
+  ],
+  "updatedBy": [
+   8035,
+   8858
+  ]
+ },
+ "5763": {
+  "title": "Framework for Establishing a Secure Real-time Transport Protocol (SRTP) Security Context Using Datagram Transport Layer Security (DTLS)",
+  "month": "May",
+  "year": 2010,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8842
+  ]
+ },
+ "5764": {
+  "title": "Datagram Transport Layer Security (DTLS) Extension to Establish Keys for the Secure Real-time Transport Protocol (SRTP)",
+  "month": "May",
+  "year": 2010,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   7983,
+   9443
+  ]
+ },
+ "5766": {
+  "title": "Traversal Using Relays around NAT (TURN): Relay Extensions to Session Traversal Utilities for NAT (STUN)",
+  "month": "April",
+  "year": 2010,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [
+   8656
+  ],
+  "updates": [],
+  "updatedBy": [
+   8155,
+   8553
+  ]
+ },
+ "5922": {
+  "title": "Domain Certificates in the Session Initiation Protocol (SIP)",
+  "month": "June",
+  "year": 2010,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   3261
+  ],
+  "updatedBy": []
+ },
+ "5923": {
+  "title": "Connection Reuse in the Session Initiation Protocol (SIP)",
+  "month": "June",
+  "year": 2010,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "6026": {
+  "title": "Correct Transaction Handling for 2xx Responses to Session Initiation Protocol (SIP) INVITE Requests",
+  "month": "September",
+  "year": 2010,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   3261
+  ],
+  "updatedBy": []
+ },
+ "6086": {
+  "title": "Session Initiation Protocol (SIP) INFO Method and Package Framework",
+  "month": "January",
+  "year": 2011,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2976
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "6141": {
+  "title": "Re-INVITE and Target-Refresh Request Handling in the Session Initiation Protocol (SIP)",
+  "month": "March",
+  "year": 2011,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   3261
+  ],
+  "updatedBy": []
+ },
+ "6189": {
+  "title": "ZRTP: Media Path Key Agreement for Unicast Secure RTP",
+  "month": "April",
+  "year": 2011,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "6314": {
+  "title": "NAT Traversal Practices for Client-Server SIP",
+  "month": "July",
+  "year": 2011,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "6432": {
+  "title": "Carrying Q.850 Codes in Reason Header Fields in SIP (Session Initiation Protocol) Responses",
+  "month": "November",
+  "year": 2011,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "6665": {
+  "title": "SIP-Specific Event Notification",
+  "month": "July",
+  "year": 2012,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   3265
+  ],
+  "obsoletedBy": [],
+  "updates": [
+   3261,
+   4660
+  ],
+  "updatedBy": [
+   7621
+  ]
+ },
+ "7044": {
+  "title": "An Extension to the Session Initiation Protocol (SIP) for Request History Information",
+  "month": "February",
+  "year": 2014,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   4244
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "7118": {
+  "title": "The WebSocket Protocol as a Transport for the Session Initiation Protocol (SIP)",
+  "month": "January",
+  "year": 2014,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "7315": {
+  "title": "Private Header (P-Header) Extensions to the Session Initiation Protocol (SIP) for the 3GPP",
+  "month": "July",
+  "year": 2014,
+  "status": "INFORMATIONAL",
+  "obsoletes": [
+   3455
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   7913,
+   7976,
+   9878
+  ]
+ },
+ "7616": {
+  "title": "HTTP Digest Access Authentication",
+  "month": "September",
+  "year": 2015,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2617
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "8174": {
+  "title": "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words",
+  "month": "May",
+  "year": 2017,
+  "status": "BEST CURRENT PRACTICE",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   2119
+  ],
+  "updatedBy": []
+ },
+ "8224": {
+  "title": "Authenticated Identity Management in the Session Initiation Protocol (SIP)",
+  "month": "February",
+  "year": 2018,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   4474
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8946
+  ]
+ },
+ "8225": {
+  "title": "PASSporT: Personal Assertion Token",
+  "month": "February",
+  "year": 2018,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "8445": {
+  "title": "Interactive Connectivity Establishment (ICE): A Protocol for Network Address Translator (NAT) Traversal",
+  "month": "July",
+  "year": 2018,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   5245
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8863
+  ]
+ },
+ "8489": {
+  "title": "Session Traversal Utilities for NAT (STUN)",
+  "month": "February",
+  "year": 2020,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   5389
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "8588": {
+  "title": "Personal Assertion Token (PaSSporT) Extension for Signature-based Handling of Asserted information using toKENs (SHAKEN)",
+  "month": "May",
+  "year": 2019,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "8656": {
+  "title": "Traversal Using Relays around NAT (TURN): Relay Extensions to Session Traversal Utilities for NAT (STUN)",
+  "month": "February",
+  "year": 2020,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   5766,
+   6156
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "8760": {
+  "title": "The Session Initiation Protocol (SIP) Digest Access Authentication Scheme",
+  "month": "March",
+  "year": 2020,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   3261
+  ],
+  "updatedBy": []
+ },
+ "8825": {
+  "title": "Overview: Real-Time Protocols for Browser-Based Applications",
+  "month": "January",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "8829": {
+  "title": "JavaScript Session Establishment Protocol (JSEP)",
+  "month": "January",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [
+   9429
+  ],
+  "updates": [],
+  "updatedBy": []
+ },
+ "8838": {
+  "title": "Trickle ICE: Incremental Provisioning of Candidates for the Interactive Connectivity Establishment (ICE) Protocol",
+  "month": "January",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8863
+  ]
+ },
+ "8843": {
+  "title": "Negotiating Media Multiplexing Using the Session Description Protocol (SDP)",
+  "month": "January",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [
+   9143
+  ],
+  "updates": [
+   3264,
+   5888,
+   7941
+  ],
+  "updatedBy": []
+ },
+ "8866": {
+  "title": "SDP: Session Description Protocol",
+  "month": "January",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   4566
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "8946": {
+  "title": "Personal Assertion Token (PASSporT) Extension for Diverted Calls",
+  "month": "February",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   8224
+  ],
+  "updatedBy": []
+ },
+ "9143": {
+  "title": "Negotiating Media Multiplexing Using the Session Description Protocol (SDP)",
+  "month": "February",
+  "year": 2022,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   8843
+  ],
+  "obsoletedBy": [],
+  "updates": [
+   3264,
+   5888,
+   7941
+  ],
+  "updatedBy": []
+ },
+ "9429": {
+  "title": "JavaScript Session Establishment Protocol (JSEP)",
+  "month": "April",
+  "year": 2024,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   8829
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ }
+}

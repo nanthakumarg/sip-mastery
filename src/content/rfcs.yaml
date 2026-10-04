@@ -1,0 +1,110 @@
+# The RFC map (Module 1.4).
+# Title, date, status, and obsoletes/updates links come from the official RFC
+# index: run `npm run sync:rfc-index` after editing this list. Only the area,
+# the protocol stripe, the summary, and the modules are written here.
+#
+# proto: the protocol colour stripe on the map (sip, sdp, rtp, rtcp, dns) or omitted.
+
+areas:
+  - { id: core, label: SIP core }
+  - { id: ext, label: SIP extensions }
+  - { id: media, label: Media }
+  - { id: nat, label: NAT traversal }
+  - { id: sec, label: Security and identity }
+  - { id: mobile, label: WebRTC and IMS }
+  - { id: guide, label: Guides and examples }
+
+rfcs:
+  # --- SIP core ---------------------------------------------------------------
+  - { n: 2543, area: core, proto: sip, short: SIP (first version), summary: "The first SIP specification. In 2002, RFC 3261 and four companion RFCs (3262 to 3265) replaced it.", modules: [1] }
+  - { n: 3261, area: core, proto: sip, short: SIP, summary: "The core of SIP: messages, transactions, dialogs, proxies, registration, and authentication.", modules: [3, 4, 5, 6, 7, 8, 9, 10, 12, 13] }
+  - { n: 3263, area: core, proto: dns, short: Locating SIP servers, summary: "How a client uses DNS (NAPTR, SRV, A and AAAA records) to find a SIP server.", modules: [11] }
+  - { n: 3581, area: core, proto: sip, short: rport, summary: "The rport parameter sends a response back to the source IP address and port of the request. This helps behind NAT.", modules: [10, 20] }
+  - { n: 3966, area: core, proto: sip, short: tel URI, summary: "The tel URI for telephone numbers.", modules: [3, 24] }
+  - { n: 4320, area: core, proto: sip, short: Non-INVITE fixes, summary: "Fixes problems with non-INVITE transactions. For example, an element no longer sends 408 to a non-INVITE request.", modules: [8] }
+  - { n: 5626, area: core, proto: sip, short: SIP Outbound, summary: "Keeps connections that the user agent opened alive, so it can receive requests behind NAT.", modules: [12, 20] }
+  - { n: 5922, area: core, proto: sip, short: Domain certificates, summary: "How a SIP element checks the TLS certificate of a SIP domain.", modules: [14, 19] }
+  - { n: 5923, area: core, proto: sip, short: Connection reuse, summary: "Lets a server send requests back over a TLS connection that the client opened.", modules: [19] }
+  - { n: 6026, area: core, proto: sip, short: 2xx to INVITE fixes, summary: "Adds the Accepted state so that retransmitted 2xx responses and their ACKs are handled correctly.", modules: [8] }
+  - { n: 7118, area: core, proto: sip, short: SIP over WebSocket, summary: "Carries SIP over WebSocket so that a browser can be a SIP user agent.", modules: [19, 26] }
+
+  # --- SIP extensions -----------------------------------------------------------
+  - { n: 3262, area: ext, proto: sip, short: PRACK, summary: "Reliable provisional responses (100rel) and the PRACK method.", modules: [22] }
+  - { n: 3265, area: ext, proto: sip, short: Events (first version), summary: "The first SUBSCRIBE and NOTIFY framework. RFC 6665 replaced it.", modules: [23] }
+  - { n: 3311, area: ext, proto: sip, short: UPDATE, summary: "The UPDATE method changes session parameters before the call is answered.", modules: [22] }
+  - { n: 3323, area: ext, proto: sip, short: Privacy, summary: "The Privacy header and how to hide the identity of a caller.", modules: [7, 24] }
+  - { n: 3325, area: ext, proto: sip, short: P-Asserted-Identity, summary: "P-Asserted-Identity carries an identity that the network has checked, inside a trust domain.", modules: [7, 14, 24] }
+  - { n: 3326, area: ext, proto: sip, short: Reason header, summary: "The Reason header says why a request was sent, for example with a Q.850 cause value.", modules: [6, 24] }
+  - { n: 3327, area: ext, proto: sip, short: Path, summary: "Proxies on the REGISTER path stay in the path of incoming requests.", modules: [12] }
+  - { n: 3428, area: ext, proto: sip, short: MESSAGE, summary: "The MESSAGE method for instant messages.", modules: [23] }
+  - { n: 3515, area: ext, proto: sip, short: REFER, summary: "The REFER method asks another user agent to contact a third party. Call transfer uses it.", modules: [22] }
+  - { n: 3608, area: ext, proto: sip, short: Service-Route, summary: "The registrar tells the user agent which proxies to use for its requests.", modules: [12, 27] }
+  - { n: 3842, area: ext, proto: sip, short: Message waiting, summary: "An event package for message waiting indication (the voicemail light).", modules: [23] }
+  - { n: 3891, area: ext, proto: sip, short: Replaces, summary: "The Replaces header lets a new dialog replace an existing one. Attended transfer uses it.", modules: [22] }
+  - { n: 3903, area: ext, proto: sip, short: PUBLISH, summary: "The PUBLISH method publishes event state, such as presence.", modules: [23] }
+  - { n: 4028, area: ext, proto: sip, short: Session timers, summary: "Refreshes a call at intervals so that both sides can detect a dead call.", modules: [9, 22] }
+  - { n: 4235, area: ext, proto: sip, short: Dialog events, summary: "An event package that reports dialog state. Busy lamp fields use it.", modules: [23] }
+  - { n: 5627, area: ext, proto: sip, short: GRUU, summary: "A globally routable URI that reaches one specific device.", modules: [12] }
+  - { n: 6086, area: ext, proto: sip, short: INFO, summary: "The INFO method and Info Packages.", modules: [5] }
+  - { n: 6665, area: ext, proto: sip, short: Events, summary: "The SUBSCRIBE and NOTIFY event framework.", modules: [23] }
+  - { n: 7044, area: ext, proto: sip, short: History-Info, summary: "The History-Info header records how a request was retargeted.", modules: [7, 24] }
+  - { n: 3398, area: ext, proto: sip, short: ISUP mapping, summary: "Maps ISUP messages and cause values from the telephone network to SIP.", modules: [24] }
+  - { n: 6432, area: ext, proto: sip, short: Q.850 in responses, summary: "Carries Q.850 cause values in the Reason header of SIP responses.", modules: [24] }
+
+  # --- Media --------------------------------------------------------------------
+  - { n: 1889, area: media, proto: rtp, short: RTP (first version), summary: "The first RTP specification. RFC 3550 replaced it.", modules: [16] }
+  - { n: 3550, area: media, proto: rtp, short: RTP and RTCP, summary: "RTP carries real-time media; RTCP reports on its quality.", modules: [16, 17] }
+  - { n: 3551, area: media, proto: rtp, short: RTP/AVP profile, summary: "The audio and video profile, with static payload types such as PCMU (0).", modules: [16] }
+  - { n: 2327, area: media, proto: sdp, short: SDP (first version), summary: "The first SDP specification.", modules: [15] }
+  - { n: 4566, area: media, proto: sdp, short: SDP (second version), summary: "The second SDP specification. RFC 8866 replaced it.", modules: [15] }
+  - { n: 8866, area: media, proto: sdp, short: SDP, summary: "The Session Description Protocol format.", modules: [15] }
+  - { n: 3264, area: media, proto: sdp, short: Offer/answer, summary: "The offer/answer model for negotiating media with SDP.", modules: [15] }
+  - { n: 4733, area: media, proto: rtp, short: DTMF in RTP, summary: "Telephone events (DTMF digits) as RTP packets.", modules: [16] }
+  - { n: 3611, area: media, proto: rtcp, short: RTCP XR, summary: "Extended RTCP reports, including VoIP quality metrics.", modules: [17] }
+  - { n: 4585, area: media, proto: rtcp, short: RTCP feedback, summary: "The AVPF profile for fast RTCP feedback such as NACK.", modules: [17] }
+  - { n: 5761, area: media, proto: rtcp, short: rtcp-mux, summary: "RTP and RTCP on one port.", modules: [17] }
+  - { n: 3711, area: media, proto: rtp, short: SRTP, summary: "Secure RTP encrypts and authenticates media packets.", modules: [18] }
+  - { n: 4568, area: media, proto: sdp, short: SDES, summary: "Media keys in SDP (a=crypto).", modules: [18] }
+  - { n: 5763, area: media, proto: sdp, short: DTLS-SRTP framework, summary: "SRTP keys set up with DTLS. SDP carries a fingerprint of the certificate.", modules: [18] }
+  - { n: 5764, area: media, proto: rtp, short: DTLS-SRTP, summary: "The DTLS extension that sets up SRTP keys.", modules: [18] }
+  - { n: 6189, area: media, proto: rtp, short: ZRTP, summary: "Key agreement inside the media path.", modules: [18] }
+
+  # --- NAT traversal --------------------------------------------------------------
+  - { n: 4787, area: nat, proto: dns, short: NAT behaviour, summary: "Describes how NATs map and filter UDP packets.", modules: [20] }
+  - { n: 5389, area: nat, proto: dns, short: STUN (second version), summary: "STUN as a toolkit for NAT traversal. RFC 8489 replaced it.", modules: [20] }
+  - { n: 8489, area: nat, proto: dns, short: STUN, summary: "Lets a client learn its public IP address and port.", modules: [20] }
+  - { n: 5766, area: nat, proto: dns, short: TURN (first version), summary: "The first TURN specification. RFC 8656 replaced it.", modules: [20] }
+  - { n: 8656, area: nat, proto: dns, short: TURN, summary: "A relay for media when no direct path works.", modules: [20] }
+  - { n: 5245, area: nat, proto: dns, short: ICE (first version), summary: "The first ICE specification. RFC 8445 replaced it.", modules: [20] }
+  - { n: 8445, area: nat, proto: dns, short: ICE, summary: "Finds the best working path between two endpoints with STUN and TURN.", modules: [20, 26] }
+  - { n: 6314, area: nat, proto: sip, short: NAT practices for SIP, summary: "Describes good practices for SIP and media through NAT.", modules: [20] }
+
+  # --- Security and identity --------------------------------------------------------
+  - { n: 2617, area: sec, short: HTTP Digest (old), summary: "The HTTP Digest authentication that RFC 3261 first referenced.", modules: [13] }
+  - { n: 7616, area: sec, short: HTTP Digest, summary: "The current HTTP Digest authentication, with SHA-256.", modules: [13] }
+  - { n: 8760, area: sec, proto: sip, short: Digest algorithms for SIP, summary: "Adds SHA-256 and SHA-512/256 to SIP digest authentication.", modules: [13] }
+  - { n: 4474, area: sec, proto: sip, short: SIP Identity (old), summary: "The first Identity header. RFC 8224 replaced it.", modules: [28] }
+  - { n: 8224, area: sec, proto: sip, short: Identity header, summary: "The Identity header signs the caller identity of a request.", modules: [28] }
+  - { n: 8225, area: sec, short: PASSporT, summary: "The signed token that the Identity header carries.", modules: [28] }
+  - { n: 8588, area: sec, short: SHAKEN extension, summary: "The PASSporT extension for SHAKEN attestation levels.", modules: [28] }
+  - { n: 8946, area: sec, short: Diverted calls, summary: "A PASSporT extension for calls that were diverted.", modules: [28] }
+
+  # --- WebRTC and IMS ---------------------------------------------------------------
+  - { n: 8825, area: mobile, short: WebRTC overview, summary: "An overview of real-time communication in web browsers.", modules: [26] }
+  - { n: 8829, area: mobile, proto: sdp, short: JSEP (first version), summary: "How a browser uses SDP offer/answer. RFC 9429 replaced it.", modules: [26] }
+  - { n: 9429, area: mobile, proto: sdp, short: JSEP, summary: "How a browser uses SDP offer/answer.", modules: [26] }
+  - { n: 8838, area: mobile, proto: dns, short: Trickle ICE, summary: "Sends ICE candidates as they are found, so calls connect faster.", modules: [26] }
+  - { n: 8843, area: mobile, proto: sdp, short: BUNDLE (first version), summary: "Several media streams on one transport. RFC 9143 replaced it.", modules: [26] }
+  - { n: 9143, area: mobile, proto: sdp, short: BUNDLE, summary: "Several media streams on one transport.", modules: [26] }
+  - { n: 3310, area: mobile, short: Digest AKA, summary: "Digest authentication with the SIM card (AKA). IMS uses it.", modules: [27] }
+  - { n: 3329, area: mobile, proto: sip, short: Security agreement, summary: "How two hops agree on a security mechanism. IMS uses it to set up IPsec.", modules: [27] }
+  - { n: 3455, area: mobile, proto: sip, short: 3GPP P-headers (old), summary: "The first 3GPP P-headers. RFC 7315 replaced it.", modules: [27] }
+  - { n: 7315, area: mobile, proto: sip, short: 3GPP P-headers, summary: "Private headers for 3GPP networks, such as P-Access-Network-Info.", modules: [27] }
+
+  # --- Guides and examples -----------------------------------------------------------
+  - { n: 2119, area: guide, short: Key words, summary: "Defines MUST, SHOULD, MAY, and the other requirement key words.", modules: [1] }
+  - { n: 8174, area: guide, short: Key words (update), summary: "The key words have their special meaning only in capital letters.", modules: [1] }
+  - { n: 3665, area: guide, proto: sip, short: Basic call flows, summary: "Example message flows for registration and basic calls.", modules: [21] }
+  - { n: 3725, area: guide, proto: sip, short: Third-party call control, summary: "Best current practices for third-party call control.", modules: [22] }
+  - { n: 5359, area: guide, proto: sip, short: Service examples, summary: "Example flows for services such as hold, transfer, and call forwarding.", modules: [22] }
+  - { n: 6141, area: guide, proto: sip, short: re-INVITE handling, summary: "How to handle re-INVITEs and their failures correctly.", modules: [9, 22] }
