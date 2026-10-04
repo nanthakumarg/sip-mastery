@@ -221,7 +221,7 @@ Rendering choices:
 ## 7. Deployment
 
 - GitHub Actions workflow: install → content checks → tests → `astro build` → Pagefind index → upload to Pages.
-- `astro.config.mjs` reads `SITE` and `BASE` from the environment. For a project page, `BASE=/sip-course`. A custom domain later only needs `BASE=/` and a `CNAME` file.
+- `astro.config.mjs` reads `SITE` and `BASE` from the environment. For the project page (https://nanthakumarg.github.io/sip-mastery/), `BASE=/sip-mastery`. A custom domain later only needs `BASE=/` and a `CNAME` file.
 - Every internal link uses the base-aware helper, so moving to a custom domain doesn't break links.
 
 ## 8. Licences
