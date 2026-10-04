@@ -1,0 +1,197 @@
+id: loop-482
+title: "A loop between two proxies: 482"
+summary: "Proxy B has a wrong route for one number and sends the INVITE back to Proxy A. Proxy A finds its own Via and answers 482."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+steps:
+  - from: alice
+    to: proxyA
+    label: "INVITE"
+    caption: "Alice calls a phone number. Her phone sends the INVITE to Proxy A."
+    message: |
+      INVITE sip:+12025550123@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKlp1
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: alice
+    label: "100 Trying"
+    caption: "Proxy A answers 100 Trying on this hop."
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKlp1
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: proxyB
+    label: "INVITE"
+    caption: "Proxy A sends calls to +1 202 numbers to Proxy B. It adds its Via."
+    message: |
+      INVITE sip:+12025550123@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.lp1.6c0e
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKlp1
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: proxyA
+    label: "100 Trying"
+    caption: "Proxy B answers 100 Trying on this hop."
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.lp1.6c0e
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKlp1
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: proxyA
+    label: "INVITE"
+    caption: "Proxy B has a wrong route for this number: Proxy A. The Request-URI does not change."
+    warn: "The same request comes back to Proxy A. Without a check, it would go round until Max-Forwards reaches 0."
+    message: |
+      INVITE sip:+12025550123@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb.lp1.41a9
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.lp1.6c0e
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKlp1
+      Max-Forwards: 68
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: proxyB
+    label: "482 Loop Detected"
+    caption: "Proxy A finds its own address in a Via, and nothing that affects routing has changed. That is a loop."
+    rfc: rfc3261-16.3-loop
+    message: |
+      SIP/2.0 482 Loop Detected
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb.lp1.41a9
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.lp1.6c0e
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKlp1
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=e04c1a
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: proxyA
+    label: "ACK"
+    caption: "Proxy B ACKs the 482 on this hop, with the branch of its INVITE."
+    message: |
+      ACK sip:+12025550123@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb.lp1.41a9
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=e04c1a
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: proxyA
+    label: "482 Loop Detected"
+    caption: "Proxy B forwards the 482 back along the Via headers."
+    message: |
+      SIP/2.0 482 Loop Detected
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.lp1.6c0e
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKlp1
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=e04c1a
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: proxyB
+    label: "ACK"
+    caption: "Proxy A ACKs the 482 on this hop."
+    message: |
+      ACK sip:+12025550123@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa.lp1.6c0e
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=e04c1a
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: alice
+    label: "482 Loop Detected"
+    caption: "The 482 reaches Alice. The call fails, and the misrouted number shows in the logs."
+    message: |
+      SIP/2.0 482 Loop Detected
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKlp1
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=e04c1a
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: alice
+    to: proxyA
+    label: "ACK"
+    caption: "Alice's phone ACKs the 482."
+    message: |
+      ACK sip:+12025550123@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKlp1
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=2b8e60
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=e04c1a
+      Call-ID: 0d5be913@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}

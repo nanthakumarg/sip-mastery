@@ -167,6 +167,35 @@
   definition: The side that sends the session refreshes, named in the refresher parameter of Session-Expires.
 - term: route set
   definition: The list of proxies that in-dialog requests must visit, built from Record-Route.
+- term: Via
+  definition: A header that records the path of a request. Each hop adds one on top; the response follows them back and each hop removes its own.
+- term: received
+  definition: A Via parameter that the next hop adds. It holds the source IP address of the request.
+- term: rport
+  definition: A Via parameter (RFC 3581). The sender adds it empty; the next hop fills in the source port, and sends the response there.
+- term: Record-Route
+  definition: A header that a proxy adds to the request that creates a dialog, to stay in the path of later requests in that dialog.
+- term: Route
+  definition: A header that lists the proxies a request must visit, in order. Each proxy removes its own entry.
+- term: pre-loaded Route
+  aliases: [pre-existing route set]
+  definition: A Route header that a UA puts in a request outside a dialog. It usually names the outbound proxy.
+- term: loose routing
+  aliases: [loose router, lr]
+  definition: The routing of RFC 3261. The Request-URI keeps the target; Route lists the proxies to visit. The lr parameter marks a loose router.
+- term: strict routing
+  aliases: [strict router]
+  definition: The old routing of RFC 2543. Each element puts the next Route value into the Request-URI, so the target moves to the end of Route.
+- term: Max-Forwards
+  definition: A counter in each request, 70 at the start. Each proxy decrements it; at 0 the request stops with 483 Too Many Hops.
+- term: loop
+  definition: A request that comes back to a proxy with nothing changed. The proxy can answer 482 Loop Detected.
+- term: spiral
+  definition: A request that comes back to a proxy with a different Request-URI, for example after call forwarding. It is not an error.
+- term: multi-homed proxy
+  definition: A proxy with interfaces in two or more networks, such as a private LAN and the Internet.
+- term: double Record-Route
+  definition: A multi-homed proxy adds two Record-Route values, one for each interface it uses (RFC 5658).
 
 # --- Authentication --------------------------------------------------------
 - term: challenge

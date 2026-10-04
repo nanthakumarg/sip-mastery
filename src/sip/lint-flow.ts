@@ -5,6 +5,7 @@
  */
 import { liveDialogFor, trackDialogs, uriList } from './dialog.ts';
 import type { PreparedFlow, PreparedStep } from './flow.ts';
+import { inDialogTarget, isLoose, viaList } from './routing.ts';
 import {
   byteLength, cseq, getHeader, getHeaders, headerParam, isRequest, isResponse, tagOf, topVia,
   type SipMessage,
@@ -67,6 +68,10 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   checkDialogTags(msgs, add);
   checkCancels(msgs, add);
   checkDialogTargets(flow, add);
+  checkRecordRouteLr(msgs, add);
+  checkResponseVias(msgs, add);
+  const proxies = new Set(flow.lanes.filter(l => l.kind === 'proxy').map(l => l.id));
+  checkMaxForwards(msgs, proxies, add);
   return issues;
 }
 
@@ -228,14 +233,62 @@ function checkDialogTargets(flow: PreparedFlow, add: Add) {
       if (!m || s.from !== ua || m.kind !== 'request' || m.method === 'CANCEL' || i === 0) return;
       const d = liveDialogFor(snaps[i - 1], m);
       if (!d || (m.method === 'ACK' && d.state !== 'confirmed')) return;
-      if (d.routeSet.length && !/;lr\b/.test(d.routeSet[0]!)) return; // strict routing is not checked
-      if (m.requestUri !== d.remoteTarget) {
-        add('dialog-target', s.index, `${m.method} goes to ${m.requestUri}, but the remote target of the dialog is ${d.remoteTarget}`);
+      const want = inDialogTarget(d.routeSet, d.remoteTarget);
+      const how = want.strict ? ' (the first route is a strict router)' : '';
+      if (m.requestUri !== want.requestUri) {
+        add('dialog-target', s.index, `${m.method} goes to ${m.requestUri}, but the dialog state gives ${want.requestUri}${how}`);
       }
       const routes = uriList(m, 'Route');
-      if (routes.join(',') !== d.routeSet.join(',')) {
-        add('dialog-target', s.index, `${m.method} has Route [${routes.join(', ')}], but the route set is [${d.routeSet.join(', ')}]`);
+      if (routes.join(',') !== want.route.join(',')) {
+        add('dialog-target', s.index, `${m.method} has Route [${routes.join(', ')}], but the dialog state gives [${want.route.join(', ')}]${how}`);
       }
     });
   }
+}
+
+/** record-route-lr (RFC 3261 §16.6 item 4): every Record-Route URI that a proxy adds has the lr parameter. */
+function checkRecordRouteLr(msgs: MsgStep[], add: Add) {
+  for (const s of msgs) {
+    if (s.parsed.kind !== 'request') continue;
+    for (const u of uriList(s.parsed, 'Record-Route')) {
+      if (!isLoose(u)) add('record-route-lr', s.index, `Record-Route <${u}> has no lr parameter, so in-dialog requests use strict routing`);
+    }
+  }
+}
+
+/**
+ * response-via (RFC 3261 §8.2.6.2, §16.7 item 3): a response carries the Via
+ * headers of its request on the same hop, in the same order. Only sent-by and
+ * branch are compared: the receiver adds received and rport.
+ */
+function checkResponseVias(msgs: MsgStep[], add: Add) {
+  const key = (m: SipMessage) => viaList(m).map(v => `${v.host}:${v.port ?? ''};${v.branch ?? ''}`);
+  msgs.forEach((r, i) => {
+    if (!isResponse(r.parsed)) return;
+    const c = cseq(r.parsed);
+    const req = msgs.slice(0, i).reverse().find(q => reverseHop(q, r) && isRequest(q.parsed, c?.method)
+      && callId(q.parsed) === callId(r.parsed) && cseq(q.parsed)?.seq === c?.seq);
+    if (!req) return;
+    const want = key(req.parsed), got = key(r.parsed);
+    if (want.join(',') !== got.join(',')) {
+      add('response-via', r.index, `${r.parsed.status} has Via [${got.join(', ')}], but its request on this hop had [${want.join(', ')}]`);
+    }
+  });
+}
+
+/** max-forwards (RFC 3261 §16.6 item 3): a proxy forwards a request with Max-Forwards one lower. */
+function checkMaxForwards(msgs: MsgStep[], proxies: Set<string>, add: Add) {
+  msgs.forEach((s, i) => {
+    const m = s.parsed;
+    if (m.kind !== 'request' || !proxies.has(s.from)) return;
+    const below = viaList(m)[1]?.branch;
+    if (!below) return; // the proxy created this request itself (CANCEL, ACK for a non-2xx)
+    const inbound = msgs.slice(0, i).reverse().find(q => q.to === s.from && isRequest(q.parsed, m.method)
+      && callId(q.parsed) === callId(m) && topVia(q.parsed)?.branch === below);
+    const was = inbound ? Number(getHeader(inbound.parsed, 'Max-Forwards')) : NaN;
+    const now = Number(getHeader(m, 'Max-Forwards'));
+    if (Number.isFinite(was) && now !== was - 1) {
+      add('max-forwards', s.index, `${m.method} arrived with Max-Forwards ${was} and leaves with ${now}; a proxy decrements it by one`);
+    }
+  });
 }

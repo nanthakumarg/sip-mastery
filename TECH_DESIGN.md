@@ -199,7 +199,10 @@ Rendering choices:
 | `invite-final-ack` | Every final response to an INVITE is ACKed: a 300–699 on its own hop; a 2xx end to end (the receiving UA sends an ACK, and an ACK reaches the sending UA) |
 | `dialog-tags` | In-dialog requests (and the ACK for a 2xx) use the From/To tags of an established dialog |
 | `cancel-after-final` | No CANCEL after the INVITE has a final response on that hop (RFC 3261 §9.1) |
-| `dialog-target` | A UA sends each request inside a dialog to the remote target, with the route set as Route (RFC 3261 §12.2.1.1). Dialog state comes from `src/sip/dialog.ts`. |
+| `dialog-target` | A UA sends each request inside a dialog to the remote target, with the route set as Route (RFC 3261 §12.2.1.1); if the first route has no `lr`, the request uses strict routing. Dialog state comes from `src/sip/dialog.ts`, the request format from `src/sip/routing.ts`. |
+| `record-route-lr` | Every Record-Route URI in a request has the `lr` parameter (RFC 3261 §16.6 item 4) |
+| `response-via` | A response carries the Via headers (sent-by and branch) of its request on the same hop, in the same order (RFC 3261 §8.2.6.2, §16.7) |
+| `max-forwards` | A proxy forwards a request with Max-Forwards one lower than it arrived with (RFC 3261 §16.6 item 3) |
 
 ### 6.2 Diagram language checks (`lint-diagram.ts`)
 | Rule ID | Check |

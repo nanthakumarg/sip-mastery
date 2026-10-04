@@ -1,0 +1,9 @@
+---
+/** <ViaStack flow="via-stack" /> : Via headers added on the request, removed on the response (Module 10.2) */
+import Island from '../diagrams/ViaStack.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+
+interface Props { flow: string }
+const [b] = await flowBundle(Astro.props.flow);
+---
+<div class="wide"><Island client:visible flow={b!.flow} /></div>

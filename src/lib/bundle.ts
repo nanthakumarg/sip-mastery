@@ -10,14 +10,19 @@ const toRef = (e: RefEntry): ClientRefEntry => ({
   ...(e.rfc ? { url: rfcUrl(e.rfc, e.section), label: `RFC ${e.rfc}${e.section ? ` §${e.section}` : ''}` } : {}),
 });
 
-export async function flowBundle(...ids: string[]): Promise<FlowBundle[]> {
+/** Header explanations for the inspector. */
+export function clientRefData(): ClientRef {
   const ref = loadHeaderRef();
-  const clientRef: ClientRef = {
+  return {
     headers: Object.fromEntries(Object.entries(ref.headers).map(([k, v]) => [k, toRef(v)])),
     request: toRef(ref.startLines.request),
     response: toRef(ref.startLines.response),
     sdp: Object.fromEntries(Object.entries(ref.sdp).map(([k, v]) => [k, toRef(v)])),
   };
+}
+
+export async function flowBundle(...ids: string[]): Promise<FlowBundle[]> {
+  const clientRef = clientRefData();
   const allQuotes = loadQuotes();
   return Promise.all(ids.map(async id => {
     const f = await loadFlow(id);

@@ -1,0 +1,226 @@
+id: multihomed-one-rr
+title: "Broken: one Record-Route on two interfaces"
+summary: "Proxy A adds only its inside address to Record-Route. Bob's BYE goes to a private address and never arrives."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 10.1.0.20 · office LAN }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 10.1.0.1 · 198.51.100.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: proxy.biloxi.example }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: alice
+    to: proxyA
+    label: "INVITE"
+    caption: "Alice's outbound proxy is Proxy A, on its inside address 10.1.0.1."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 10.1.0.20:5060;branch=z9hG4bKmh1
+      Max-Forwards: 70
+      Route: <sip:10.1.0.1;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=61af0d
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@10.1.0.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 10.1.0.20
+      s=-
+      c=IN IP4 10.1.0.20
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: proxyB
+    label: "INVITE"
+    caption: "Proxy A adds one Record-Route with its inside address, 10.1.0.1. The INVITE leaves on the outside interface."
+    rfc: rfc3261-16.7-rr-rewrite
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKmh1a
+      Via: SIP/2.0/UDP 10.1.0.20:5060;branch=z9hG4bKmh1
+      Max-Forwards: 69
+      Record-Route: <sip:10.1.0.1;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=61af0d
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@10.1.0.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 10.1.0.20
+      s=-
+      c=IN IP4 10.1.0.20
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: bob
+    label: "INVITE"
+    caption: "Proxy B forwards the INVITE to Bob's Contact. It does not record-route."
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKmh1b
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKmh1a
+      Via: SIP/2.0/UDP 10.1.0.20:5060;branch=z9hG4bKmh1
+      Max-Forwards: 68
+      Record-Route: <sip:10.1.0.1;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=61af0d
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@10.1.0.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 10.1.0.20
+      s=-
+      c=IN IP4 10.1.0.20
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: bob
+    to: proxyB
+    label: "200 OK"
+    caption: "Bob answers. His route set is one URI: 10.1.0.1, a private address."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKmh1b
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKmh1a
+      Via: SIP/2.0/UDP 10.1.0.20:5060;branch=z9hG4bKmh1
+      Record-Route: <sip:10.1.0.1;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=61af0d
+      To: Bob <sip:bob@biloxi.example>;tag=0b9e42
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: proxyA
+    label: "200 OK"
+    caption: "Proxy B removes its Via and forwards the 200 OK."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKmh1a
+      Via: SIP/2.0/UDP 10.1.0.20:5060;branch=z9hG4bKmh1
+      Record-Route: <sip:10.1.0.1;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=61af0d
+      To: Bob <sip:bob@biloxi.example>;tag=0b9e42
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: alice
+    label: "200 OK"
+    caption: "Alice's route set is 10.1.0.1. That works for her: she is on the inside."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 10.1.0.20:5060;branch=z9hG4bKmh1
+      Record-Route: <sip:10.1.0.1;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=61af0d
+      To: Bob <sip:bob@biloxi.example>;tag=0b9e42
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: alice
+    to: proxyA
+    label: "ACK"
+    caption: "Alice sends the ACK to the inside address of Proxy A."
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 10.1.0.20:5060;branch=z9hG4bKmh2
+      Max-Forwards: 70
+      Route: <sip:10.1.0.1;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=61af0d
+      To: Bob <sip:bob@biloxi.example>;tag=0b9e42
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: bob
+    label: "ACK"
+    caption: "Proxy A removes its Route entry and sends the ACK to Bob."
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKmh2a
+      Via: SIP/2.0/UDP 10.1.0.20:5060;branch=z9hG4bKmh2
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=61af0d
+      To: Bob <sip:bob@biloxi.example>;tag=0b9e42
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: bob
+    to: proxyA
+    label: "BYE"
+    caption: "Bob hangs up. His route set says 10.1.0.1: Proxy A's inside address."
+    warn: "10.1.0.1 is a private address. No router on the Internet can deliver the BYE."
+    lost: true
+    message: |
+      BYE sip:alice@10.1.0.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKmh3
+      Max-Forwards: 70
+      Route: <sip:10.1.0.1;lr>
+      From: Bob <sip:bob@biloxi.example>;tag=0b9e42
+      To: Alice <sip:alice@atlanta.example>;tag=61af0d
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 4012 BYE
+      Content-Length: {auto}
+
+  - from: bob
+    to: proxyA
+    label: "BYE (again)"
+    caption: "Bob's phone sends the BYE again for 32 seconds, then ends the dialog."
+    warn: "Alice's phone still shows the call. Proxy A never sees the BYE."
+    lost: true
+    message: |
+      BYE sip:alice@10.1.0.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKmh3
+      Max-Forwards: 70
+      Route: <sip:10.1.0.1;lr>
+      From: Bob <sip:bob@biloxi.example>;tag=0b9e42
+      To: Alice <sip:alice@atlanta.example>;tag=61af0d
+      Call-ID: 3e7b90c3@10.1.0.20
+      CSeq: 4012 BYE
+      Content-Length: {auto}

@@ -1,0 +1,68 @@
+id: max-forwards-483
+title: "Max-Forwards reaches 0: 483"
+summary: "Alice tests the path with Max-Forwards: 1. Proxy A forwards the OPTIONS with 0, and Proxy B must not forward it."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+steps:
+  - from: alice
+    to: proxyA
+    label: "OPTIONS"
+    caption: "Alice tests the path. She sends an OPTIONS with Max-Forwards: 1, so it can make one hop only."
+    message: |
+      OPTIONS sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmf1
+      Max-Forwards: 1
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=91c4e7
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6a2f1d85@192.0.2.10
+      CSeq: 1 OPTIONS
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: proxyB
+    label: "OPTIONS"
+    caption: "Max-Forwards is 1, so Proxy A may forward the request. It decrements Max-Forwards to 0."
+    rfc: rfc3261-16.6-max-forwards
+    message: |
+      OPTIONS sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKmf1a
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmf1
+      Max-Forwards: 0
+      From: Alice <sip:alice@atlanta.example>;tag=91c4e7
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 6a2f1d85@192.0.2.10
+      CSeq: 1 OPTIONS
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: proxyA
+    label: "483 Too Many Hops"
+    caption: "Max-Forwards is 0, so Proxy B must not forward the request. For OPTIONS it may also answer itself."
+    rfc: rfc3261-16.3-483
+    message: |
+      SIP/2.0 483 Too Many Hops
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKmf1a
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmf1
+      From: Alice <sip:alice@atlanta.example>;tag=91c4e7
+      To: Bob <sip:bob@biloxi.example>;tag=d27a5c
+      Call-ID: 6a2f1d85@192.0.2.10
+      CSeq: 1 OPTIONS
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: alice
+    label: "483 Too Many Hops"
+    caption: "Proxy A forwards the 483. Alice now knows the second hop: Proxy B."
+    message: |
+      SIP/2.0 483 Too Many Hops
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmf1
+      From: Alice <sip:alice@atlanta.example>;tag=91c4e7
+      To: Bob <sip:bob@biloxi.example>;tag=d27a5c
+      Call-ID: 6a2f1d85@192.0.2.10
+      CSeq: 1 OPTIONS
+      Content-Length: {auto}

@@ -25,6 +25,7 @@ rfcs:
   - { n: 5626, area: core, proto: sip, short: SIP Outbound, summary: "Keeps connections that the user agent opened alive, so it can receive requests behind NAT.", modules: [12, 20] }
   - { n: 5922, area: core, proto: sip, short: Domain certificates, summary: "How a SIP element checks the TLS certificate of a SIP domain.", modules: [14, 19] }
   - { n: 5923, area: core, proto: sip, short: Connection reuse, summary: "Lets a server send requests back over a TLS connection that the client opened.", modules: [19] }
+  - { n: 5658, area: core, proto: sip, short: Double Record-Route, summary: "A proxy with two interfaces adds two Record-Route values, one for each side, instead of rewriting Record-Route in responses.", modules: [10] }
   - { n: 6026, area: core, proto: sip, short: 2xx to INVITE fixes, summary: "Adds the Accepted state so that retransmitted 2xx responses and their ACKs are handled correctly.", modules: [8] }
   - { n: 7118, area: core, proto: sip, short: SIP over WebSocket, summary: "Carries SIP over WebSocket so that a browser can be a SIP user agent.", modules: [19, 26] }
 

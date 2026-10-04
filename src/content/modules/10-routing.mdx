@@ -1,0 +1,300 @@
+---
+module: 10
+title: "Routing: Via, Record-Route, Route"
+part: 3
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: How a SIP message finds its next hop — responses follow the Via headers back, requests follow Route and the Request-URI, and Record-Route decides which proxies see the rest of the call. Also NAT and rport, strict routing, outbound proxies, loops, and proxies with two interfaces.
+objectives:
+  - Say which headers decide where a request goes, and which decide where a response goes.
+  - Follow the Via stack through a call, and find where each response is sent, with received and rport.
+  - Explain why a proxy adds Record-Route, and predict which proxies see the ACK, BYE, and re-INVITE.
+  - Build the route set on both sides, and the Request-URI and Route of a request inside the dialog.
+  - Tell loose routing from strict routing, and spot a missing lr.
+  - Explain the outbound proxy, the pre-loaded Route, and why Request-URI and To differ.
+  - Tell a loop from a spiral, and explain 482 and 483.
+  - Explain double Record-Route on a proxy with two interfaces.
+status: draft
+---
+
+## 10.1 Two paths: responses follow Via, requests follow Route
+
+Every SIP element that handles a message answers one question: where does it go next? The answer comes from different headers for requests and for responses.
+
+| | A request | A response |
+|---|---|---|
+| Next hop | The first **Route** value; with no Route, the **Request-URI** | The top **Via** |
+| What each proxy changes | Adds a Via; removes its own Route value; may replace the Request-URI; may add Record-Route | Removes its own Via |
+| Path | Can be different for each request | Always the path of its request, in reverse |
+
+<RfcQuote id="rfc3261-16.12-next-hop" />
+
+<RfcQuote id="rfc3261-8.1.1.7-via" />
+
+The first INVITE finds Bob with DNS and the location service (Modules 3 and 11). Its responses retrace that path exactly. But the requests that come later in the dialog — the ACK for the 2xx, the BYE, a re-INVITE — do not follow the INVITE. They follow the **route set**, which comes from Record-Route (10.4). Mixing up the two paths is the most common routing mistake.
+
+## 10.2 The Via stack
+
+Each element that sends a request puts its own Via **on top** of the Vias already there. Each element that forwards a response takes its own Via **off the top**. The Vias are a stack: the response pops them in the reverse order of the request.
+
+<RfcQuote id="rfc3261-16.6-via" />
+
+<RfcQuote id="rfc3261-16.7-via-remove" />
+
+One Via value holds:
+
+- **Transport and sent-by**: `SIP/2.0/UDP 198.51.100.10:5060` — the transport and the address where the sender wants the response.
+- **branch**: the transaction ID, starting with `z9hG4bK` (Module 8). Each hop has its own transaction, so each Via has its own branch.
+- **received** and **rport**: what the next hop really saw — added by the next hop, not by the sender (10.3).
+
+A Via belongs to one transaction. A new request — the ACK for a 2xx, a BYE — starts again with one Via, and gets a new stack along its own path. Step through the call below. Watch the stack grow on the INVITE and shrink on the 200 OK, and see where each message goes.
+
+<ViaStack flow="via-stack" />
+
+## 10.3 received and rport: the response path behind NAT
+
+The sender writes its own address into sent-by. Behind a NAT router, that is a private address, such as `192.168.1.20:5060`. A response sent there never arrives. So the next hop writes what it actually saw into the Via:
+
+<RfcQuote id="rfc3261-18.2.1-received" />
+
+`received` fixes the address, but not the port. A NAT router also changes the UDP source port. RFC 3581 adds **rport**: the sender adds it with no value, and the next hop fills in the source port.
+
+<RfcQuote id="rfc3581-4-rport" />
+
+<RfcQuote id="rfc3581-4-received-always" />
+
+The server then picks the response address from the top Via, in this order:
+
+| The top Via has… | The response goes to… |
+|---|---|
+| TCP or TLS transport | The same connection the request came on |
+| UDP, `received` and `rport` | `received` address : `rport` port |
+| UDP, `received` only | `received` address : sent-by port (5060 if none) |
+| UDP, neither | The sent-by address and port |
+
+<RfcQuote id="rfc3261-18.2.2-reliable" />
+
+<RfcQuote id="rfc3261-18.2.2-received" />
+
+<RfcQuote id="rfc3581-4-response" />
+
+In the Via stack above, step 2 shows this. Proxy A sends the 100 Trying to `192.0.2.10:40112` — the public side of Alice's NAT router — and not to the private address that Alice wrote. A proxy keeps the `received` and `rport` of the Vias below its own; it removes only its own Via. Module 20 covers the rest of NAT: keepalives, Contact rewriting, and SIP Outbound.
+
+## 10.4 Record-Route: staying in the path
+
+After the first INVITE, a proxy is out of the call — unless it asks to stay. Some proxies must see every request in the dialog: a billing proxy needs the BYE to stop counting, a proxy that handles NAT must relay requests to a phone behind a NAT router, and an SBC at the network edge must see everything. Such a proxy adds **Record-Route** to the request that creates the dialog:
+
+<RfcQuote id="rfc3261-16.6-record-route" />
+
+<RfcQuote id="rfc3261-16.6-rr-independent" />
+
+The UAS copies the Record-Route values into its 2xx (and its 101–199 responses), in the same order, so both sides learn the list:
+
+<RfcQuote id="rfc3261-12.1.1-copy-rr" />
+
+Record-Route has a cost. Every request in the dialog passes through the proxy, and a dialog-stateful proxy keeps state for every call. So a proxy record-routes only when a service needs it:
+
+<RfcQuote id="rfc3261-16.6-rr-cost" />
+
+Turn Record-Route on and off for each proxy below, and choose a later request. The INVITE and its 200 OK always pass both proxies. Only the later request changes its path.
+
+<RoutingLab />
+
+Try these:
+
+- **Both off.** The BYE goes straight from Alice to Bob. Neither proxy knows that the call ended.
+- **Only Proxy B on.** Alice's ACK and BYE skip Proxy A — her own outbound proxy — and go straight to Proxy B.
+- **Both on, re-INVITE from Bob.** Bob's request visits Proxy B first, then Proxy A: his route set is in the other order.
+
+## 10.5 Building the route set
+
+Each proxy puts its Record-Route value **on top**, so the last proxy before Bob is first in the list. When the INVITE reaches Bob, it has:
+
+```
+Record-Route: <sip:proxy.biloxi.example;lr>
+Record-Route: <sip:proxy.atlanta.example;lr>
+```
+
+Each side wants its **nearest** proxy first. Bob's nearest proxy is Proxy B, already on top, so he keeps the order. Alice's nearest proxy is Proxy A, at the bottom, so she reverses the list:
+
+| | Takes Record-Route from | Order | Route set in the example |
+|---|---|---|---|
+| Bob (UAS) | The request | As received | `proxy.biloxi.example`, `proxy.atlanta.example` |
+| Alice (UAC) | The 2xx response | Reversed | `proxy.atlanta.example`, `proxy.biloxi.example` |
+
+<RfcQuote id="rfc3261-12.1.1-route-set" />
+
+<RfcQuote id="rfc3261-12.1.2-route-set" />
+
+The route set is fixed once the dialog is confirmed. A re-INVITE can change the remote target, but not the route set:
+
+<RfcQuote id="rfc3261-12.2-route-set-fixed" />
+
+To send a request in the dialog, the UA puts the remote target in the Request-URI and the route set in Route:
+
+<RfcQuote id="rfc3261-12.2.1.1-loose" />
+
+Each proxy on the way finds itself in the top Route value and removes it. When no Route value is left, the request goes to the Request-URI: the remote target.
+
+<RfcQuote id="rfc3261-16.4-route-pop" />
+
+## 10.6 Loose routing (`;lr`) and strict routing
+
+RFC 3261 separates two things: **where the request is going** (the Request-URI) and **which proxies it must visit on the way** (Route). This is **loose routing**. The `lr` parameter in a URI says "this element is a loose router":
+
+<RfcQuote id="rfc3261-6-loose-routing" />
+
+<RfcQuote id="rfc3261-19.1.1-lr" />
+
+The older RFC 2543 used **strict routing**: the next hop always went into the Request-URI, and the real target moved to the end of Route.
+
+<RfcQuote id="rfc3261-6-strict-routing" />
+
+A UA still supports strict routers. If the first URI of the route set has no `lr`, it builds the request the old way. The same BYE, with a route set of one proxy:
+
+| | First route has `;lr` (loose) | First route has no `lr` (strict) |
+|---|---|---|
+| Request-URI | `sip:bob@203.0.113.20:5060` — the remote target | `sip:proxy.biloxi.example` — the first route |
+| Route | `<sip:proxy.biloxi.example;lr>` | `<sip:bob@203.0.113.20:5060>` — the remote target, last |
+
+<RfcQuote id="rfc3261-12.2.1.1-strict" />
+
+An RFC 3261 proxy that receives a request with its own Record-Route URI in the Request-URI repairs it. It moves the last Route value back into the Request-URI:
+
+<RfcQuote id="rfc3261-16.4-strict" />
+
+So every modern proxy must put `lr` in its Record-Route URI. A missing `lr` makes every UA use strict routing for the whole dialog (see Common mistakes).
+
+<RfcQuote id="rfc3261-16.6-lr" />
+
+## 10.7 Outbound proxy and pre-loaded Route
+
+A phone usually sends its requests to a proxy of its provider, its **outbound proxy**, whatever the destination. RFC 3261 recommends that the phone holds the outbound proxy as a **pre-loaded Route** — a route set of one URI that it uses for requests outside a dialog:
+
+<RfcQuote id="rfc3261-8.1.1.1-outbound" />
+
+The Request-URI stays the real target, `sip:bob@biloxi.example`. The outbound proxy finds its own URI in Route, removes it, and routes on the Request-URI. Inside the dialog, the phone uses the route set from Record-Route, not its outbound proxy. An outbound proxy that does not record-route drops out of the call:
+
+<RfcQuote id="rfc3261-8.1.2-first-route" />
+
+<Flow id="outbound-proxy" eyebrow="Call flow · outbound proxy with a pre-loaded Route" />
+
+Many phones have an "outbound proxy" setting that instead sends **every** request to one address, with no pre-loaded Route. RFC 3261 allows this, but does not recommend it. Then the requests inside the dialog also go to the outbound proxy, even when it is not in the route set, and it must forward them by their Route headers.
+
+## 10.8 Request-URI and To: why they can be different
+
+The first INVITE starts with the same URI in the Request-URI and in To:
+
+<RfcQuote id="rfc3261-8.1.1.1-request-uri" />
+
+After that, they separate. **To** names the user that the caller wanted, and no proxy changes it. The **Request-URI** names where the request goes now, and each proxy can replace it:
+
+<RfcQuote id="rfc3261-8.1.1.2-to" />
+
+<RfcQuote id="rfc3261-16.6-request-uri" />
+
+| Where | Request-URI | To |
+|---|---|---|
+| Alice's INVITE | `sip:bob@biloxi.example` | `Bob <sip:bob@biloxi.example>` |
+| After Proxy B (location service) | `sip:bob@203.0.113.20:5060` — Bob's Contact | unchanged |
+| After call forwarding to Carol | `sip:carol@biloxi.example` | unchanged: still Bob |
+| A BYE inside the dialog | The remote target (Bob's Contact) | Bob, with his tag |
+| A request to a strict router | The strict router's URI (10.6) | unchanged |
+
+Route on the Request-URI, never on To. A proxy or B2BUA that routes on To sends a forwarded call back to the original user, and a UAS that rejects a request because To is not its own address breaks call forwarding and support lines.
+
+<RfcQuote id="rfc3261-16.12-target" />
+
+## 10.9 Loops, spirals, Max-Forwards, 482, 483
+
+A request can reach the same proxy twice. Whether that is an error depends on what changed:
+
+<RfcQuote id="rfc3261-6-loop" />
+
+<RfcQuote id="rfc3261-6-spiral" />
+
+A **spiral** is normal. Bob's phone forwards the call to Carol: it sends the INVITE back to Proxy B with the Request-URI `sip:carol@biloxi.example`. Proxy B sees the request a second time, but with a new target. A **loop** is a fault, usually two routing tables that point at each other. A proxy that checks for loops looks for its own address in the Via headers:
+
+<RfcQuote id="rfc3261-16.3-loop" />
+
+<RfcQuote id="rfc3261-16.3-482" />
+
+Loop detection is optional. The safety net that always works is **Max-Forwards**: the UA starts at 70, every proxy decrements it, and the element that receives 0 stops the request.
+
+<RfcQuote id="rfc3261-16.6-max-forwards" />
+
+<RfcQuote id="rfc3261-16.3-483" />
+
+A low Max-Forwards also works like traceroute: a request with Max-Forwards 1 is stopped at the second hop. A B2BUA starts new requests with only its own Via, so Via-based loop detection cannot see through it. It should carry Max-Forwards across, one lower (RFC 7332). If it resets Max-Forwards to 70, a loop through two B2BUAs does not stop (Module 25).
+
+<CompareFlows a="loop-482" b="max-forwards-483" labels={['Loop: 482', 'Max-Forwards 0: 483']} />
+
+## 10.10 Double Record-Route on multi-homed proxies
+
+A **multi-homed proxy** has interfaces in two networks — for example, `10.1.0.1` on an office LAN and `198.51.100.10` on the Internet. One Record-Route URI can hold only one address, and each side can reach only one of them. RFC 3261 lets the proxy rewrite its Record-Route value in the response, so each side sees a different URI:
+
+<RfcQuote id="rfc3261-16.7-rr-rewrite" />
+
+RFC 5658 recommends a simpler way. The proxy adds **two** Record-Route values, one for each interface. Nothing changes in the response, and both sides keep the same list:
+
+<RfcQuote id="rfc5658-4-rewrite" />
+
+<RfcQuote id="rfc5658-5-double" />
+
+Each side's route set now has both URIs, and the reachable one comes first: Bob gets the outside address first, Alice the inside address. When a request arrives, the proxy finds itself in **both** top Route values and removes both:
+
+<RfcQuote id="rfc5658-5-remove-two" />
+
+<Flow id="multihomed-double-rr" eyebrow="Call flow · double Record-Route" />
+
+Open-source proxies such as Kamailio and OpenSIPS add the second Record-Route value by themselves when a request leaves on a different interface or transport (the `enable_double_rr` setting of their rr modules).
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Confusing Via with Record-Route">
+    Both headers list proxies, so they are easy to mix up. They answer different questions:
+
+    | | Via | Record-Route |
+    |---|---|---|
+    | Answers | Where does the response to **this** request go? | Which proxies see the **later** requests in the dialog? |
+    | Who adds it | Every element that sends the request, always | Only proxies that want to stay, only on the request that creates the dialog |
+    | Lifetime | One transaction | The whole dialog |
+    | Used by | Responses, hop by hop | The route set, then Route in each later request |
+
+    <p class="fix"><b>Remember:</b> a 200 OK passes every proxy, because it follows Via. That does not mean the BYE will. To predict the BYE, read the Record-Route of the 200 OK, not its Vias.</p>
+  </Mistake>
+
+  <Mistake title="A proxy that does not Record-Route never sees the BYE">
+    The proxy sees the INVITE and the 200 OK, starts a call record, and never hears of the call again. The usual symptoms: billing records with no end time or with a fixed maximum duration, calls that a dialog-stateful proxy counts as active long after they ended, and requests to a phone behind NAT that never reach it.
+
+    <BrokenFixedFlow broken="bye-no-record-route" fixed="bye-record-route" />
+  </Mistake>
+
+  <Mistake title="A Record-Route without ;lr">
+    The proxy works for the first INVITE. But every UA now uses strict routing for the whole dialog: the proxy's URI goes into the Request-URI, and the remote target goes to the end of Route. An RFC 3261 proxy that recognises its own URI repairs the request. A proxy that does not — for example, one behind a load balancer whose address it writes into Record-Route — routes the BYE by its Request-URI: back to itself, or to the load balancer. The call never ends cleanly.
+
+    <BrokenFixedFlow broken="rr-missing-lr" fixed="bye-record-route" />
+
+    <p class="fix"><b>Remember:</b> look at the Request-URI of the in-dialog requests. A proxy URI there, and the Contact at the end of Route, means strict routing — find the Record-Route URI without <code>lr</code>.</p>
+  </Mistake>
+
+  <Mistake title="One Record-Route on a proxy with two interfaces">
+    The proxy writes the address of one interface into Record-Route. The UA on the other side cannot reach that address, so its in-dialog requests are lost. Calls set up fine, then the BYE from one side never arrives — often only when that side hangs up.
+
+    <BrokenFixedFlow broken="multihomed-one-rr" fixed="multihomed-double-rr" />
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- **Responses follow Via.** Each element that sends a request adds a Via on top; each element that forwards the response removes its own.
+- **Requests follow Route, then the Request-URI.** Each proxy removes its own Route value and may replace the Request-URI.
+- Behind NAT, the next hop adds **received** and fills in **rport**. A UDP response goes to `received:rport`.
+- A proxy that adds **Record-Route** to the request that creates the dialog stays in the path of every later request. Without it, the ACK, BYE, and re-INVITE skip the proxy.
+- The callee takes the **route set** from Record-Route in order; the caller reverses it. Each side has its nearest proxy first.
+- Every Record-Route URI needs **`;lr`**. Without it, the UAs use **strict routing**, and the request works only if the proxy repairs it.
+- An **outbound proxy** is best set as a **pre-loaded Route**. It stays in the dialog only if it record-routes.
+- **To** keeps the user the caller wanted; the **Request-URI** is where the request goes now. Route on the Request-URI.
+- A **spiral** is normal; a **loop** is a fault. Loop detection gives **482**; Max-Forwards at 0 gives **483**.
+- A **multi-homed proxy** adds **two Record-Route values**, one for each interface, so each side can reach it.

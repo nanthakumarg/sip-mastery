@@ -1,0 +1,223 @@
+id: via-stack
+title: Via headers stack up and come off
+summary: "Alice's INVITE crosses Proxy A and Proxy B. Each hop adds a Via; each response hop removes one. Only Proxy A adds Record-Route, so the ACK skips Proxy B."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.168.1.20 · NAT }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: alice
+    to: proxyA
+    label: INVITE
+    caption: "Alice's phone adds the first Via: its private address, and an empty rport. A NAT router changes the source to 192.0.2.10:40112."
+    rfc: rfc3261-8.1.1.7-via
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKv1a7
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.168.1.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.168.1.20
+      s=-
+      c=IN IP4 192.168.1.20
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: alice
+    label: "100 Trying"
+    caption: "Proxy A writes what it saw into Alice's Via: received and rport. It sends the 100 Trying to 192.0.2.10:40112."
+    rfc: rfc3581-4-response
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;branch=z9hG4bKv1a7;received=192.0.2.10
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: proxyB
+    label: INVITE
+    caption: Proxy A removes its Route entry, adds Record-Route, and puts its own Via on top. Max-Forwards goes down to 69.
+    rfc: rfc3261-16.6-via
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa38c1
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;branch=z9hG4bKv1a7;received=192.0.2.10
+      Max-Forwards: 69
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.168.1.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.168.1.20
+      s=-
+      c=IN IP4 192.168.1.20
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: proxyA
+    label: "100 Trying"
+    caption: "Proxy A's Via has its real address, so Proxy B adds no received. The 100 Trying goes to the sent-by address."
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa38c1
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;branch=z9hG4bKv1a7;received=192.0.2.10
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: bob
+    label: INVITE
+    caption: "Proxy B replaces the Request-URI with Bob's Contact and adds the third Via. It does not add Record-Route."
+    rfc: rfc3261-16.6-request-uri
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb7e02
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa38c1
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;branch=z9hG4bKv1a7;received=192.0.2.10
+      Max-Forwards: 68
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.168.1.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.168.1.20
+      s=-
+      c=IN IP4 192.168.1.20
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: bob
+    to: proxyB
+    label: "200 OK"
+    caption: "Bob answers. The 200 OK copies all three Vias, in order, and the Record-Route."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb7e02
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa38c1
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;branch=z9hG4bKv1a7;received=192.0.2.10
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>;tag=a83f71
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: proxyA
+    label: "200 OK"
+    caption: Proxy B removes the top Via, its own. The next Via names Proxy A.
+    rfc: rfc3261-16.7-via-remove
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa38c1
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;branch=z9hG4bKv1a7;received=192.0.2.10
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>;tag=a83f71
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyA
+    to: alice
+    label: "200 OK"
+    caption: "Proxy A removes its Via. Alice's Via is left, so the 200 OK goes to received and rport: 192.0.2.10:40112."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;branch=z9hG4bKv1a7;received=192.0.2.10
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>;tag=a83f71
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: alice
+    to: proxyA
+    label: ACK
+    caption: "The ACK is a new request with a new Via. It follows the route set, not the old Vias: only Proxy A."
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKv2c4
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>;tag=a83f71
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: bob
+    label: ACK
+    caption: "Proxy A removes its Route entry and sends the ACK straight to Bob's Contact. Proxy B never sees it."
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa38c2
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;branch=z9hG4bKv2c4;received=192.0.2.10
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=5e1c09
+      To: Bob <sip:bob@biloxi.example>;tag=a83f71
+      Call-ID: 92b04c7e@192.168.1.20
+      CSeq: 1 ACK
+      Content-Length: {auto}

@@ -42,6 +42,8 @@ import TimerTimeline from '../../components/TimerTimeline.astro';
 import TransactionMatcher from '../../components/TransactionMatcher.astro';
 import DialogTable from '../../components/DialogTable.astro';
 import ForkingTree from '../../components/ForkingTree.astro';
+import RoutingLab from '../../components/RoutingLab.astro';
+import ViaStack from '../../components/ViaStack.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -70,7 +72,8 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   MethodCards, CapabilityLab, CodeAtlas,
   HeaderReference, HeaderJourney,
   TransactionPlayer, TimerTimeline, TransactionMatcher,
-  DialogTable, ForkingTree };
+  DialogTable, ForkingTree,
+  RoutingLab, ViaStack };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

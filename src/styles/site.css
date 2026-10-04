@@ -73,7 +73,7 @@
 .mistakes { counter-reset: mistake; display: grid; gap: 18px; }
 .prose > .mistakes { max-width: 1520px; }
 .mistake > p, .mistake > h3, .mistake > ul, .mistake > figure { max-width: var(--measure); }
-.mistake { counter-increment: mistake; border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; background: linear-gradient(180deg, rgba(255,107,90,.05), transparent 120px), var(--bg); }
+.mistake { min-width: 0; counter-increment: mistake; border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; background: linear-gradient(180deg, rgba(255,107,90,.05), transparent 120px), var(--bg); }
 .mistake > * + * { margin-top: .8em; }
 .mistake-title { display: flex; gap: 12px; align-items: baseline; font: 700 20px/1.3 var(--display); color: var(--text); }
 .mistake-title::before { content: counter(mistake, decimal-leading-zero); font: 500 13px var(--mono); color: var(--err); }
