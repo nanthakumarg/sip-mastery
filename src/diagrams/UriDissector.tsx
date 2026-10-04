@@ -8,7 +8,11 @@ import { markKeywords } from './Inspector.tsx';
 import type { ClientQuote } from './types.ts';
 import { caseSensitive, dissect, PARAM_TEXT, PART_LABEL, ROLE_TEXT, type Dissection, type UriPart } from '../sip/uri.ts';
 
-interface Props { quotes: Record<string, ClientQuote> }
+interface Props {
+  quotes: Record<string, ClientQuote>;
+  /** "header": read a whole header line, such as "Contact: <sip:…>;expires=60" (Module 4.7). */
+  mode?: 'uri' | 'header';
+}
 
 const RANK = { error: 0, warn: 1, info: 2 } as const;
 
@@ -25,8 +29,20 @@ const PRESETS: [string, string][] = [
   ['Find the problems', 'sips:alice:secret@192.168.1.20;transport=udp'],
 ];
 
+const HEADER_PRESETS: [string, string][] = [
+  ['Brackets', 'Contact: <sip:alice@192.0.2.10:5060;transport=tcp>;expires=3600'],
+  ['No brackets', 'Contact: sip:alice@192.0.2.10:5060;expires=3600'],
+  ['Lost transport', 'Contact: sip:alice@192.0.2.10:5060;transport=tcp'],
+  ['Trapped expires', 'Contact: <sip:alice@192.0.2.10:5060;expires=3600>'],
+  ['From with tag', 'From: sip:alice@atlanta.example;tag=9fxced76sl'],
+  ['Display name', 'To: "Bob Smith" <sip:bob@biloxi.example>'],
+  ['Record-Route', 'Record-Route: <sip:proxy.atlanta.example;lr>'],
+  ['Compact form', 'm: <sip:alice@192.0.2.10:5060>;expires=3600'],
+];
+
 function partText(p: UriPart, d: Dissection): string {
   switch (p.kind) {
+    case 'hname': return 'The header name. Header names are case-insensitive, and some have a one-letter compact form: m is Contact, f is From, t is To.';
     case 'display': return 'A name for people to read. Elements do not use it to route. Put it in quotes if it has spaces or special characters.';
     case 'scheme':
       return d.scheme === 'sips' ? 'sips: the request must use TLS on every hop up to the domain of the URI.'
@@ -49,9 +65,11 @@ function partText(p: UriPart, d: Dissection): string {
   }
 }
 
-export default function UriDissector({ quotes }: Props) {
-  const [value, setValue] = useState(PRESETS[2]![1]);
-  const d = useMemo(() => dissect(value), [value]);
+export default function UriDissector({ quotes, mode = 'uri' }: Props) {
+  const header = mode === 'header';
+  const presets = header ? HEADER_PRESETS : PRESETS;
+  const [value, setValue] = useState((header ? HEADER_PRESETS[0] : PRESETS[2])![1]);
+  const d = useMemo(() => dissect(value, { header }), [value, header]);
   const labelled = d.parts.filter(p => p.kind !== 'sep');
   const [selStart, setSelStart] = useState<number | null>(null);
   const [hoverStart, setHoverStart] = useState<number | null>(null);
@@ -62,8 +80,8 @@ export default function UriDissector({ quotes }: Props) {
     <figure className="stage urid">
       <header className="stage-head">
         <div>
-          <p className="eyebrow">URI dissector</p>
-          <p className="stage-title">What does each part of this URI do?</p>
+          <p className="eyebrow">{header ? 'Header value dissector' : 'URI dissector'}</p>
+          <p className="stage-title">{header ? 'Who owns each parameter: the URI or the header?' : 'What does each part of this URI do?'}</p>
         </div>
         <ul className="legend" aria-label="Legend">
           <li><i className="lg-sip" />SIP</li>
@@ -73,11 +91,11 @@ export default function UriDissector({ quotes }: Props) {
       </header>
 
       <label className="ac-input ud-input">
-        <span className="eyebrow">URI or header value</span>
+        <span className="eyebrow">{header ? 'Header line' : 'URI or header value'}</span>
         <input value={value} onChange={e => { setValue(e.target.value); setSelStart(null); }} spellCheck={false} autoComplete="off" />
       </label>
       <div className="ac-presets" aria-label="Examples">
-        {PRESETS.map(([label, v]) => (
+        {presets.map(([label, v]) => (
           <button key={v} type="button" onClick={() => { setValue(v); setSelStart(null); }} aria-pressed={value === v} title={v}>{label}</button>
         ))}
       </div>
@@ -104,6 +122,21 @@ export default function UriDissector({ quotes }: Props) {
             </button>
           ))}
       </div>
+
+      {header && (
+        <div className="ud-owners">
+          <div className="ud-owner">
+            <p className="eyebrow">The URI</p>
+            <p className="ud-owner-val">{d.uri ?? '—'}</p>
+            <p className="ud-owner-note">The element sends to this URI, with these URI parameters.</p>
+          </div>
+          <div className="ud-owner">
+            <p className="eyebrow">Header parameters</p>
+            <p className="ud-owner-val">{d.headerParams?.length ? d.headerParams.join('  ·  ') : 'none'}</p>
+            <p className="ud-owner-note">These describe the header field, not the URI: tag, expires, q.</p>
+          </div>
+        </div>
+      )}
 
       <div className="ud-main">
         <div className="ud-explain" aria-live="polite">

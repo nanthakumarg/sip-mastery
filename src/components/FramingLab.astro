@@ -1,0 +1,10 @@
+---
+/** <FramingLab /> : how a receiver finds where each message ends (Module 4.5) */
+import Island from '../diagrams/FramingLab.tsx';
+import { flowBundle, quoteMap } from '../lib/bundle.ts';
+
+const [b] = await flowBundle('tcp-two-messages');
+const [first, second] = b!.flow.steps.map(s => s.wire!);
+const quotes = quoteMap(['rfc3261-7.5-stream', 'rfc3261-18.3-udp', 'rfc3261-7-crlf']);
+---
+<div class="wide"><Island client:visible first={first!} second={second!} quotes={quotes} /></div>

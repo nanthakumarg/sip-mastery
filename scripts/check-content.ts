@@ -3,10 +3,12 @@
  * and checks that every quote id used by a flow exists.
  * Exit code 1 on any error. Warnings are printed but do not fail the build.
  */
-import { glossaryTerms, listFlowIds, loadElements, loadFlow, loadQuotes } from '../src/lib/data.ts';
+import { glossaryTerms, listFlowIds, loadElements, loadFlow, loadHeaderRef, loadQuotes } from '../src/lib/data.ts';
 import { lintDiagram } from '../src/sip/lint-diagram.ts';
 import { lintFlow, type LintIssue } from '../src/sip/lint-flow.ts';
 
+// Parse every data file first, so a YAML error fails here and not only in the dev server.
+loadHeaderRef();
 const terms = glossaryTerms();
 const quoteIds = new Set(loadQuotes().map(q => q.id));
 let errors = 0;

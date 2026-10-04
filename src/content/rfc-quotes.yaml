@@ -555,3 +555,170 @@
     If the target set remains empty after applying all of the above, the
     proxy MUST return an error response, which SHOULD be the 480 (Temporarily
     Unavailable) response.
+
+# --- Module 4: Anatomy of a SIP message ---------------------------------------
+- id: rfc3261-7-parts
+  rfc: 3261
+  section: "7"
+  title: SIP Messages
+  text: >-
+    Both types of messages consist of a start-line, one or more header fields,
+    an empty line indicating the end of the header fields, and an optional
+    message-body.
+
+- id: rfc3261-7-crlf
+  rfc: 3261
+  section: "7"
+  title: SIP Messages
+  text: >-
+    The start-line, each message-header line, and the empty line MUST be
+    terminated by a carriage-return line-feed sequence (CRLF). Note that the
+    empty line MUST be present even if the message-body is not.
+
+- id: rfc3261-7.1-request-line
+  rfc: 3261
+  section: "7.1"
+  title: Requests
+  text: >-
+    A Request-Line contains a method name, a Request-URI, and the protocol
+    version separated by a single space (SP) character.
+
+- id: rfc3261-7.1-ruri-brackets
+  rfc: 3261
+  section: "7.1"
+  title: Requests
+  text: >-
+    The Request-URI MUST NOT contain unescaped spaces or control characters
+    and MUST NOT be enclosed in "<>".
+
+- id: rfc3261-7.2-reason-phrase
+  rfc: 3261
+  section: "7.2"
+  title: Responses
+  text: >-
+    The Status-Code is intended for use by automata, whereas the Reason-Phrase
+    is intended for the human user. A client is not required to examine or
+    display the Reason-Phrase.
+
+- id: rfc3261-7.3.1-order
+  rfc: 3261
+  section: "7.3.1"
+  title: Header Field Format
+  text: >-
+    The relative order of header fields with different field names is not
+    significant.
+
+- id: rfc3261-7.3.1-combine
+  rfc: 3261
+  section: "7.3.1"
+  title: Header Field Format
+  text: >-
+    It MUST be possible to combine the multiple header field rows into one
+    "field-name: field-value" pair, without changing the semantics of the
+    message, by appending each subsequent field-value to the first, each
+    separated by a comma.
+
+- id: rfc3261-7.3.1-auth-not-combined
+  rfc: 3261
+  section: "7.3.1"
+  title: Header Field Format
+  text: >-
+    Multiple header field rows with these names MAY be present in a message,
+    but since their grammar does not follow the general form listed in
+    Section 7.3, they MUST NOT be combined into a single header field row.
+
+- id: rfc3261-7.3.1-case
+  rfc: 3261
+  section: "7.3.1"
+  title: Header Field Format
+  text: >-
+    When comparing header fields, field names are always case-insensitive.
+    Unless otherwise stated in the definition of a particular header field,
+    field values, parameter names, and parameter values are case-insensitive.
+
+- id: rfc3261-7.3.3-compact
+  rfc: 3261
+  section: "7.3.3"
+  title: Compact Form
+  text: >-
+    A compact form MAY be substituted for the longer form of a header field
+    name at any time without changing the semantics of the message. A header
+    field name MAY appear in both long and short forms within the same
+    message. Implementations MUST accept both the long and short forms of
+    each header name.
+
+- id: rfc3261-7.4.1-content-type
+  rfc: 3261
+  section: "7.4.1"
+  title: Message Body Type
+  text: >-
+    The Internet media type of the message body MUST be given by the
+    Content-Type header field.
+
+- id: rfc3261-7.5-stream
+  rfc: 3261
+  section: "7.5"
+  title: Framing SIP Messages
+  text: >-
+    The Content-Length header field value is used to locate the end of each
+    SIP message in a stream. It will always be present when SIP messages are
+    sent over stream-oriented transports.
+
+- id: rfc3261-18.3-udp
+  rfc: 3261
+  section: "18.3"
+  title: Framing
+  text: >-
+    If there are additional bytes in the transport packet beyond the end of
+    the body, they MUST be discarded. If the transport packet ends before the
+    end of the message body, this is considered an error. If the message is a
+    response, it MUST be discarded. If the message is a request, the element
+    SHOULD generate a 400 (Bad Request) response.
+
+- id: rfc3261-20.14-octets
+  rfc: 3261
+  section: "20.14"
+  title: Content-Length
+  text: >-
+    The size of the message-body does not include the CRLF separating header
+    fields and body. Any Content-Length greater than or equal to zero is a
+    valid value. If no body is present in a message, then the Content-Length
+    header field value MUST be set to zero.
+
+- id: rfc3261-20.10-brackets
+  rfc: 3261
+  section: "20.10"
+  title: Contact
+  text: >-
+    If no "<" and ">" are present, all parameters after the URI are header
+    parameters, not URI parameters.
+
+- id: rfc3261-20.10-name-addr
+  rfc: 3261
+  section: "20.10"
+  title: Contact
+  text: >-
+    Even if the "display-name" is empty, the "name-addr" form MUST be used if
+    the "addr-spec" contains a comma, semicolon, or question mark.
+
+- id: rfc3261-8.1.1.4-call-id-case
+  rfc: 3261
+  section: "8.1.1.4"
+  title: Call-ID
+  text: >-
+    Call-IDs are case-sensitive and are simply compared byte-by-byte.
+
+- id: rfc3261-20.16-cseq-case
+  rfc: 3261
+  section: "20.16"
+  title: CSeq
+  text: >-
+    The method part of CSeq is case-sensitive.
+
+- id: rfc3261-7.1-version-case
+  rfc: 3261
+  section: "7.1"
+  title: Requests
+  text: >-
+    The SIP-Version string is case-insensitive, but implementations MUST send
+    upper-case.

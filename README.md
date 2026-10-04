@@ -56,6 +56,7 @@ All course content lives in `src/content/`.
 <Stats><Stat value="407" label="…" /></Stats>
 <CompareFlows a="udp-options" b="tcp-options" labels={['UDP', 'TCP']} />   two flows behind a switch
 <ElementGallery initial="stateful" />                         one card per SIP element (elements.yaml)
+<MessageAnatomy />  <FramingLab />  <UriDissector mode="header" />
 <UriDissector />  <LocationService />  <AddressClassifier />  <NatRewrite />  <PacketExplorer flow="…" step={1} />
 ```
 

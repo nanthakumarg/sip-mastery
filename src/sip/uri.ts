@@ -11,7 +11,7 @@
 import { classify } from '../net/address.ts';
 
 export type UriPartKind =
-  | 'display' | 'scheme' | 'user' | 'password' | 'host' | 'port'
+  | 'hname' | 'display' | 'scheme' | 'user' | 'password' | 'host' | 'port'
   | 'uri-param' | 'uri-header' | 'header-param' | 'number' | 'tel-param' | 'sep';
 
 export interface UriPart {
@@ -40,9 +40,26 @@ export interface Dissection {
   notes: UriNote[];
   /** A guess at the role of the URI: an AOR, a Contact, a proxy in a route set, or a phone number. */
   role?: 'aor' | 'contact' | 'route' | 'phone' | 'server';
+  /** The URI alone, as an element extracts it (without display name and header parameters). */
+  uri?: string;
+  /** Header mode: the header parameters, as name[=value]. */
+  headerParams?: string[];
 }
 
+export interface DissectOptions {
+  /**
+   * Read the input as a header value, such as "Contact: sip:a@b;expires=60".
+   * Without angle brackets, parameters after the URI then belong to the header (RFC 3261 §20.10).
+   */
+  header?: boolean;
+}
+
+/** Parameters defined for URIs, and parameters defined for headers: used to spot the angle-bracket mistake. */
+const URI_ONLY = new Set(['transport', 'lr', 'maddr', 'ttl', 'method', 'user', 'ob', 'gr']);
+const HEADER_ONLY = new Set(['tag', 'expires', 'q', '+sip.instance', 'reg-id', 'received', 'rport', 'branch']);
+
 export const PART_LABEL: Record<UriPartKind, string> = {
+  hname: 'header name',
   display: 'display name',
   scheme: 'scheme',
   user: 'user',
@@ -83,7 +100,7 @@ export const PARAM_TEXT: Record<string, string> = {
 const isIp = (h: string) => /^\[[0-9a-fA-F:.]+\]$/.test(h) || /^\d{1,3}(\.\d{1,3}){3}$/.test(h);
 const looksLikePhone = (u: string) => /^\+?[\d\-.()]{5,}$/.test(u) && /\d{5,}/.test(u.replace(/[^\d]/g, ''));
 
-export function dissect(raw: string): Dissection {
+export function dissect(raw: string, opts: DissectOptions = {}): Dissection {
   const input = raw.trim();
   const parts: UriPart[] = [];
   const notes: UriNote[] = [];
@@ -96,12 +113,23 @@ export function dissect(raw: string): Dissection {
     if (text) parts.push({ kind, text, start, ...extra });
   };
 
+  // Header mode: "Name: value"
+  let from = 0;
+  if (opts.header) {
+    const h = /^([A-Za-z][A-Za-z0-9.!%*_+`'~-]*)(\s*:\s*)/.exec(input);
+    if (h) {
+      push('hname', h[1]!, 0);
+      push('sep', ':', h[1]!.length + h[2]!.indexOf(':'));
+      from = h[0].length;
+    }
+  }
+
   // name-addr: [display-name] "<" URI ">" *( ";" header-param )
-  let uri = input;
-  let base = 0;
+  let uri = input.slice(from);
+  let base = from;
   let after = '';
   let afterAt = 0;
-  const lt = input.indexOf('<');
+  const lt = input.indexOf('<', from);
   if (lt >= 0) {
     const gt = input.indexOf('>', lt);
     if (gt < 0) {
@@ -109,8 +137,8 @@ export function dissect(raw: string): Dissection {
       return d;
     }
     d.nameAddr = true;
-    const display = input.slice(0, lt);
-    if (display.trim()) push('display', display.trimEnd(), 0);
+    const display = input.slice(from, lt);
+    if (display.trim()) push('display', display.trim(), from + display.indexOf(display.trim()));
     push('sep', '<', lt);
     uri = input.slice(lt + 1, gt);
     base = lt + 1;
@@ -134,7 +162,7 @@ export function dissect(raw: string): Dissection {
   push('sep', ':', base + colon);
 
   if (scheme === 'tel') dissectTel(uri.slice(colon + 1), base + colon + 1, d, push);
-  else dissectSip(uri.slice(colon + 1), base + colon + 1, d, push);
+  else dissectSip(uri.slice(colon + 1), base + colon + 1, d, push, !!opts.header && !d.nameAddr);
 
   if (d.nameAddr) {
     push('sep', '>', afterAt - 1);
@@ -146,8 +174,16 @@ export function dissect(raw: string): Dissection {
       push('header-param', seg, at + 1, { name, value });
       at += seg.length + 1;
       if (name === 'tag') notes.push({ level: 'info', text: 'tag is a header parameter: it sits outside the angle brackets, so it belongs to the To or From header, not to the URI.' });
+      if (opts.header && URI_ONLY.has(name)) {
+        notes.push({ level: 'warn', text: `"${name}" is a URI parameter, but it sits outside the angle brackets. The element will not use it when it sends to this URI.` });
+      }
     }
-  } else if (parts.some(p => p.kind === 'uri-param')) {
+  } else if (opts.header && parts.some(p => p.kind === 'header-param')) {
+    notes.push({ level: 'info', text: 'No angle brackets: every parameter after the URI belongs to the header, not to the URI.', quote: 'rfc3261-20.10-brackets' });
+    for (const p of parts.filter(x => x.kind === 'header-param' && URI_ONLY.has(x.name ?? ''))) {
+      notes.push({ level: 'warn', text: `"${p.name}" is meant for the URI, but without angle brackets it becomes a header parameter. The element will not use it. Write <${input.slice(parts.find(x => x.kind === 'scheme')!.start, p.start - 1)};${p.text}>.`, quote: 'rfc3261-20.10-name-addr' });
+    }
+  } else if (!opts.header && parts.some(p => p.kind === 'uri-param')) {
     notes.push({
       level: 'info',
       text: 'There are no angle brackets. In a To, From, or Contact header, every ";parameter" here would belong to the header, not to the URI (Module 4).',
@@ -155,6 +191,12 @@ export function dissect(raw: string): Dissection {
   }
 
   if (scheme !== 'tel' && !notes.some(n => n.level === 'error')) d.role = guessRole(d);
+  const inUri = parts.filter(p => p.kind !== 'hname' && p.kind !== 'display' && p.kind !== 'header-param' && p.kind !== 'sep');
+  if (inUri.length) {
+    const last = inUri[inUri.length - 1]!;
+    d.uri = input.slice(inUri[0]!.start, last.start + last.text.length);
+  }
+  d.headerParams = parts.filter(p => p.kind === 'header-param').map(p => p.text);
   return d;
 }
 
@@ -165,7 +207,7 @@ function splitParam(seg: string): [string, string | undefined] {
   return eq < 0 ? [seg.toLowerCase(), undefined] : [seg.slice(0, eq).toLowerCase(), seg.slice(eq + 1)];
 }
 
-function dissectSip(rest: string, at: number, d: Dissection, push: Push) {
+function dissectSip(rest: string, at: number, d: Dissection, push: Push, paramsAreHeader = false) {
   const { notes } = d;
   const q = rest.indexOf('?');
   const main = q >= 0 ? rest.slice(0, q) : rest;
@@ -238,8 +280,12 @@ function dissectSip(rest: string, at: number, d: Dissection, push: Push) {
     for (const seg of hostPart.slice(semi + 1).split(';')) {
       push('sep', ';', pAt);
       const [name, value] = splitParam(seg);
-      push('uri-param', seg, pAt + 1, { name, value });
+      push(paramsAreHeader ? 'header-param' : 'uri-param', seg, pAt + 1, { name, value });
       pAt += seg.length + 1;
+      if (d.nameAddr && HEADER_ONLY.has(name)) {
+        d.notes.push({ level: 'warn', text: `"${name}" is a header parameter, but it sits inside the angle brackets, so it is part of the URI. The element will not read it as a header parameter.` });
+      }
+      if (paramsAreHeader) continue;
       if (seen.has(name)) notes.push({ level: 'error', text: `The parameter "${name}" appears twice. Each URI parameter may appear only once.` });
       seen.add(name);
       const v = value?.toLowerCase();
@@ -256,6 +302,9 @@ function dissectSip(rest: string, at: number, d: Dissection, push: Push) {
   }
 
   // URI headers
+  if (q >= 0 && paramsAreHeader) {
+    notes.push({ level: 'error', text: 'A URI with "?" must be inside angle brackets in a header.', quote: 'rfc3261-20.10-name-addr' });
+  }
   if (q >= 0) {
     push('sep', '?', at + q);
     let hAt = at + q + 1;

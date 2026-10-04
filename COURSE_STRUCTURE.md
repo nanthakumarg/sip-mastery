@@ -147,12 +147,12 @@ Every module uses the same layout:
 - 4.6 Case rules: which parts are case-insensitive
 - 4.7 Header parameters and URI parameters (the angle-bracket rule)
 
-**Diagrams:** 🔬 *Message inspector*: a full INVITE where you point at a line to see what it means and which RFC section defines it. 🧱 *Message layers*: the start line, headers, empty line, and body separate and join with an animation.
+**Diagrams:** 🔬 *Message inspector*: a full INVITE where you point at a line to see what it means and which RFC section defines it. 🧱 *Message layers*: the start line, headers, empty line, and body separate and join with an animation. 🧮 *Framing lab*: break Content-Length or the line endings and see where a receiver thinks each message ends, over TCP and UDP.
 
 **Common mistakes**
 - A wrong Content-Length after a body is changed.
 - LF line endings instead of CRLF.
-- No angle brackets: `Contact: sip:a@b;expires=60` puts `expires` on the URI, not on the header.
+- No angle brackets: `Contact: sip:a@b;transport=tcp` makes `transport` a header parameter, so the URI loses it (RFC 3261 §20.10). The reverse also happens: `<sip:a@b;expires=60>` traps `expires` inside the URI.
 
 **RFC sections:** RFC 3261 §7 (SIP Messages), §7.3.3 (Compact Form), §7.5 (Framing SIP Messages), §20.10 (Contact)
 

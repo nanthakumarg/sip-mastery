@@ -1,0 +1,20 @@
+---
+/** <MessageAnatomy /> : the four parts of a SIP message (Module 4) */
+import Island from '../diagrams/MessageAnatomy.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+
+// Each sample is one message from a linted flow: [label, flow id, 1-based step].
+const SAMPLES: [string, string, number][] = [
+  ['INVITE', 'proxy-stateful', 3],
+  ['180 Ringing', 'proxy-stateful', 4],
+  ['REGISTER', 'register-401', 1],
+  ['Multipart INVITE', 'multipart-invite', 1],
+];
+const bundles = await flowBundle(...new Set(SAMPLES.map(s => s[1])));
+const samples = SAMPLES.map(([label, flow, step]) => {
+  const wire = bundles.find(b => b.flow.id === flow)!.flow.steps[step - 1]!.wire;
+  if (!wire) throw new Error(`MessageAnatomy: ${flow} step ${step} has no SIP message`);
+  return { id: `${flow}-${step}`, label, wire };
+});
+---
+<div class="wide"><Island client:visible samples={samples} refData={bundles[0]!.refData} /></div>

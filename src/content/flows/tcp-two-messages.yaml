@@ -1,0 +1,47 @@
+id: tcp-two-messages
+title: Two messages on one TCP connection
+summary: Proxy A sends an INVITE and then a BYE for another call over the same TCP connection. The receiver uses Content-Length to find where the INVITE ends.
+lanes:
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+steps:
+  - from: proxyA
+    to: proxyB
+    label: INVITE
+    caption: Proxy A forwards an INVITE over TCP. Its body is SDP.
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/TCP 198.51.100.10:5060;branch=z9hG4bKpa4790
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: proxyA
+    to: proxyB
+    label: BYE
+    caption: On the same connection, Proxy A forwards a BYE for another call. It has no body.
+    message: |
+      BYE sip:dave@203.0.113.40:5060 SIP/2.0
+      Via: SIP/2.0/TCP 198.51.100.10:5060;branch=z9hG4bKpa5102
+      Via: SIP/2.0/UDP 192.0.2.11:5060;branch=z9hG4bK33c1a
+      Max-Forwards: 69
+      From: Carol <sip:carol@atlanta.example>;tag=c71e
+      To: Dave <sip:dave@biloxi.example>;tag=d903
+      Call-ID: 7a1c9e02@192.0.2.11
+      CSeq: 4 BYE
+      Content-Length: {auto}

@@ -73,6 +73,26 @@ headers:
     rfc: 3261
     section: "20.28"
     who: The UAC. Proxies never add it.
+  Allow:
+    summary: The methods that the sender supports, for example INVITE, ACK, BYE, CANCEL, OPTIONS.
+    rfc: 3261
+    section: "20.5"
+  Supported:
+    summary: The extensions (option tags) that the sender supports, for example timer or 100rel.
+    rfc: 3261
+    section: "20.37"
+  Subject:
+    summary: A short summary of the call, for people to read. Compact form s.
+    rfc: 3261
+    section: "20.36"
+  Geolocation:
+    summary: "Points to the caller's location. A cid: URI points to a body part with the same Content-ID."
+    rfc: 6442
+    section: "4.1"
+  Geolocation-Routing:
+    summary: Says whether proxies may use the location to route the request, for example to the nearest emergency centre.
+    rfc: 6442
+    section: "4.2"
   Content-Type:
     summary: The type of the body, for example application/sdp.
     rfc: 3261

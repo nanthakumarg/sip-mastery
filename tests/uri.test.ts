@@ -52,3 +52,38 @@ describe('dissect', () => {
     expect(levels('tel:7042;phone-context=example.com')).not.toContain('error');
   });
 });
+
+describe('dissect in header mode (RFC 3261 §20.10)', () => {
+  const h = (s: string) => dissect(s, { header: true });
+
+  it('reads the header name and keeps params outside the brackets on the header', () => {
+    const d = h('Contact: <sip:alice@192.0.2.10:5060;transport=tcp>;expires=3600');
+    expect(d.parts[0]).toMatchObject({ kind: 'hname', text: 'Contact' });
+    expect(d.uri).toBe('sip:alice@192.0.2.10:5060;transport=tcp');
+    expect(d.headerParams).toEqual(['expires=3600']);
+    expect(d.notes.some(n => n.level !== 'info')).toBe(false);
+  });
+
+  it('gives every parameter to the header when there are no brackets', () => {
+    const d = h('Contact: sip:alice@192.0.2.10:5060;expires=3600');
+    expect(d.uri).toBe('sip:alice@192.0.2.10:5060');
+    expect(d.headerParams).toEqual(['expires=3600']);
+    expect(d.notes.some(n => n.level === 'warn')).toBe(false);
+  });
+
+  it('warns when a URI parameter loses its brackets', () => {
+    const d = h('Contact: sip:alice@192.0.2.10:5060;transport=tcp');
+    expect(d.headerParams).toEqual(['transport=tcp']);
+    expect(d.notes.find(n => n.level === 'warn')?.text).toMatch(/<sip:alice@192\.0\.2\.10:5060;transport=tcp>/);
+  });
+
+  it('warns when a header parameter is trapped inside the brackets', () => {
+    const d = h('Contact: <sip:alice@192.0.2.10:5060;expires=3600>');
+    expect(d.headerParams).toEqual([]);
+    expect(d.notes.some(n => n.level === 'warn' && /expires/.test(n.text))).toBe(true);
+  });
+
+  it('reads compact header names', () => {
+    expect(h('m: <sip:alice@192.0.2.10>').parts[0]).toMatchObject({ kind: 'hname', text: 'm' });
+  });
+});

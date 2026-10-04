@@ -1,0 +1,62 @@
+id: multipart-invite
+title: An emergency INVITE with two body parts
+summary: The INVITE carries the SDP and the caller's location in one multipart body (RFC 6442). Content-Length counts the whole multipart body.
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+steps:
+  - from: alice
+    to: proxyA
+    label: INVITE (with location)
+    caption: Alice's phone calls the emergency service. The body has two parts, the SDP and the location.
+    message: |
+      INVITE urn:service:sos SIP/2.0
+      Via: SIP/2.0/TCP 192.0.2.10:5060;branch=z9hG4bK7a3e1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=5c8f2a
+      To: <urn:service:sos>
+      Call-ID: 9b2e7c4d1a@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060;transport=tcp>
+      Geolocation: <cid:alice-loc@atlanta.example>
+      Geolocation-Routing: yes
+      Content-Type: multipart/mixed; boundary=boundary1
+      Content-Length: {auto}
+
+      --boundary1
+      Content-Type: application/sdp
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+      --boundary1
+      Content-Type: application/pidf+xml
+      Content-ID: <alice-loc@atlanta.example>
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <presence xmlns="urn:ietf:params:xml:ns:pidf"
+          xmlns:gp="urn:ietf:params:xml:ns:pidf:geopriv10"
+          xmlns:gml="http://www.opengis.net/gml"
+          entity="pres:alice@atlanta.example">
+        <tuple id="loc1">
+          <status>
+            <gp:geopriv>
+              <gp:location-info>
+                <gml:location>
+                  <gml:Point srsName="urn:ogc:def:crs:EPSG::4326">
+                    <gml:pos>33.7490 -84.3880</gml:pos>
+                  </gml:Point>
+                </gml:location>
+              </gp:location-info>
+              <gp:usage-rules/>
+              <gp:method>GPS</gp:method>
+            </gp:geopriv>
+          </status>
+        </tuple>
+      </presence>
+      --boundary1--

@@ -1,0 +1,297 @@
+---
+module: 4
+title: Anatomy of a SIP message
+part: 2
+level: [basic]
+paths: { noc: core, dev: core }
+summary: Every SIP message has the same four parts. Learn to read each one, how a receiver finds where a message ends, which parts are case-sensitive, and why angle brackets change the meaning of a header.
+objectives:
+  - Name the four parts of a SIP message, and read a request line and a status line.
+  - Read a header row, and combine or split repeated headers without changing their meaning.
+  - Recognise the compact form of common headers.
+  - Explain how Content-Length frames a message over TCP and over UDP, and what a wrong value breaks.
+  - Say which parts of a message are case-sensitive.
+  - Tell a URI parameter from a header parameter by the angle brackets.
+status: draft
+---
+
+## 4.1 Four parts: start line, headers, empty line, body
+
+SIP is a text protocol. A SIP message looks like an email or an HTTP message, and you can read it in any packet capture. Requests and responses have the same structure:
+
+<RfcQuote id="rfc3261-7-parts" />
+
+Explore one message. Point at a line — or at one part of the start line — to see what it means. Turn on **Show line endings** to see the two invisible bytes at the end of every line, and turn off **Separate the layers** to see the message as it travels.
+
+<MessageAnatomy />
+
+### The request line
+
+The first line of a request has exactly three parts, separated by single spaces:
+
+```
+INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+└─┬──┘ └──────────┬────────────┘ └──┬──┘
+method       Request-URI         version
+```
+
+<RfcQuote id="rfc3261-7.1-request-line" />
+
+The Request-URI is the current target. A proxy replaces it as it routes the request (Module 3), so the same INVITE has a different Request-URI on each hop. It is a bare URI — never in angle brackets:
+
+<RfcQuote id="rfc3261-7.1-ruri-brackets" />
+
+### The status line
+
+The first line of a response also has three parts:
+
+```
+SIP/2.0 180 Ringing
+└──┬──┘ └┬┘ └──┬──┘
+version code  reason phrase
+```
+
+The three-digit status code carries the meaning. The reason phrase is only for people: a phone that sends `180 Ringing, please wait` or `180 Sonnerie` sends the same response. Module 6 covers the codes.
+
+<RfcQuote id="rfc3261-7.2-reason-phrase" />
+
+## 4.2 Headers
+
+Each header row is a name, a colon, and a value:
+
+```
+Max-Forwards: 70
+```
+
+Spaces around the colon are allowed, but the usual form is no space before the colon and one space after it. RFC 3261 also allows a long header to continue on the next line, if that line starts with a space or a tab — but some parsers handle this badly, so senders avoid it.
+
+### Six headers in every request
+
+| Header | Says | Module |
+|---|---|---|
+| Via | The path back for the responses, and the transaction id (branch) | 10 |
+| Max-Forwards | How many more hops the request may take | 10 |
+| From | Who sent the request, and the sender's tag | 9 |
+| To | Who the request is for, and, in a dialog, the other side's tag | 9 |
+| Call-ID | Which call (or registration) this belongs to | 9 |
+| CSeq | A sequence number and the method | 8 |
+
+An INVITE also needs a **Contact**: the address where the other side sends its next requests. Responses copy Via, From, To, Call-ID, and CSeq from the request.
+
+### Order and repeated headers
+
+The order of headers with *different* names does not matter. The order of rows with the *same* name does: the top Via is the most recent hop.
+
+<RfcQuote id="rfc3261-7.3.1-order" />
+
+When a header can hold a comma-separated list, several rows can become one row, and one row can become several. These two forms are the same message:
+
+```
+Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb721e
+Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+```
+
+```
+Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb721e, SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9
+```
+
+<RfcQuote id="rfc3261-7.3.1-combine" />
+
+The four authentication headers are the exception. Their values contain commas of their own, so they always stay on separate rows:
+
+<RfcQuote id="rfc3261-7.3.1-auth-not-combined" />
+
+In the message above, select **INVITE** and turn on **Combine repeated headers**: the two Via rows become one, and the byte count changes. The meaning does not.
+
+## 4.3 Compact forms
+
+The most common headers have a one-letter name. A message may mix long and short names freely, and every receiver must accept both.
+
+<RfcQuote id="rfc3261-7.3.3-compact" />
+
+| Compact | Header | Defined in |
+|---|---|---|
+| `v` | Via | RFC 3261 |
+| `f` | From | RFC 3261 |
+| `t` | To | RFC 3261 |
+| `i` | Call-ID | RFC 3261 |
+| `m` | Contact ("moved") | RFC 3261 |
+| `l` | Content-Length | RFC 3261 |
+| `c` | Content-Type | RFC 3261 |
+| `e` | Content-Encoding | RFC 3261 |
+| `k` | Supported ("know") | RFC 3261 |
+| `s` | Subject | RFC 3261 |
+| `o` | Event | RFC 6665 |
+| `u` | Allow-Events | RFC 6665 |
+| `r` | Refer-To | RFC 3515 |
+| `b` | Referred-By | RFC 3892 |
+| `x` | Session-Expires | RFC 4028 |
+| `a`, `j`, `d` | Accept-Contact, Reject-Contact, Request-Disposition | RFC 3841 |
+| `y` | Identity | RFC 8224 |
+
+Compact forms save bytes. That matters over UDP, where a message larger than about 1300 bytes should move to TCP (Module 2). Turn on **Compact form** in the message above to see how much it saves.
+
+<Note title="For support engineers">
+A display filter on a header name may not match its compact form. In Wireshark, `sip.Via` matches both `Via:` and `v:`, because Wireshark decodes the compact form. A plain text search for `Via:` does not.
+</Note>
+
+## 4.4 The empty line and the body
+
+Every line ends with two bytes: **CR** (carriage return, `0x0D`) and **LF** (line feed, `0x0A`). The headers end with an **empty line**: a CR LF on its own. That empty line is always there — even when the message has no body.
+
+<RfcQuote id="rfc3261-7-crlf" />
+
+Select **REGISTER** in the message above: it has no body, but it still ends with the empty line, and its `Content-Length` is `0`.
+
+Everything after the empty line is the **body**. Its type is in `Content-Type`:
+
+<RfcQuote id="rfc3261-7.4.1-content-type" />
+
+| Content-Type | Carries | Typical message |
+|---|---|---|
+| `application/sdp` | A session description: codecs, addresses, ports (Module 15) | INVITE, 200 OK, UPDATE |
+| `application/pidf+xml` | Presence or location | NOTIFY, PUBLISH, emergency INVITE |
+| `message/sipfrag` | A fragment of a SIP message, such as `SIP/2.0 200 OK` | NOTIFY after REFER (Module 22) |
+| `application/dtmf-relay` | A key press | INFO (vendor format) |
+| `text/plain` | A text message | MESSAGE |
+| `multipart/mixed` | Several of the above, one after another | INVITE with SDP and location |
+
+## 4.5 Content-Length, framing, and multipart bodies
+
+`Content-Length` is the size of the body in bytes. It does not count the start line, the headers, or the empty line.
+
+<RfcQuote id="rfc3261-20.14-octets" />
+
+Its real job is **framing**: telling the receiver where a message ends.
+
+- Over **UDP**, each datagram carries exactly one message. If `Content-Length` disagrees with the datagram, the receiver discards extra bytes, or rejects a message that is too short.
+- Over **TCP** (and TLS), messages follow each other in one byte stream, with nothing between them. The receiver finds the empty line, then counts `Content-Length` bytes — and the next byte must be the start of the next message.
+
+<RfcQuote id="rfc3261-7.5-stream" />
+
+Break the INVITE and watch the receiver. Over TCP, one wrong number destroys every message after it on the connection.
+
+<FramingLab />
+
+<RfcQuote id="rfc3261-18.3-udp" />
+
+### Multipart bodies
+
+A message can carry several bodies at once with `multipart/mixed`. A **boundary** string, declared in `Content-Type`, separates the parts. Each part has its own small headers and its own empty line. The last boundary ends with `--`.
+
+```
+Content-Type: multipart/mixed; boundary=boundary1
+
+--boundary1
+Content-Type: application/sdp
+
+v=0
+…
+--boundary1
+Content-Type: application/pidf+xml
+Content-ID: <alice-loc@atlanta.example>
+
+<?xml version="1.0" encoding="UTF-8"?>
+…
+--boundary1--
+```
+
+Select **Multipart INVITE** in the message explorer at the top of this module: an emergency call that carries both the SDP and the caller's location (RFC 6442). `Content-Length` counts the whole multipart body, boundaries included.
+
+<Note kind="warn" title="Not every user agent reads multipart">
+A user agent that expects only SDP may reject a multipart body, or ignore the SDP inside it. RFC 3261 §7.4.1 says a sender must fall back to a plain SDP body if the other side's `Accept` header does not list multipart.
+</Note>
+
+## 4.6 Case rules
+
+Some parts of a message ignore upper and lower case. Others do not, and a mismatch silently breaks matching.
+
+| Part | Case | Example |
+|---|---|---|
+| Header names | Insensitive | `Via:`, `VIA:`, and `v:` are the same header |
+| Methods | **Sensitive** | `INVITE` is a method; `invite` is a different, unknown one |
+| SIP version | Insensitive, but always sent as `SIP/2.0` | |
+| Header values, parameter names, and parameter values | Insensitive, unless the header says otherwise | `;Transport=TCP` = `;transport=tcp` |
+| Quoted strings | **Sensitive** | `"Alice"` ≠ `"ALICE"` |
+| Call-ID | **Sensitive** | `a84b4c76e66710@pc33` ≠ `A84B4C76E66710@PC33` |
+| URI user part | **Sensitive** | `sip:Alice@…` ≠ `sip:alice@…` (Module 3) |
+| URI scheme and host | Insensitive | `SIP:alice@ATLANTA.example` = `sip:alice@atlanta.example` |
+
+<RfcQuote id="rfc3261-7.3.1-case" />
+
+<RfcQuote id="rfc3261-8.1.1.4-call-id-case" />
+
+<RfcQuote id="rfc3261-20.16-cseq-case" />
+
+<RfcQuote id="rfc3261-7.1-version-case" />
+
+## 4.7 Header parameters and URI parameters
+
+To, From, Contact, Route, and Record-Route hold a URI, and both the URI and the header can have parameters. **Angle brackets decide which is which.**
+
+```
+Contact: <sip:alice@192.0.2.10:5060;transport=tcp>;expires=3600
+          └──────────── the URI ────────────────┘ └ header ┘
+```
+
+Inside the brackets, `transport=tcp` belongs to the URI: it tells the next sender how to reach Alice's phone. Outside them, `expires=3600` belongs to the Contact header: it says how long the registration lasts. Without brackets, *every* parameter belongs to the header:
+
+<RfcQuote id="rfc3261-20.10-brackets" />
+
+So `Contact: sip:alice@192.0.2.10:5060;expires=3600` is correct: `expires` is a header parameter either way. But `Contact: sip:alice@192.0.2.10:5060;transport=tcp` is a bug: `transport` is now a header parameter, and the next request to Alice goes over UDP. That is why RFC 3261 requires brackets whenever the URI itself has parameters:
+
+<RfcQuote id="rfc3261-20.10-name-addr" />
+
+Pick an example, or type a header line, and see who owns each parameter.
+
+<UriDissector mode="header" />
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="A wrong Content-Length after the body changes">
+    A B2BUA, an SBC, or a script rewrites the SDP — a new address, a removed codec — and forgets to update `Content-Length`. Over UDP, part of the SDP is cut off, or the message is rejected with 400 Bad Request. Over TCP, the receiver loses the framing, and every later message on that connection fails.
+
+    <p class="fix"><b>Remember:</b> any element that changes a body recalculates Content-Length, in bytes, after the change. Count UTF-8 bytes, not characters.</p>
+  </Mistake>
+
+  <Mistake title="LF line endings instead of CR LF">
+    Test messages typed in an editor, generated by a script, or sent with `nc` often end their lines with LF only. A lenient parser accepts them, so the bug passes the lab test — and then a strict SBC or carrier rejects every call.
+
+    <p class="fix"><b>Remember:</b> every line, including the empty line, ends with CR LF (<code>\r\n</code>). In a hex dump, look for <code>0d 0a</code>, and <code>0d 0a 0d 0a</code> at the end of the headers.</p>
+  </Mistake>
+
+  <Mistake title="A URI parameter without angle brackets">
+    `Contact: sip:alice@192.0.2.10;transport=tcp` looks right, but without brackets `transport` belongs to the header, not to the URI. The other side sends its next request over UDP. The opposite mistake is also common: `Contact: <sip:alice@192.0.2.10;expires=60>` puts `expires` inside the URI, and the registrar ignores it.
+
+    <p class="fix"><b>Remember:</b> URI parameters go inside <code>&lt; &gt;</code>; header parameters (<code>tag</code>, <code>expires</code>, <code>q</code>) go outside. When in doubt, always use the brackets.</p>
+  </Mistake>
+
+  <Mistake title="Combining authentication headers with commas">
+    Combining repeated headers into one comma-separated row is allowed — except for WWW-Authenticate, Authorization, Proxy-Authenticate, and Proxy-Authorization. Their values already contain commas, so a combined row cannot be split again, and authentication fails.
+
+    <p class="fix"><b>Remember:</b> the four authentication headers always stay on separate rows.</p>
+  </Mistake>
+
+  <Mistake title="Reading the reason phrase instead of the code">
+    A script or a monitoring rule that matches `"Ringing"` or `"Busy Here"` breaks as soon as a device sends another phrase, in another language, or none at all.
+
+    <p class="fix"><b>Remember:</b> match the three-digit status code. The reason phrase is decoration.</p>
+  </Mistake>
+
+  <Mistake title="Reordering Via or Record-Route rows">
+    The order of headers with different names does not matter, so some tools sort or regroup headers. But the order of rows with the same name does: the top Via is the last hop, and Record-Route builds the route set in order.
+
+    <p class="fix"><b>Remember:</b> never change the order of rows with the same name.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A SIP message has four parts: a **start line**, **headers**, an **empty line**, and an optional **body**. Every line ends with **CR LF**.
+- A **request line** is `METHOD Request-URI SIP/2.0`. A **status line** is `SIP/2.0 code reason`. Software reads the code, never the reason phrase.
+- Header rows with the same name keep their order, and can be combined with commas — except the four authentication headers. Most common headers also have a one-letter **compact form**.
+- **Content-Length** is the body size in bytes. Over TCP, it is the only way to find where a message ends; a wrong value breaks the whole connection.
+- A **multipart** body carries several parts, separated by a boundary. Content-Length counts all of it.
+- Header names and most values are case-insensitive. Methods, Call-IDs, quoted strings, and the URI user part are **case-sensitive**.
+- **Angle brackets** decide ownership: parameters inside belong to the URI, parameters outside (or without brackets) belong to the header.

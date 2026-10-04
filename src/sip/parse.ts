@@ -33,11 +33,12 @@ export interface SipMessage {
 
 export class SipParseError extends Error {}
 
-/** RFC 3261 §7.3.3 compact forms, plus common extension compact forms. */
-const COMPACT: Record<string, string> = {
+/** Compact forms: RFC 3261 §7.3.3, plus the extensions in the IANA SIP header registry. */
+export const COMPACT: Record<string, string> = {
   i: 'Call-ID', m: 'Contact', e: 'Content-Encoding', l: 'Content-Length',
   c: 'Content-Type', f: 'From', s: 'Subject', k: 'Supported', t: 'To', v: 'Via',
   o: 'Event', r: 'Refer-To', b: 'Referred-By', u: 'Allow-Events', x: 'Session-Expires',
+  a: 'Accept-Contact', j: 'Reject-Contact', d: 'Request-Disposition', y: 'Identity',
 };
 
 /** Canonical spelling for headers whose usual case is not simple Title-Case. */
