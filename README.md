@@ -40,6 +40,7 @@ All course content lives in `src/content/`.
 | `rfc-index.json` | Generated from the official RFC index. Do not edit by hand. |
 | `glossary.yaml` | The controlled vocabulary. Lane labels and diagram labels must use these terms. |
 | `headers.yaml` | Explanations for the message inspector |
+| `codes.yaml` | The response code atlas: meaning, causes, origin, and Q.850 causes for each code (phrases follow IANA) |
 | `methods.yaml` | The method cards: facts and a short ladder for each SIP method (checked like a flow) |
 | `elements.yaml` | The element gallery cards: each points at a flow and the steps the element receives and sends |
 
@@ -57,7 +58,7 @@ All course content lives in `src/content/`.
 <Stats><Stat value="407" label="…" /></Stats>
 <CompareFlows a="udp-options" b="tcp-options" labels={['UDP', 'TCP']} />   two flows behind a switch
 <ElementGallery initial="stateful" />                         one card per SIP element (elements.yaml)
-<MethodCards initial="INVITE" />  <CapabilityLab />  <MessageAnatomy />  <FramingLab />  <UriDissector mode="header" />
+<CodeAtlas initial={486} />  <MethodCards initial="INVITE" />  <CapabilityLab />  <MessageAnatomy />  <FramingLab />  <UriDissector mode="header" />
 <UriDissector />  <LocationService />  <AddressClassifier />  <NatRewrite />  <PacketExplorer flow="…" step={1} />
 ```
 

@@ -121,3 +121,21 @@ export interface ElementCard {
 export function loadElements(): ElementCard[] {
   return read('elements.yaml') as ElementCard[];
 }
+
+export interface CodeEntry {
+  code: number;
+  phrase: string;
+  rfc: number;
+  section?: string;
+  origin: 'proxyA' | 'proxyB' | 'bob' | 'registrar';
+  method?: string;
+  act?: 'caller' | 'network' | 'callee';
+  meaning: string;
+  causes: string[];
+  phone: string;
+  q850?: number[];
+}
+
+export function loadCodes(): CodeEntry[] {
+  return (read('codes.yaml') as CodeEntry[]).map(c => ({ ...c, section: c.section === undefined ? undefined : String(c.section) }));
+}

@@ -1,0 +1,205 @@
+---
+module: 6
+title: Response codes
+part: 2
+level: [basic, intermediate]
+paths: { noc: core, dev: core }
+summary: What every class of response means, which element usually creates each common code, what the caller hears, and how SIP codes map to the cause values of the telephone network.
+objectives:
+  - Name the six response classes and what each means for the request.
+  - Explain the provisional responses 100, 180, 181, 182, and 183, and why 100 never travels end to end.
+  - For a final response, say who must act next — the caller, the network, or the callee — and which element usually created it.
+  - Handle an unknown code correctly.
+  - Read Retry-After, Warning, and Reason headers.
+  - Translate the common SIP codes to Q.850 cause values and back.
+status: draft
+---
+
+## 6.1 Six classes
+
+A response starts with a three-digit status code. The first digit says what kind of answer it is; the other two only pick the exact case.
+
+<RfcQuote id="rfc3261-7.2-class" />
+
+| Class | Name | Meaning | Ends the transaction? |
+|---|---|---|---|
+| **1xx** | Provisional | "Working on it." | No |
+| **2xx** | Success | "Done." | Yes |
+| **3xx** | Redirection | "Try somewhere else." | Yes |
+| **4xx** | Client error | "Your request has a problem, here." | Yes |
+| **5xx** | Server error | "I failed, not you." | Yes |
+| **6xx** | Global failure | "Nobody, anywhere, will accept this." | Yes |
+
+The difference between 4xx and 6xx matters to a forking proxy. A 486 Busy Here from one phone does not stop the proxy from trying the user's other phones or voicemail. A 600 Busy Everywhere tells it to stop trying.
+
+<RfcQuote id="rfc3261-21.6.1-600" />
+
+Explore the codes. Filter by class or by who must act, or search for a word. Select a code to see where it comes from, and switch to **By element** to see which element creates which codes.
+
+<CodeAtlas initial={486} />
+
+## 6.2 Provisional responses
+
+A 1xx response says that the request is in progress. It never ends the transaction, and it is never confirmed with ACK.
+
+<RfcQuote id="rfc3261-21.1-unreliable" />
+
+- **100 Trying** comes from the next hop: "I received your request." It stops the sender's retransmissions over UDP. Each stateful proxy sends its own 100 Trying, and it is never forwarded.
+- **180 Ringing**: the callee's phone is alerting. The caller's phone plays a local ringback tone.
+- **181 Call Is Being Forwarded**: a server forwards the call somewhere else.
+- **182 Queued**: the callee cannot take the call yet, so the call waits in a queue.
+- **183 Session Progress**: progress that no other 1xx describes. In practice, it usually carries SDP for **<Term t="early media" />**: the far network plays the ringback tone or an announcement itself, as RTP.
+
+<RfcQuote id="rfc3261-21.1.1-100" />
+
+Step through a call to the telephone network. Proxy A and the gateway each send their own 100 Trying, and the 183 opens a media path before anyone answers.
+
+<Flow id="early-media-183" eyebrow="Call flow · early media" />
+
+<RfcQuote id="rfc3261-21.1.5-183" />
+
+<Note title="For support engineers: &quot;no ringback&quot;">
+When a caller hears silence instead of ringback, look at the last 1xx. After a **180** without SDP, the caller's phone must play its own tone. After a **183** with SDP, it must play the RTP it receives — and if that RTP never arrives (NAT, firewall, or a wrong address in the SDP), the caller hears nothing.
+</Note>
+
+## 6.3 Final responses: who must act?
+
+For troubleshooting, the most useful question about a failure is: **who must change something?** The atlas groups the failure codes into three answers.
+
+| Who must act | Typical codes | Example |
+|---|---|---|
+| **The caller** fixes the request | 400, 401, 403, 404, 407, 415, 420, 484, 488 | Wrong number, missing credentials, no common codec |
+| **The network** failed | 408, 482, 483, 500, 502, 503, 504 | Server overloaded, no response, routing loop |
+| **The callee** said no | 480, 486, 600, 603, 607 | Busy, declined, not available |
+
+### 401 or 407?
+
+Both ask for credentials (Module 13), but they come from different places — and the answer goes in a different header.
+
+| | 401 Unauthorized | 407 Proxy Authentication Required |
+|---|---|---|
+| Sent by | A registrar or a UAS | A proxy |
+| Challenge header | `WWW-Authenticate` | `Proxy-Authenticate` |
+| Answer header | `Authorization` | `Proxy-Authorization` |
+
+<RfcQuote id="rfc3261-21.4.2-401" />
+
+### 503 means "this server", not "this call"
+
+A 503 Service Unavailable tells the client that the *server* is overloaded or in maintenance. The client tries another server, and may avoid this one for the time in Retry-After.
+
+<RfcQuote id="rfc3261-21.5.4-503" />
+
+Because of this, a proxy does not pass a 503 back to the caller unless every request would fail the same way. Usually it sends 500 instead:
+
+<RfcQuote id="rfc3261-16.7-503" />
+
+## 6.4 Unknown codes
+
+New RFCs add new codes, so a phone will meet codes it does not know. The rule is simple: treat an unknown code as the **x00** code of its class.
+
+<RfcQuote id="rfc3261-8.1.3.2-x00" />
+
+A phone that does not know 433 Anonymity Disallowed treats it as 400: the call failed, and the request was the problem. An unknown 1xx is treated as 183:
+
+<RfcQuote id="rfc3261-8.1.3.2-183" />
+
+## 6.5 Retry-After, Warning, and Reason
+
+Three headers add detail to a response — or, for Reason, to a request.
+
+```
+SIP/2.0 503 Service Unavailable
+Retry-After: 120
+```
+
+**Retry-After** says how long to wait before trying again: after 503 or 500, how long the server will be unavailable; after 486 or 480, when the callee might be free.
+
+<RfcQuote id="rfc3261-20.33-retry-after" />
+
+```
+SIP/2.0 488 Not Acceptable Here
+Warning: 304 sbc.atlanta.example "Media type not available"
+```
+
+**Warning** adds a three-digit warning code and a text. Codes 3xx describe problems with the SDP, such as 304 (media type not available) or 305 (incompatible media format) — exactly what you need to explain a 488.
+
+<RfcQuote id="rfc3261-20.43-warning" />
+
+```
+BYE sip:alice@192.0.2.10:5060 SIP/2.0
+Reason: Q.850;cause=16;text="Normal call clearing"
+
+CANCEL sip:bob@203.0.113.21:5062 SIP/2.0
+Reason: SIP;cause=200;text="Call completed elsewhere"
+```
+
+**Reason** (RFC 3326) says *why* a request ends something. In a BYE from a gateway, it carries the Q.850 cause from the telephone network. In a CANCEL from a forking proxy, `cause=200` tells the other phones that someone else answered — so they can avoid logging a missed call.
+
+<RfcQuote id="rfc3326-2-reason" />
+
+## 6.6 SIP codes and Q.850 causes
+
+The telephone network ends calls with **<Term t="Q.850" />** cause values. A gateway between SIP and ISUP must translate them. RFC 3398 defines the usual mapping; Module 24 covers the details.
+
+| Q.850 cause | Meaning | SIP response |
+|---|---|---|
+| 1 | Unallocated number | 404 Not Found |
+| 16 | Normal call clearing | — (a BYE or CANCEL, not a response) |
+| 17 | User busy | 486 Busy Here |
+| 18 | No user responding | 408 Request Timeout |
+| 19 | No answer from the user | 480 Temporarily Unavailable |
+| 21 | Call rejected | 403 Forbidden (or 603 Decline) |
+| 28 | Address incomplete | 484 Address Incomplete |
+| 34 | No circuit available | 503 Service Unavailable |
+| 38 | Network out of order | 503 Service Unavailable |
+| 41 | Temporary failure | 503 Service Unavailable |
+| 102 | Recovery on timer expiry | 504 Server Time-out |
+| 127 | Interworking, unspecified | 500 Server Internal Error |
+
+<Note kind="warn" title="Watch the 503 mappings">
+Several temporary PSTN failures map to **503**. A SIP proxy that receives such a 503 from a gateway may mark the whole gateway as unavailable — even though only one call failed. Many networks change this mapping on their gateways, or check the Reason header before failing over.
+</Note>
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Mixing up 401 and 407">
+    401 comes from a registrar or the callee, with `WWW-Authenticate`; the answer goes in `Authorization`. 407 comes from a proxy, with `Proxy-Authenticate`; the answer goes in `Proxy-Authorization`. A phone that answers a 407 with an Authorization header is challenged again and again.
+
+    <p class="fix"><b>Remember:</b> the answer header mirrors the challenge header. Proxy challenges get Proxy-Authorization.</p>
+  </Mistake>
+
+  <Mistake title="Reading 183 as “ringing”">
+    A 183 Session Progress does not say that a phone rings. It says "listen to the media I am sending you". If the phone plays its own ringback on 183, the caller misses announcements such as "the number you have called is not in service".
+
+    <p class="fix"><b>Remember:</b> 180 without SDP = play your own ringback. 183 with SDP = play the RTP.</p>
+  </Mistake>
+
+  <Mistake title="Sending 503 to reject one call">
+    A server that answers 503 to one call that it cannot route says, in SIP, "I am down". Upstream proxies fail over to another server, and may stop sending this server any calls for the Retry-After time.
+
+    <p class="fix"><b>Remember:</b> reject one call with a 4xx code that describes it (403, 404, 480, 488). Keep 503 for real overload or maintenance.</p>
+  </Mistake>
+
+  <Mistake title="Forwarding 100 Trying">
+    100 Trying is hop by hop: each stateful proxy sends its own and never forwards one. If the caller receives a 100 Trying that the far end created, a proxy on the path forwarded it by mistake.
+
+    <p class="fix"><b>Remember:</b> a 100 Trying only ever crosses one hop.</p>
+  </Mistake>
+
+  <Mistake title="Failing on an unknown code">
+    A phone that shows "unknown error" — or crashes — on a code such as 433 or 608 breaks a basic rule. Every unknown final response is handled like the x00 of its class.
+
+    <p class="fix"><b>Remember:</b> unknown 4xx = 400, unknown 5xx = 500, unknown 6xx = 600, unknown 1xx = 183.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- The first digit is the **class**: 1xx provisional, 2xx success, 3xx redirection, 4xx client error, 5xx server error, 6xx global failure.
+- **100 Trying** is hop by hop. **180** means ringing; **183** usually means early media, so the caller should play the RTP it receives.
+- For a failure, ask **who must act**: the caller (4xx), the network (5xx, 408), or the callee (480, 486, 6xx).
+- **401** is from a registrar or the callee, **407** from a proxy. **503** means the server is unavailable, not that one call failed.
+- An unknown final code is treated as the **x00** of its class.
+- **Retry-After**, **Warning**, and **Reason** add detail. Reason carries **Q.850** causes from the telephone network, and RFC 3398 maps them to SIP codes.

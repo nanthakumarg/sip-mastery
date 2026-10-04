@@ -1,0 +1,9 @@
+---
+/** <CodeAtlas initial={486} /> : the response code atlas (src/content/codes.yaml) */
+import Island from '../diagrams/CodeAtlas.tsx';
+import { loadCodes, rfcUrl } from '../lib/data.ts';
+
+interface Props { initial?: number }
+const codes = loadCodes().map(c => ({ ...c, url: rfcUrl(c.rfc, c.section) }));
+---
+<div class="wide"><Island client:visible codes={codes} initial={Astro.props.initial} /></div>

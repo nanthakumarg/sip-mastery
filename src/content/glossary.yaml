@@ -89,6 +89,10 @@
   definition: A dialog created by a 1xx response with a To tag, before the call is answered.
 - term: in-dialog request
   definition: A request sent inside an existing dialog. It carries both tags and follows the dialog's route set.
+- term: early media
+  definition: Audio sent before the call is answered, such as a ringback tone or an announcement from the far network.
+- term: Q.850
+  definition: The ITU-T list of cause values that telephone networks use to say why a call ended, such as 16 (normal clearing) or 17 (user busy).
 - term: location service
   definition: The database of bindings from AORs to Contact addresses.
 - term: stateless proxy

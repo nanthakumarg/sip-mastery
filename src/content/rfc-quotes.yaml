@@ -909,3 +909,115 @@
     Specifically, an element accepting a REFER request MUST NOT reply with a
     202 response code and MUST treat any 202 responses received as identical
     to a 200 response.
+
+# --- Module 6: Response codes ---------------------------------------------------
+- id: rfc3261-7.2-class
+  rfc: 3261
+  section: "7.2"
+  title: Responses
+  text: >-
+    The first digit of the Status-Code defines the class of response. The
+    last two digits do not have any categorization role.
+
+- id: rfc3261-21.1-unreliable
+  rfc: 3261
+  section: "21.1"
+  title: Provisional 1xx
+  text: >-
+    Note that 1xx responses are not transmitted reliably. They never cause the
+    client to send an ACK.
+
+- id: rfc3261-21.1.1-100
+  rfc: 3261
+  section: "21.1.1"
+  title: 100 Trying
+  text: >-
+    The 100 (Trying) response is different from other provisional responses,
+    in that it is never forwarded upstream by a stateful proxy.
+
+- id: rfc3261-21.1.5-183
+  rfc: 3261
+  section: "21.1.5"
+  title: 183 Session Progress
+  text: >-
+    The 183 (Session Progress) response is used to convey information about
+    the progress of the call that is not otherwise classified.
+
+- id: rfc3261-8.1.3.2-x00
+  rfc: 3261
+  section: "8.1.3.2"
+  title: Unrecognized Responses
+  text: >-
+    A UAC MUST treat any final response it does not recognize as being
+    equivalent to the x00 response code of that class, and MUST be able to
+    process the x00 response code for all classes.
+
+- id: rfc3261-8.1.3.2-183
+  rfc: 3261
+  section: "8.1.3.2"
+  title: Unrecognized Responses
+  text: >-
+    A UAC MUST treat any provisional response different than 100 that it does
+    not recognize as 183 (Session Progress).
+
+- id: rfc3261-21.4.2-401
+  rfc: 3261
+  section: "21.4.2"
+  title: 401 Unauthorized
+  text: >-
+    This response is issued by UASs and registrars, while 407 (Proxy
+    Authentication Required) is used by proxy servers.
+
+- id: rfc3261-21.5.4-503
+  rfc: 3261
+  section: "21.5.4"
+  title: 503 Service Unavailable
+  text: >-
+    A client (proxy or UAC) receiving a 503 (Service Unavailable) SHOULD
+    attempt to forward the request to an alternate server. It SHOULD NOT
+    forward any other requests to that server for the duration specified in
+    the Retry-After header field, if present.
+
+- id: rfc3261-16.7-503
+  rfc: 3261
+  section: "16.7"
+  title: Response Processing
+  text: >-
+    A proxy which receives a 503 (Service Unavailable) response SHOULD NOT
+    forward it upstream unless it can determine that any subsequent requests
+    it might proxy will also generate a 503.
+
+- id: rfc3261-21.6.1-600
+  rfc: 3261
+  section: "21.6.1"
+  title: 600 Busy Everywhere
+  text: >-
+    This status response is returned only if the client knows that no other
+    end point (such as a voice mail system) will answer the request.
+    Otherwise, 486 (Busy Here) should be returned.
+
+- id: rfc3261-20.33-retry-after
+  rfc: 3261
+  section: "20.33"
+  title: Retry-After
+  text: >-
+    The Retry-After header field can be used with a 500 (Server Internal
+    Error) or 503 (Service Unavailable) response to indicate how long the
+    service is expected to be unavailable to the requesting client
+
+- id: rfc3261-20.43-warning
+  rfc: 3261
+  section: "20.43"
+  title: Warning
+  text: >-
+    Warning header field values are sent with responses and contain a
+    three-digit warning code, host name, and warning text.
+
+- id: rfc3326-2-reason
+  rfc: 3326
+  section: "2"
+  title: The Reason Header Field
+  text: >-
+    The Reason header field MAY appear in any request within a dialog, in any
+    CANCEL request and in any response whose status code explicitly allows the
+    presence of this header field.

@@ -1,0 +1,239 @@
+# Response code atlas (Module 6). Reason phrases follow the IANA registry.
+# origin: the element that usually creates the response in the course
+#         topology (alice → proxyA → proxyB → bob, or alice → registrar).
+# act:    who must act after a final response: caller (fix the request),
+#         network (a server or the path failed), callee (the callee said no).
+# q850:   ISUP cause values that map to this code (RFC 3398 §7.2.4.1).
+
+- { code: 100, phrase: Trying, rfc: 3261, section: "21.1.1", origin: proxyA,
+    meaning: "The next hop received the request and is working on it. It stops the sender's retransmissions.",
+    causes: [Every stateful proxy sends it within 200 ms, It is never forwarded],
+    phone: Nothing yet }
+- { code: 180, phrase: Ringing, rfc: 3261, section: "21.1.2", origin: bob,
+    meaning: "The callee's phone is alerting the user. The caller plays a local ringback tone.",
+    causes: [The callee's phone rings],
+    phone: Ringback tone }
+- { code: 181, phrase: Call Is Being Forwarded, rfc: 3261, section: "21.1.3", origin: proxyB,
+    meaning: "A server forwards the call to another destination.",
+    causes: [Call forwarding rules, Hunt groups],
+    phone: "Ringback, sometimes a \"forwarded\" note" }
+- { code: 182, phrase: Queued, rfc: 3261, section: "21.1.4", origin: proxyB,
+    meaning: "The callee cannot take the call now, but the server queues it instead of rejecting it.",
+    causes: [Call centre queues],
+    phone: Queue announcement or music }
+- { code: 183, phrase: Session Progress, rfc: 3261, section: "21.1.5", origin: bob,
+    meaning: "Progress that no other 1xx describes. Usually it carries SDP for early media: ringback, an announcement, or a busy tone from the far network.",
+    causes: [PSTN gateways playing in-band tones, Announcements before the answer],
+    phone: Early media from the network }
+- { code: 199, phrase: Early Dialog Terminated, rfc: 6228, origin: proxyB,
+    meaning: "One early dialog of a forked call has ended, while others continue.",
+    causes: [A forking proxy received a failure from one branch],
+    phone: Nothing }
+- { code: 200, phrase: OK, rfc: 3261, section: "21.2.1", origin: bob,
+    meaning: "The request succeeded. For INVITE, the call is answered and must be confirmed with ACK.",
+    causes: [The callee answers],
+    phone: Call connected }
+- { code: 300, phrase: Multiple Choices, rfc: 3261, section: "21.3.1", origin: proxyB,
+    meaning: "Several addresses are possible. The Contact headers list them.",
+    causes: [A user with several devices, behind a redirect server],
+    phone: Usually nothing; the phone tries the addresses }
+- { code: 301, phrase: Moved Permanently, rfc: 3261, section: "21.3.2", origin: proxyB,
+    meaning: "The user has moved for good. The caller should update its address book with the Contact.",
+    causes: [Number changed],
+    phone: Usually nothing; the phone calls the new address, q850: [22] }
+- { code: 302, phrase: Moved Temporarily, rfc: 3261, section: "21.3.3", origin: proxyB,
+    meaning: "Try the address in the Contact header for this call (Module 3).",
+    causes: [Redirect servers, Call forwarding on some PBXs],
+    phone: Usually nothing; the phone calls the new address }
+- { code: 305, phrase: Use Proxy, rfc: 3261, section: "21.3.4", origin: proxyB,
+    meaning: "The target must be reached through the proxy in the Contact header. Rarely used, and unsafe if trusted blindly.",
+    causes: [Old redirect configurations],
+    phone: Usually an error }
+- { code: 380, phrase: Alternative Service, rfc: 3261, section: "21.3.5", origin: proxyB,
+    meaning: "The call failed, but another service is possible. Emergency calls use it to redirect to the right service.",
+    causes: [Emergency call routing],
+    phone: Depends on the service }
+- { code: 400, phrase: Bad Request, rfc: 3261, section: "21.4.1", origin: proxyA, act: caller,
+    meaning: "The request is malformed. The reason phrase or a Warning header often says which part.",
+    causes: [Wrong Content-Length, A missing mandatory header, Bad syntax from a buggy script],
+    phone: Error tone or message }
+- { code: 401, phrase: Unauthorized, rfc: 3261, section: "21.4.2", origin: registrar, method: REGISTER, act: caller,
+    meaning: "The registrar or the UAS wants credentials. The WWW-Authenticate header carries the challenge (Module 13).",
+    causes: [Normal first step of a registration, Wrong password if it repeats],
+    phone: "Nothing at first; \"registration failed\" if the password is wrong" }
+- { code: 403, phrase: Forbidden, rfc: 3261, section: "21.4.4", origin: proxyA, act: caller,
+    meaning: "The server understood the request and refuses it. Retrying with credentials does not help.",
+    causes: [Calling plan blocks the number, Wrong credentials after the challenge, IP address not allowed],
+    phone: Error tone or announcement, q850: [21, 55, 57, 87] }
+- { code: 404, phrase: Not Found, rfc: 3261, section: "21.4.5", origin: proxyB, act: caller,
+    meaning: "The user does not exist in the domain of the Request-URI.",
+    causes: [Typing error in the number, No such user on the PBX, Wrong domain],
+    phone: "\"Number not in service\"", q850: [1, 2, 3, 26] }
+- { code: 405, phrase: Method Not Allowed, rfc: 3261, section: "21.4.6", origin: bob, act: caller,
+    meaning: "The target understands the method but does not allow it. The Allow header lists what it allows.",
+    causes: [Sending REFER or MESSAGE to a device that does not support it],
+    phone: Feature fails }
+- { code: 407, phrase: Proxy Authentication Required, rfc: 3261, section: "21.4.8", origin: proxyA, act: caller,
+    meaning: "A proxy wants credentials. The Proxy-Authenticate header carries the challenge (Module 13).",
+    causes: [Normal first step of an outgoing call, Wrong password if it repeats],
+    phone: Nothing at first }
+- { code: 408, phrase: Request Timeout, rfc: 3261, section: "21.4.9", origin: proxyB, act: network,
+    meaning: "No final response arrived in time. A proxy creates it when the next hop stays silent.",
+    causes: [The callee's phone is offline but still registered, A firewall drops the packets, A NAT mapping expired],
+    phone: Error tone after a long wait, q850: [18] }
+- { code: 410, phrase: Gone, rfc: 3261, section: "21.4.10", origin: proxyB, act: caller,
+    meaning: "The user existed but is no longer available here, and no forwarding address is known.",
+    causes: [Number taken out of service],
+    phone: "\"Number not in service\"", q850: [22, 23] }
+- { code: 413, phrase: Request Entity Too Large, rfc: 3261, section: "21.4.11", origin: proxyA, act: caller,
+    meaning: "The body is too large for the server.",
+    causes: [Very large SDP or multipart bodies],
+    phone: Error tone }
+- { code: 414, phrase: Request-URI Too Long, rfc: 3261, section: "21.4.12", origin: proxyA, act: caller,
+    meaning: "The Request-URI is longer than the server accepts.",
+    causes: [Many URI parameters added by intermediaries],
+    phone: Error tone }
+- { code: 415, phrase: Unsupported Media Type, rfc: 3261, section: "21.4.13", origin: bob, act: caller,
+    meaning: "The body type is not supported. Accept lists the types that are.",
+    causes: [A multipart body to a device that only reads SDP],
+    phone: Error tone }
+- { code: 416, phrase: Unsupported URI Scheme, rfc: 3261, section: "21.4.14", origin: proxyA, act: caller,
+    meaning: "The server does not understand the scheme of the Request-URI, for example tel: or urn:.",
+    causes: [A tel URI sent to a server that only routes sip URIs],
+    phone: Error tone }
+- { code: 420, phrase: Bad Extension, rfc: 3261, section: "21.4.15", origin: bob, act: caller,
+    meaning: "An option tag in Require or Proxy-Require is not understood. Unsupported lists it (Module 5).",
+    causes: [A phone that requires an extension the peer lacks],
+    phone: Error tone }
+- { code: 421, phrase: Extension Required, rfc: 3261, section: "21.4.16", origin: bob, act: caller,
+    meaning: "The callee needs an extension that the request does not list in Supported. Require lists it.",
+    causes: [A gateway that insists on 100rel or timer],
+    phone: Error tone }
+- { code: 422, phrase: Session Interval Too Small, rfc: 4028, origin: bob, act: caller,
+    meaning: "The session timer in Session-Expires is shorter than the callee accepts. Min-SE gives the minimum.",
+    causes: [Session-Expires lower than 90 seconds, or lower than the peer's Min-SE],
+    phone: "Nothing; the phone retries with a longer timer" }
+- { code: 423, phrase: Interval Too Brief, rfc: 3261, section: "21.4.17", origin: registrar, method: REGISTER, act: caller,
+    meaning: "The expiry time in the REGISTER is too short. Min-Expires gives the minimum.",
+    causes: [A phone that registers every 30 seconds to keep a NAT open],
+    phone: "Nothing; the phone retries with a longer expiry" }
+- { code: 428, phrase: Use Identity Header, rfc: 8224, origin: proxyB, act: caller,
+    meaning: "The verifier requires a signed Identity header (STIR, Module 28).",
+    causes: [A call without STIR/SHAKEN signature into a network that requires one],
+    phone: Error tone }
+- { code: 433, phrase: Anonymity Disallowed, rfc: 5079, origin: bob, act: caller,
+    meaning: "The callee rejects anonymous calls.",
+    causes: [Anonymous call rejection on the callee's line],
+    phone: Announcement }
+- { code: 438, phrase: Invalid Identity Header, rfc: 8224, origin: proxyB, act: caller,
+    meaning: "The Identity header failed verification (STIR, Module 28).",
+    causes: [Signature does not match the From number, Expired or untrusted certificate],
+    phone: Error tone }
+- { code: 480, phrase: Temporarily Unavailable, rfc: 3261, section: "21.4.18", origin: proxyB, act: callee,
+    meaning: "The callee exists but cannot be reached now: not registered, do not disturb, or no answer.",
+    causes: [No registered Contact, Do not disturb, No answer before a timer],
+    phone: "\"The person you are calling is not available\"", q850: [19, 20, 31] }
+- { code: 481, phrase: Call/Transaction Does Not Exist, rfc: 3261, section: "21.4.19", origin: bob, method: BYE, act: caller,
+    meaning: "The request belongs to a dialog or transaction that the receiver does not know.",
+    causes: [BYE after the other side already ended the call, Wrong tags after a B2BUA or SBC rewrote them],
+    phone: Usually nothing visible }
+- { code: 482, phrase: Loop Detected, rfc: 3261, section: "21.4.20", origin: proxyB, act: network,
+    meaning: "The request came back to a proxy it has already passed.",
+    causes: [Two servers that route the number to each other],
+    phone: Error tone }
+- { code: 483, phrase: Too Many Hops, rfc: 3261, section: "21.4.21", origin: proxyB, act: network,
+    meaning: "Max-Forwards reached 0 before the request reached its target.",
+    causes: [A routing loop between servers that do not detect loops, Max-Forwards set too low],
+    phone: Error tone }
+- { code: 484, phrase: Address Incomplete, rfc: 3261, section: "21.4.22", origin: proxyA, act: caller,
+    meaning: "The number is too short. Overlap dialling sends more digits after this.",
+    causes: [The caller dialled too few digits, Overlap dialling from the PSTN],
+    phone: "Error tone, or the phone waits for more digits", q850: [28] }
+- { code: 485, phrase: Ambiguous, rfc: 3261, section: "21.4.23", origin: proxyB, act: caller,
+    meaning: "The Request-URI matches more than one user. Contact may list the possibilities.",
+    causes: [A short name shared by several users],
+    phone: Error tone }
+- { code: 486, phrase: Busy Here, rfc: 3261, section: "21.4.24", origin: bob, act: callee,
+    meaning: "The callee's device is busy. The user may be reachable elsewhere, for example on voicemail.",
+    causes: [The callee is in another call, The callee pressed reject on some phones],
+    phone: Busy tone, q850: [17] }
+- { code: 487, phrase: Request Terminated, rfc: 3261, section: "21.4.25", origin: bob, act: caller,
+    meaning: "The request was cancelled by a CANCEL, or replaced. It is the normal end of a cancelled call (Module 5).",
+    causes: [The caller hung up during ringing, Another branch of a forked call answered],
+    phone: Nothing; the caller already hung up }
+- { code: 488, phrase: Not Acceptable Here, rfc: 3261, section: "21.4.26", origin: bob, act: caller,
+    meaning: "The offered session is not acceptable: no common codec, or a media type the callee cannot use.",
+    causes: [No codec in common, SRTP offered to a device without SRTP, T.38 to a device without fax],
+    phone: Error tone, q850: [65, 70] }
+- { code: 489, phrase: Bad Event, rfc: 6665, origin: bob, method: SUBSCRIBE, act: caller,
+    meaning: "The notifier does not support the event package in the Event header.",
+    causes: [Subscribing to presence on a server that only offers message-summary],
+    phone: Feature fails }
+- { code: 491, phrase: Request Pending, rfc: 3261, section: "21.4.27", origin: bob, act: caller,
+    meaning: "Both sides sent a re-INVITE at the same time (glare). Each retries after a random delay.",
+    causes: [Hold and resume pressed on both sides at once, Simultaneous session refresh],
+    phone: Nothing; the phone retries }
+- { code: 493, phrase: Undecipherable, rfc: 3261, section: "21.4.28", origin: bob, act: caller,
+    meaning: "The callee cannot decrypt an S/MIME body.",
+    causes: [Wrong or missing key for an encrypted body],
+    phone: Error tone }
+- { code: 494, phrase: Security Agreement Required, rfc: 3329, origin: proxyA, act: caller,
+    meaning: "The server requires a security mechanism agreement first (IMS uses it for IPsec, Module 27).",
+    causes: [An IMS phone registering without Security-Client],
+    phone: Registration fails }
+- { code: 500, phrase: Server Internal Error, rfc: 3261, section: "21.5.1", origin: proxyB, act: network,
+    meaning: "The server failed while it processed the request. Also what a proxy sends when its only answer was a 503.",
+    causes: [Software errors, Database failures, A downstream 503 converted by a proxy],
+    phone: Error tone, q850: [111, 127] }
+- { code: 501, phrase: Not Implemented, rfc: 3261, section: "21.5.2", origin: bob, act: network,
+    meaning: "The server does not support the method at all, for any user.",
+    causes: [An old device that does not know UPDATE or PRACK],
+    phone: Feature fails, q850: [29, 79] }
+- { code: 502, phrase: Bad Gateway, rfc: 3261, section: "21.5.3", origin: proxyB, act: network,
+    meaning: "A gateway or proxy received an invalid response from the next hop.",
+    causes: [The PSTN side reports the destination out of order],
+    phone: Error tone, q850: [27] }
+- { code: 503, phrase: Service Unavailable, rfc: 3261, section: "21.5.4", origin: proxyB, act: network,
+    meaning: "The server is overloaded or in maintenance. Clients try another server, and may avoid this one for the Retry-After time.",
+    causes: [Overload, Maintenance, No trunk capacity, Transport failure to the next hop],
+    phone: Fast busy or congestion tone, q850: [34, 38, 41, 42, 47, 58, 88] }
+- { code: 504, phrase: Server Time-out, rfc: 3261, section: "21.5.5", origin: proxyB, act: network,
+    meaning: "A server did not get an answer in time from an outside server, such as a DNS or location server.",
+    causes: [Slow external lookups, PSTN timer expiry],
+    phone: Error tone, q850: [102] }
+- { code: 505, phrase: Version Not Supported, rfc: 3261, section: "21.5.6", origin: proxyA, act: caller,
+    meaning: "The SIP version in the request is not supported.",
+    causes: [A version other than SIP/2.0],
+    phone: Error tone }
+- { code: 513, phrase: Message Too Large, rfc: 3261, section: "21.5.7", origin: proxyA, act: caller,
+    meaning: "The message is longer than the server can process.",
+    causes: [Very large messages over UDP],
+    phone: Error tone }
+- { code: 580, phrase: Precondition Failure, rfc: 3312, origin: bob, act: network,
+    meaning: "The call needs network resources, such as reserved bandwidth, that could not be set up.",
+    causes: [QoS reservation failed in IMS or cable networks],
+    phone: Error tone }
+- { code: 600, phrase: Busy Everywhere, rfc: 3261, section: "21.6.1", origin: bob, act: callee,
+    meaning: "The callee is busy, and no other device (not even voicemail) will take the call.",
+    causes: [A user who is busy on every device],
+    phone: Busy tone }
+- { code: 603, phrase: Decline, rfc: 3261, section: "21.6.2", origin: bob, act: callee,
+    meaning: "The callee does not want to take the call, and does not say why.",
+    causes: [The user pressed decline, Call screening rules],
+    phone: Busy tone or announcement }
+- { code: 604, phrase: Does Not Exist Anywhere, rfc: 3261, section: "21.6.3", origin: proxyB, act: caller,
+    meaning: "The user does not exist anywhere, not only in this domain.",
+    causes: [An authoritative directory has no such user],
+    phone: "\"Number not in service\"" }
+- { code: 606, phrase: Not Acceptable, rfc: 3261, section: "21.6.4", origin: bob, act: callee,
+    meaning: "The user's agent was contacted, but some part of the session is not acceptable anywhere.",
+    causes: [Video offered to a user who only takes audio],
+    phone: Error tone }
+- { code: 607, phrase: Unwanted, rfc: 8197, origin: bob, act: callee,
+    meaning: "The callee marks the call as unwanted, for example as spam. Analytics can use this.",
+    causes: [The user reports the call as spam],
+    phone: Call ends }
+- { code: 608, phrase: Rejected, rfc: 8688, origin: proxyB, act: network,
+    meaning: "An intermediary, such as a call-blocking service, rejects the call. A Call-Info header can say how to appeal.",
+    causes: [Robocall analytics in the carrier network],
+    phone: Announcement }
