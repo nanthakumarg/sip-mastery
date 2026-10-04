@@ -6,6 +6,7 @@
 import { liveDialogFor, trackDialogs, uriList } from './dialog.ts';
 import type { PreparedFlow, PreparedStep } from './flow.ts';
 import { inDialogTarget, isLoose, viaList } from './routing.ts';
+import { contactsOf, DEFAULT_POLICY, parseContactHeader, runRegistrar, sameUri } from './registrar.ts';
 import {
   byteLength, cseq, getHeader, getHeaders, headerParam, isRequest, isResponse, tagOf, topVia,
   type SipMessage,
@@ -72,6 +73,8 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   checkResponseVias(msgs, add);
   const proxies = new Set(flow.lanes.filter(l => l.kind === 'proxy').map(l => l.id));
   checkMaxForwards(msgs, proxies, add);
+  checkRegisters(flow, msgs, add);
+  if (flow.registrar) checkRegistrarModel(flow, add);
   return issues;
 }
 
@@ -289,6 +292,104 @@ function checkMaxForwards(msgs: MsgStep[], proxies: Set<string>, add: Add) {
     const now = Number(getHeader(m, 'Max-Forwards'));
     if (Number.isFinite(was) && now !== was - 1) {
       add('max-forwards', s.index, `${m.method} arrived with Max-Forwards ${was} and leaves with ${now}; a proxy decrements it by one`);
+    }
+  });
+}
+
+/**
+ * register-uri (RFC 3261 §10.2): the Request-URI of a REGISTER names a domain, with no user part.
+ * register-star (§10.2.2): Contact "*" only with Expires: 0, and alone.
+ * min-expires (§10.3 step 7): a 423 carries Min-Expires.
+ * register-refresh (§10.2.4): a UA refreshes a binding before the expiry the registrar returned.
+ */
+function checkRegisters(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
+  const timeOf = (index: number) => {
+    let t = 0;
+    for (const s of flow.steps.slice(0, index + 1)) t = s.at ?? t;
+    return t;
+  };
+  const timed = flow.steps.some(s => s.at !== undefined);
+  // Contact → [time it runs out], per UA lane and Call-ID, from the last 2xx.
+  const granted = new Map<string, { until: number; step: number }>();
+  for (const s of msgs) {
+    const m = s.parsed;
+    if (isRequest(m, 'REGISTER')) {
+      if (/^sips?:[^@;]*@/i.test(m.requestUri ?? '')) add('register-uri', s.index, `REGISTER ${m.requestUri} has a user part; the Request-URI names only the domain`);
+      const cs = contactsOf(m);
+      if (cs.some(c => c.star)) {
+        const exp = getHeader(m, 'Expires');
+        if (cs.length > 1) add('register-star', s.index, 'Contact: * must be the only Contact value');
+        if (exp === undefined) add('register-star', s.index, 'Contact: * without an Expires header; it needs Expires: 0');
+        else if (Number(exp) !== 0) add('register-star', s.index, `Contact: * with Expires: ${exp}; it needs Expires: 0`);
+      }
+      if (timed && s.from !== undefined) {
+        const now = timeOf(s.index);
+        for (const c of cs) {
+          if (c.star || c.params.expires === '0') continue;
+          const key = [...granted.keys()].find(k => k.startsWith(`${s.from}|${callId(m)}|`) && sameUri(k.split('|')[2]!, c.uri));
+          const g = key ? granted.get(key) : undefined;
+          if (g && now > g.until) add('register-refresh', s.index, `The refresh at t = ${now} s comes after the binding ran out at t = ${g.until} s (the 2xx of step ${g.step + 1} granted less)`);
+        }
+      }
+    }
+    if (isResponse(m, 2) && cseq(m)?.method === 'REGISTER') {
+      const now = timeOf(s.index);
+      for (const c of contactsOf(m)) {
+        if (c.params.expires !== undefined) granted.set(`${s.to}|${callId(m)}|${c.uri}`, { until: now + Number(c.params.expires), step: s.index });
+      }
+    }
+    if (isResponse(m) && m.status === 423 && !getHeader(m, 'Min-Expires')) add('min-expires', s.index, '423 Interval Too Brief has no Min-Expires header');
+  }
+}
+
+/**
+ * registrar-model (RFC 3261 §10.3, RFC 3327 §5.3–5.4, RFC 5626 §6, RFC 5627 §5):
+ * the registrar answers each REGISTER as the model does, and a proxy that
+ * looks up the location service forwards to the Contacts it finds.
+ */
+function checkRegistrarModel(flow: PreparedFlow, add: Add) {
+  const cfg = flow.registrar!;
+  const policy = { ...DEFAULT_POLICY, ...cfg };
+  const snaps = runRegistrar(flow.steps.map(s => ({ from: s.from, to: s.to, at: s.at, message: s.parsed })), cfg.lane, policy, cfg.lookup ?? []);
+  const later = (i: number, pred: (s: PreparedStep) => boolean) => flow.steps.slice(i + 1).find(pred);
+  snaps.forEach((snap, i) => {
+    const req = flow.steps[i]!.parsed;
+    if (!req) return;
+    if (snap.result) {
+      const r = snap.result;
+      const resp = later(i, s => s.from === cfg.lane && !!s.parsed && isResponse(s.parsed) && callId(s.parsed) === callId(req) && cseq(s.parsed)?.seq === cseq(req)?.seq);
+      if (!resp?.parsed) return;
+      const got = resp.parsed;
+      if (got.status !== r.status) {
+        add('registrar-model', resp.index, `The registrar answers ${got.status}, but RFC 3261 §10.3 gives ${r.status} ${r.reason}: ${r.note}`);
+        return;
+      }
+      if (r.status === 423 && Number(getHeader(got, 'Min-Expires')) !== r.minExpires) add('registrar-model', resp.index, `Min-Expires should be ${r.minExpires}`);
+      if (r.status !== 200) return;
+      const fmt = (c: { uri: string; params: Record<string, string> }) => `${c.uri} expires=${c.params.expires ?? '?'}${c.params.q ? ` q=${Number(c.params.q)}` : ''}${c.params['pub-gruu'] ? ` pub-gruu=${c.params['pub-gruu']}` : ''}${c.params['temp-gruu'] ? ` temp-gruu=${c.params['temp-gruu']}` : ''}`;
+      const want = r.contacts.flatMap(parseContactHeader).map(fmt).sort();
+      const have = contactsOf(got).map(fmt).sort();
+      if (want.join(' | ') !== have.join(' | ')) add('registrar-model', resp.index, `The 200 OK lists [${have.join(' | ')}], but the bindings are [${want.join(' | ')}]`);
+      const path = getHeaders(got, 'Path').map(h => h.value).join(', ');
+      if (path !== r.path.join(', ')) add('registrar-model', resp.index, `The 200 OK has Path [${path}], but the REGISTER had [${r.path.join(', ')}]`);
+      const sr = getHeaders(got, 'Service-Route').map(h => h.value).join(', ');
+      if (sr !== r.serviceRoute.join(', ')) add('registrar-model', resp.index, `The 200 OK has Service-Route [${sr}], but the registrar policy gives [${r.serviceRoute.join(', ')}]`);
+    }
+    if (snap.lookup) {
+      const lane = flow.steps[i]!.to;
+      const out = later(i, s => s.from === lane && !!s.parsed && callId(s.parsed) === callId(req) && (isResponse(s.parsed) ? s.parsed.status! >= 300 : s.parsed.method === req.method));
+      if (!out?.parsed) return;
+      const { targets } = snap.lookup;
+      if (!targets.length) {
+        if (out.parsed.kind === 'request') add('registrar-model', out.index, `${lane} forwards the ${req.method}, but the AOR has no binding at t = ${snap.at} s`);
+        return;
+      }
+      if (out.parsed.kind !== 'request') { add('registrar-model', out.index, `${lane} answers ${out.parsed.status}, but the AOR has ${targets.length} binding(s)`); return; }
+      const t = targets.find(x => sameUri(x.contact, out.parsed!.requestUri ?? ''));
+      if (!t) { add('registrar-model', out.index, `${req.method} goes to ${out.parsed.requestUri}, which is not a registered Contact`); return; }
+      const routes = uriList(out.parsed, 'Route');
+      const path = t.route.map(v => v.replace(/^.*<([^>]*)>.*$/, '$1'));
+      if (routes.slice(0, path.length).join(',') !== path.join(',')) add('registrar-model', out.index, `Route [${routes.join(', ')}] does not start with the stored Path [${path.join(', ')}]`);
     }
   });
 }

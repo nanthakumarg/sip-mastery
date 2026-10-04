@@ -28,10 +28,10 @@ export async function flowBundle(...ids: string[]): Promise<FlowBundle[]> {
     const f = await loadFlow(id);
     const flow: ClientFlow = {
       id: f.id, title: f.title, summary: f.summary, broken: f.broken, lanes: f.lanes,
-      phases: f.phases, map: f.map,
+      phases: f.phases, map: f.map, registrar: f.registrar,
       steps: f.steps.map(s => ({
         index: s.index, kind: s.kind, from: s.from, to: s.to, proto: s.proto, label: s.label,
-        caption: s.caption, warn: s.warn, lost: s.lost, rfc: s.rfc, wire: s.wire, status: s.status, detail: s.detail,
+        caption: s.caption, warn: s.warn, lost: s.lost, rfc: s.rfc, wire: s.wire, status: s.status, detail: s.detail, at: s.at,
       })),
     };
     const quotes: Record<string, ClientQuote> = {};

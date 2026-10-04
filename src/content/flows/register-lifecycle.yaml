@@ -1,0 +1,141 @@
+id: register-lifecycle
+title: "Register, refresh, query, and remove"
+summary: "Bob's phone adds a binding, refreshes it, asks for the list, and removes it. The Registrar answers each REGISTER with every current binding."
+registrar: { lane: registrar }
+lanes:
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+  - { id: registrar, label: Registrar, kind: registrar, sub: biloxi.example }
+steps:
+  - from: bob
+    to: registrar
+    at: 0
+    label: "REGISTER"
+    caption: "Bob's phone starts. It asks the Registrar to bind sip:bob@biloxi.example to its Contact for 3600 seconds."
+    rfc: rfc3261-10.2-to
+    status: { bob: "Registering" }
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr001x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=76ff7a07
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 8463jsGq2@203.0.113.20
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "The Registrar stores the binding. The 200 OK lists every binding of the AOR, each with its expires value."
+    rfc: rfc3261-10.3-200
+    status: { bob: "Registered" }
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr001x7
+      From: Bob <sip:bob@biloxi.example>;tag=76ff7a07
+      To: Bob <sip:bob@biloxi.example>;tag=rg8801
+      Call-ID: 8463jsGq2@203.0.113.20
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:00:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=3600
+      Content-Length: 0
+
+  - from: bob
+    to: registrar
+    at: 1800
+    label: "REGISTER (refresh)"
+    caption: "Halfway through, the phone refreshes. Same Call-ID and Contact, CSeq one higher."
+    rfc: rfc3261-10.2-cseq
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr002x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=76ff7a07
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 8463jsGq2@203.0.113.20
+      CSeq: 2 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "The binding runs for 3600 seconds again, from now."
+    rfc: rfc3261-10.2.4-refresh
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr002x7
+      From: Bob <sip:bob@biloxi.example>;tag=76ff7a07
+      To: Bob <sip:bob@biloxi.example>;tag=rg8802
+      Call-ID: 8463jsGq2@203.0.113.20
+      CSeq: 2 REGISTER
+      Date: Sun, 04 Oct 2026 09:30:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=3600
+      Content-Length: 0
+
+  - from: bob
+    to: registrar
+    at: 2400
+    label: "REGISTER (query)"
+    caption: "A REGISTER with no Contact header changes nothing. It asks for the list of bindings."
+    rfc: rfc3261-10.2.3-fetch
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr003x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=76ff7a07
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 8463jsGq2@203.0.113.20
+      CSeq: 3 REGISTER
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "The binding has 3000 seconds left. The expires value always counts from now."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr003x7
+      From: Bob <sip:bob@biloxi.example>;tag=76ff7a07
+      To: Bob <sip:bob@biloxi.example>;tag=rg8803
+      Call-ID: 8463jsGq2@203.0.113.20
+      CSeq: 3 REGISTER
+      Date: Sun, 04 Oct 2026 09:40:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=3000
+      Content-Length: 0
+
+  - from: bob
+    to: registrar
+    at: 2700
+    label: "REGISTER (remove)"
+    caption: "Bob switches the phone off. It sends expires=0 for its Contact."
+    rfc: rfc3261-10.2.2-zero
+    status: { bob: "Removing" }
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr004x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=76ff7a07
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 8463jsGq2@203.0.113.20
+      CSeq: 4 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>;expires=0
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "The Registrar removes the binding. The 200 OK has no Contact: Bob has no device registered now."
+    status: { bob: "Not registered" }
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr004x7
+      From: Bob <sip:bob@biloxi.example>;tag=76ff7a07
+      To: Bob <sip:bob@biloxi.example>;tag=rg8804
+      Call-ID: 8463jsGq2@203.0.113.20
+      CSeq: 4 REGISTER
+      Date: Sun, 04 Oct 2026 09:45:00 GMT
+      Content-Length: 0

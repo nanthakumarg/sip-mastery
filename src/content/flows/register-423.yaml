@@ -1,0 +1,71 @@
+id: register-423
+title: "423 Interval Too Brief and Min-Expires"
+summary: "Bob's phone asks for 60 seconds. The Registrar keeps no binding shorter than 300 seconds, so it answers 423, and the phone tries again."
+registrar: { lane: registrar, minExpires: 300 }
+lanes:
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+  - { id: registrar, label: Registrar, kind: registrar, sub: biloxi.example }
+steps:
+  - from: bob
+    to: registrar
+    at: 0
+    label: "REGISTER"
+    caption: "The phone asks for a short registration, 60 seconds, to keep its NAT mapping open."
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr008x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=4a23x9
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Kq01ms88@203.0.113.20
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 60
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "423 Interval Too Brief"
+    caption: "The Registrar refuses intervals under 300 seconds. Min-Expires tells the phone the minimum."
+    rfc: rfc3261-10.3-423
+    message: |
+      SIP/2.0 423 Interval Too Brief
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr008x7
+      From: Bob <sip:bob@biloxi.example>;tag=4a23x9
+      To: Bob <sip:bob@biloxi.example>;tag=rg8808
+      Call-ID: Kq01ms88@203.0.113.20
+      CSeq: 1 REGISTER
+      Min-Expires: 300
+      Content-Length: 0
+
+  - from: bob
+    to: registrar
+    label: "REGISTER"
+    caption: "The phone sends a new REGISTER with Expires: 300 and CSeq 2."
+    rfc: rfc3261-10.2.8-retry
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr009x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=4a23x9
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Kq01ms88@203.0.113.20
+      CSeq: 2 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 300
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "The Registrar accepts. The binding lasts 300 seconds."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr009x7
+      From: Bob <sip:bob@biloxi.example>;tag=4a23x9
+      To: Bob <sip:bob@biloxi.example>;tag=rg8809
+      Call-ID: Kq01ms88@203.0.113.20
+      CSeq: 2 REGISTER
+      Date: Sun, 04 Oct 2026 09:00:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=300
+      Content-Length: 0

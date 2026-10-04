@@ -1,0 +1,125 @@
+id: register-refresh-late
+title: "Broken: the phone ignores the shorter expiry"
+summary: "The Registrar grants 600 seconds, but Bob's phone plans its refresh from the 3600 it asked for. Alice's call at 900 seconds fails."
+broken: true
+breaks: [register-refresh]
+registrar: { lane: registrar, maxExpires: 600, lookup: [proxyB] }
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: proxy.biloxi.example }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+  - { id: registrar, label: Registrar, kind: registrar, sub: biloxi.example }
+steps:
+  - from: bob
+    to: registrar
+    at: 0
+    label: "REGISTER"
+    caption: "Bob's phone asks for 3600 seconds."
+    status: { bob: "Registered" }
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr010x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "The Registrar allows at most 600 seconds. The 200 OK says so: expires=600."
+    rfc: rfc3261-10.3-shorter
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr010x7
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>;tag=rg8810
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:00:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=600
+      Content-Length: 0
+
+  - from: alice
+    to: proxyB
+    at: 900
+    label: "INVITE"
+    caption: "Fifteen minutes later, Alice calls Bob."
+    status: { bob: "Expired" }
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0
+
+  - from: proxyB
+    to: alice
+    label: "480 Temporarily Unavailable"
+    caption: "Bob's binding ran out at 600 seconds. Proxy B finds no Contact for Bob."
+    rfc: rfc3261-10.2.2-soft
+    message: |
+      SIP/2.0 480 Temporarily Unavailable
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=rg8811
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: 0
+
+  - from: alice
+    to: proxyB
+    label: "ACK"
+    caption: "Alice acknowledges the 480. The call fails, although Bob's phone shows \"Registered\"."
+    message: |
+      ACK sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=rg8811
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - from: bob
+    to: registrar
+    at: 1800
+    label: "REGISTER (refresh)"
+    caption: "The phone refreshes at half of what it asked for: 1800 seconds. That is 20 minutes too late."
+    warn: "The binding ran out at 600 seconds."
+    rfc: rfc3261-10.2.4-compare
+    status: { bob: "Registered" }
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr011x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 2 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "The Registrar adds the binding again, for 600 seconds. The phone plans its next refresh at 3600."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr011x7
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>;tag=rg8812
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 2 REGISTER
+      Date: Sun, 04 Oct 2026 09:30:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=600
+      Content-Length: 0

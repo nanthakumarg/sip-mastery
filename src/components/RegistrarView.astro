@@ -1,0 +1,18 @@
+---
+/**
+ * <RegistrarView flow="register-lifecycle" /> or <RegistrarView flows="a,b" labels="A|B" /> :
+ * a ladder and the registrar's bindings, step by step (Module 12)
+ */
+import Island from '../diagrams/RegistrarView.tsx';
+import { flowBundle, quoteMap } from '../lib/bundle.ts';
+import { REGISTRAR_RULES } from '../sip/registrar.ts';
+
+interface Props { flow?: string; flows?: string; labels?: string }
+const ids = (Astro.props.flows ?? Astro.props.flow ?? '').split(',').map(s => s.trim()).filter(Boolean);
+const bundles = await flowBundle(...ids);
+for (const b of bundles) if (!b.flow.registrar) throw new Error(`RegistrarView: flow ${b.flow.id} has no registrar`);
+const stepRules = bundles.flatMap(b => b.flow.steps.map(s => s.rfc).filter((r): r is string => !!r));
+const quotes = quoteMap([...new Set([...REGISTRAR_RULES, ...stepRules])]);
+const labels = Astro.props.labels?.split('|');
+---
+<div class="wide"><Island client:visible flows={bundles.map(b => b.flow)} labels={labels} quotes={quotes} /></div>

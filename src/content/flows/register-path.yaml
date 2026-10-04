@@ -1,0 +1,182 @@
+id: register-path
+title: "Path and Service-Route"
+summary: "Bob registers through an edge proxy, which adds Path. Later, Proxy B sends Alice's INVITE through the edge proxy, because the binding stores the Path."
+registrar: { lane: registrar, lookup: [proxyB], serviceRoute: ["<sip:orig@proxy.biloxi.example;lr>"] }
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+  - { id: registrar, label: Registrar, kind: registrar, sub: biloxi.example }
+  - { id: edge, label: Edge proxy, kind: proxy, sub: edge.biloxi.example }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: bob
+    to: edge
+    at: 0
+    label: "REGISTER"
+    caption: "Bob's phone sends REGISTER to its edge proxy. Supported: path says it understands Path."
+    rfc: rfc3327-5.1-supported
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr021x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=p4th01
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Pt66hh21@203.0.113.20
+      CSeq: 1 REGISTER
+      Supported: path
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: edge
+    to: registrar
+    label: "REGISTER"
+    caption: "The edge proxy wants to see the calls to Bob. It puts its own URI in a Path header."
+    rfc: rfc3327-5.2-insert
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP edge.biloxi.example:5060;branch=z9hG4bKedge01x7
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr021x7
+      Max-Forwards: 69
+      From: Bob <sip:bob@biloxi.example>;tag=p4th01
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Pt66hh21@203.0.113.20
+      CSeq: 1 REGISTER
+      Supported: path
+      Path: <sip:edge.biloxi.example;lr>
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: edge
+    label: "200 OK"
+    caption: "The Registrar stores the Path with the binding. It returns the Path and a Service-Route."
+    rfc: rfc3327-5.3-store
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP edge.biloxi.example:5060;branch=z9hG4bKedge01x7
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr021x7
+      From: Bob <sip:bob@biloxi.example>;tag=p4th01
+      To: Bob <sip:bob@biloxi.example>;tag=rg8822
+      Call-ID: Pt66hh21@203.0.113.20
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:00:00 GMT
+      Path: <sip:edge.biloxi.example;lr>
+      Service-Route: <sip:orig@proxy.biloxi.example;lr>
+      Contact: <sip:bob@203.0.113.20:5060>;expires=3600
+      Content-Length: 0
+
+  - from: edge
+    to: bob
+    label: "200 OK"
+    caption: "The edge proxy removes its Via. Bob's phone stores the Service-Route for its own calls."
+    rfc: rfc3608-6.1-preloaded
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr021x7
+      From: Bob <sip:bob@biloxi.example>;tag=p4th01
+      To: Bob <sip:bob@biloxi.example>;tag=rg8822
+      Call-ID: Pt66hh21@203.0.113.20
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:00:00 GMT
+      Path: <sip:edge.biloxi.example;lr>
+      Service-Route: <sip:orig@proxy.biloxi.example;lr>
+      Contact: <sip:bob@203.0.113.20:5060>;expires=3600
+      Content-Length: 0
+
+  - from: alice
+    to: proxyB
+    at: 600
+    label: "INVITE"
+    caption: "Ten minutes later, Alice calls Bob."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0
+
+  - from: proxyB
+    to: edge
+    label: "INVITE"
+    caption: "Proxy B finds Bob's Contact, and its Path. The Path becomes a Route header."
+    rfc: rfc3327-5.4-route
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP proxy.biloxi.example:5060;branch=z9hG4bKpb2nv001
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      Max-Forwards: 69
+      Route: <sip:edge.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0
+
+  - from: edge
+    to: bob
+    label: "INVITE"
+    caption: "The edge proxy removes its Route value and sends the INVITE to the Request-URI."
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP edge.biloxi.example:5060;branch=z9hG4bKedge02x7
+      Via: SIP/2.0/UDP proxy.biloxi.example:5060;branch=z9hG4bKpb2nv001
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      Max-Forwards: 68
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0
+
+  - from: bob
+    to: edge
+    label: "180 Ringing"
+    caption: "Bob's phone rings."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP edge.biloxi.example:5060;branch=z9hG4bKedge02x7
+      Via: SIP/2.0/UDP proxy.biloxi.example:5060;branch=z9hG4bKpb2nv001
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=5ab31c09
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: 0
+
+  - from: edge
+    to: proxyB
+    label: "180 Ringing"
+    caption: "The 180 follows the Via headers back."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP proxy.biloxi.example:5060;branch=z9hG4bKpb2nv001
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=5ab31c09
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: 0
+
+  - from: proxyB
+    to: alice
+    label: "180 Ringing"
+    caption: "Alice hears ringback."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=5ab31c09
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: 0

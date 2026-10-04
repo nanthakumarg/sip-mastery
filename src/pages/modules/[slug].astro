@@ -45,6 +45,8 @@ import ForkingTree from '../../components/ForkingTree.astro';
 import RoutingLab from '../../components/RoutingLab.astro';
 import ViaStack from '../../components/ViaStack.astro';
 import DnsResolver from '../../components/DnsResolver.astro';
+import RegistrarView from '../../components/RegistrarView.astro';
+import ExpiryClock from '../../components/ExpiryClock.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -75,7 +77,8 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   TransactionPlayer, TimerTimeline, TransactionMatcher,
   DialogTable, ForkingTree,
   RoutingLab, ViaStack,
-  DnsResolver };
+  DnsResolver,
+  RegistrarView, ExpiryClock };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

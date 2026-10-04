@@ -1,0 +1,12 @@
+---
+/** <ExpiryClock /> : registration expiry, keepalives, and the NAT mapping on one timeline (Module 12) */
+import Island from '../diagrams/ExpiryClock.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+import type { ClockOptions } from '../sip/expiry.ts';
+
+interface Props { initial?: Partial<ClockOptions> & { probe?: number }; title?: string }
+const quotes = quoteMap([
+  'rfc3261-10.2.4-refresh', 'rfc3261-10.2.4-compare', 'rfc4787-4.3-mapping-timer', 'rfc4787-4.3-outbound-refresh', 'rfc5626-4.4.2-interval',
+]);
+---
+<div class="wide"><Island client:visible quotes={quotes} initial={Astro.props.initial} title={Astro.props.title} /></div>

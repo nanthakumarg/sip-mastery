@@ -1,0 +1,169 @@
+id: register-refresh-granted
+title: "Fixed: the phone refreshes before the expiry in the 200 OK"
+summary: "Bob's phone refreshes at half of the 600 seconds that the Registrar granted. Alice's call at 900 seconds reaches Bob."
+registrar: { lane: registrar, maxExpires: 600, lookup: [proxyB] }
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: proxy.biloxi.example }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+  - { id: registrar, label: Registrar, kind: registrar, sub: biloxi.example }
+steps:
+  - from: bob
+    to: registrar
+    at: 0
+    label: "REGISTER"
+    caption: "Bob's phone asks for 3600 seconds."
+    status: { bob: "Registered" }
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr012x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "The Registrar allows at most 600 seconds. The 200 OK says so: expires=600."
+    rfc: rfc3261-10.3-shorter
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr012x7
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>;tag=rg8813
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:00:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=600
+      Content-Length: 0
+
+  - from: bob
+    to: registrar
+    at: 300
+    label: "REGISTER (refresh)"
+    caption: "The phone refreshes at half of the 600 seconds it got, at 300 seconds."
+    rfc: rfc3261-10.2.4-compare
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr013x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 2 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "The binding runs for 600 seconds from now."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr013x7
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>;tag=rg8814
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 2 REGISTER
+      Date: Sun, 04 Oct 2026 09:05:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=600
+      Content-Length: 0
+
+  - from: bob
+    to: registrar
+    at: 600
+    label: "REGISTER (refresh)"
+    caption: "And again 300 seconds later. The binding never runs out."
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr014x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 3 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: bob
+    label: "200 OK"
+    caption: "Valid until 1200 seconds."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr014x7
+      From: Bob <sip:bob@biloxi.example>;tag=b0b5e7
+      To: Bob <sip:bob@biloxi.example>;tag=rg8815
+      Call-ID: Rf55pp12@203.0.113.20
+      CSeq: 3 REGISTER
+      Date: Sun, 04 Oct 2026 09:10:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=600
+      Content-Length: 0
+
+  - from: alice
+    to: proxyB
+    at: 900
+    label: "INVITE"
+    caption: "Fifteen minutes after the first REGISTER, Alice calls Bob."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0
+
+  - from: proxyB
+    to: bob
+    label: "INVITE"
+    caption: "Proxy B finds Bob's binding and sends the INVITE to his Contact."
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP proxy.biloxi.example:5060;branch=z9hG4bKpb1nv001
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0
+
+  - from: bob
+    to: proxyB
+    label: "180 Ringing"
+    caption: "Bob's phone rings."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP proxy.biloxi.example:5060;branch=z9hG4bKpb1nv001
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=8321234356
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: 0
+
+  - from: proxyB
+    to: alice
+    label: "180 Ringing"
+    caption: "Proxy B removes its Via and forwards the 180 to Alice."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKa1nv001
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=8321234356
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: 0

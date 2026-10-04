@@ -54,6 +54,8 @@ sip-course/
 │  │  ├─ flow.ts                 # flow types, loading, placeholder expansion
 │  │  ├─ lint-flow.ts            # protocol rules (RFC 3261 checks)
 │  │  ├─ lint-diagram.ts         # controlled diagram language rules (§5)
+│  │  ├─ registrar.ts            # RFC 3261 §10.3 registrar, Path, Outbound, GRUU (Module 12)
+│  │  ├─ expiry.ts               # registration expiry vs NAT mapping timeline (Module 12)
 │  │  └─ digest.ts               # HA1 / HA2 / response
 │  ├─ diagrams/                  # React islands
 │  │  ├─ Ladder.tsx              # call-flow ladder, step player
@@ -139,6 +141,8 @@ Rules:
 - `response="{digest}"` is replaced with the real digest response, calculated from the header's own parameters and the flow's example `credentials`. `{digest:INVITE}` uses another method (an ACK copies the INVITE credentials, RFC 3261 §22.1). So every digest in the course is correct by construction.
 - `broken: true` marks a deliberately wrong flow. It must list the rule IDs it breaks in `breaks: [...]`. The build fails if a broken flow does **not** break those rules, or if it breaks any rule it doesn't list.
 - Non-message steps (`kind: note`, `kind: timer`, `kind: media`) are supported for timers and RTP.
+- `at: 900` on a step gives its time in seconds since the start of the flow, where time matters (registration). Later steps without `at` keep that time.
+- `registrar: { lane: registrar, maxExpires: 600, lookup: [proxyB] }` marks a registration flow. The `registrar-model` rule runs the registrar model (`src/sip/registrar.ts`) over its REGISTER requests, with that policy, and checks every response of the registrar and every location-service lookup of the `lookup` lanes.
 
 ### 4.3 RFC quotes (YAML)
 ```yaml
@@ -205,6 +209,11 @@ Rendering choices:
 | `record-route-lr` | Every Record-Route URI in a request has the `lr` parameter (RFC 3261 §16.6 item 4) |
 | `response-via` | A response carries the Via headers (sent-by and branch) of its request on the same hop, in the same order (RFC 3261 §8.2.6.2, §16.7) |
 | `max-forwards` | A proxy forwards a request with Max-Forwards one lower than it arrived with (RFC 3261 §16.6 item 3) |
+| `register-uri` | The Request-URI of a REGISTER has no user part (RFC 3261 §10.2) |
+| `register-star` | `Contact: *` is the only Contact value and comes with `Expires: 0` (RFC 3261 §10.2.2) |
+| `min-expires` | A 423 Interval Too Brief carries Min-Expires (RFC 3261 §10.3 step 7) |
+| `register-refresh` | A UA refreshes a binding before the expiry that the last 2xx granted it; needs `at` on the steps (RFC 3261 §10.2.4) |
+| `registrar-model` | In a flow with `registrar:`, each registrar response has the status, Contact list (with expires, q, and GRUUs), Path, and Service-Route of the registrar model, and a proxy that looks up the AOR forwards to a registered Contact with the stored Path as Route, or answers with an error when there is none (RFC 3261 §10.3, RFC 3327, RFC 3608, RFC 5626 §6, RFC 5627 §5) |
 
 ### 6.2 Diagram language checks (`lint-diagram.ts`)
 | Rule ID | Check |

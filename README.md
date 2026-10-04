@@ -23,7 +23,7 @@ npm run dev        # http://localhost:4321
 | `npm run check:content` | Protocol checks and diagram language checks on every flow |
 | `npm run verify:rfc` | Checks every RFC quote word for word against rfc-editor.org |
 | `npm run sync:rfc-index` | Refreshes `rfc-index.json` (titles, dates, status, obsoletes/updates) from the official RFC index, for the RFCs in `rfcs.yaml` |
-| `npm test` | Unit tests (parser, checks, digest maths, transaction timers, dialog state, routing, DNS) |
+| `npm test` | Unit tests (parser, checks, digest maths, transaction timers, dialog state, routing, DNS, registrar) |
 | `npm run verify` | `check:content`, `verify:rfc`, and `test` together |
 | `npm run check` | TypeScript and Astro type check |
 
@@ -65,6 +65,8 @@ All course content lives in `src/content/`.
 <DialogTable flow="dialog-call" />  <ForkingTree flows={['fork-one-answers', 'fork-two-answer']} labels={[…]} />   dialog state per UA (src/sip/dialog.ts)
 <RoutingLab />  <ViaStack flow="via-stack" />                                    Record-Route paths and the Via stack (src/sip/routing.ts)
 <DnsResolver />                                                                 NAPTR, SRV, A lookups and failover (src/sip/dns.ts)
+<RegistrarView flow="register-lifecycle" />  <RegistrarView flows="a,b" labels="A|B" />   bindings step by step (src/sip/registrar.ts)
+<ExpiryClock initial={{ asked: 3600, natTimeout: 60 }} />                      registration expiry vs NAT mapping (src/sip/expiry.ts)
 ```
 
 ### Flow file rules
@@ -72,6 +74,7 @@ All course content lives in `src/content/`.
 - Write messages as they appear on the wire. The loader converts them to CRLF.
 - `Content-Length: {auto}` becomes the real body length in bytes.
 - `response="{digest}"` becomes the real digest response, calculated from the header's parameters and the flow's `credentials`. `{digest:INVITE}` calculates it for another method (an ACK copies the INVITE credentials).
+- `at:` gives a step's time in seconds, and `registrar: { lane: … }` checks a registration flow against the registrar model.
 - A flow with `broken: true` must list the rules it breaks in `breaks: [...]`. The build fails if it breaks other rules, or does not break the listed ones.
 - Captions: at most 2 sentences of 20 words each, active voice. Labels: at most 5 words, starting with a method, a status code, or a glossary term.
 

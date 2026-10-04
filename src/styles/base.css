@@ -20,6 +20,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 code, kbd, .mono { font-family: var(--mono); font-size: .8em; letter-spacing: -.01em; }
 :not(pre) > code { color: var(--text); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 4px; padding: .08em .38em; white-space: nowrap; }
+/* On a phone, a long URI may wrap instead of running off the screen. */
+@media (max-width: 600px) { .prose :not(pre) > code { white-space: normal; overflow-wrap: anywhere; } }
 
 .eyebrow { font: 500 13px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .eyebrow b { color: var(--sip); font-weight: 500; }

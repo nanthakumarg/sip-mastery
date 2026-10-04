@@ -1,0 +1,341 @@
+---
+module: 12
+title: Registration
+part: 4
+level: [basic, intermediate]
+paths: { noc: core, dev: core }
+summary: How a phone tells its registrar where it is — REGISTER, the binding from an AOR to a Contact, refresh, query, and removal, several devices with q values, 423 and Min-Expires, Path and Service-Route, and the NAT problems that SIP Outbound and GRUU solve.
+objectives:
+  - Explain what a binding is, and why a call to a user with no binding fails.
+  - Read a REGISTER and say what its Request-URI, To, From, Call-ID, CSeq, Contact, and Expires mean.
+  - Add, refresh, query, and remove bindings, and predict the Contact list in each 200 OK.
+  - Explain q values, 423 Interval Too Brief, and why the expiry in the 200 OK is the one that counts.
+  - Explain why a registration expiry longer than the NAT mapping timeout breaks incoming calls.
+  - Say what Path, Service-Route, SIP Outbound, and GRUU add to registration.
+status: draft
+---
+
+## 12.1 What registration does: it binds an AOR to a Contact
+
+Alice calls `sip:bob@biloxi.example`. That URI is Bob's <Term t="AOR" />: his public address, which does not change. It does not say where Bob's phone is. Proxy B finds the phone in its <Term t="location service" />, and the location service learns it from Bob's phone, with a **REGISTER** request (Module 3).
+
+<RfcQuote id="rfc3261-10.1-registration" />
+
+| | Example | Changes when… |
+|---|---|---|
+| **AOR** | `sip:bob@biloxi.example` | Never: it is printed on Bob's business card |
+| **Contact** | `sip:bob@203.0.113.20:5060` | The phone moves, restarts, or gets a new address |
+| **Binding** | AOR → Contact, for 3600 seconds | Each REGISTER adds, refreshes, or removes it |
+
+When Proxy B gets a request for the AOR, it sends it to the registered Contacts:
+
+<RfcQuote id="rfc3261-10.1-bindings" />
+
+No binding means no route to Bob: Proxy B answers **480 Temporarily Unavailable**. Registration is for **incoming** calls. Bob's phone can often make calls when its registration is broken, so "outgoing works, incoming fails" is the classic sign of a registration problem.
+
+Most registrars challenge the first REGISTER with 401, and the phone sends it again with credentials (Module 13). The flows in this module leave the challenge out, to show the bindings more clearly.
+
+## 12.2 REGISTER: Request-URI, To, From, Contact, Expires
+
+This is the first REGISTER of Bob's desk phone:
+
+```
+REGISTER sip:biloxi.example SIP/2.0
+Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr001x7
+Max-Forwards: 70
+From: Bob <sip:bob@biloxi.example>;tag=76ff7a07
+To: Bob <sip:bob@biloxi.example>
+Call-ID: 8463jsGq2@203.0.113.20
+CSeq: 1 REGISTER
+Contact: <sip:bob@203.0.113.20:5060>
+Expires: 3600
+Content-Length: 0
+```
+
+| Field | In a REGISTER it means… |
+|---|---|
+| **Request-URI** | The **domain** of the registrar: `sip:biloxi.example`, with no user part |
+| **To** | The AOR to register: `sip:bob@biloxi.example` |
+| **From** | Who registers it. The same as To, unless a third party registers for the user |
+| **Call-ID** | The same value for every REGISTER the phone sends to this registrar while it runs |
+| **CSeq** | One higher for each REGISTER, so the registrar can spot an old request that arrives late |
+| **Contact** | The address to bind. No Contact means "only show me the bindings" |
+| **Expires** | How long the phone **would like** the binding to last. The registrar decides |
+
+<RfcQuote id="rfc3261-10.2-request-uri" />
+
+<RfcQuote id="rfc3261-10.2-to" />
+
+<RfcQuote id="rfc3261-10.2-call-id" />
+
+<RfcQuote id="rfc3261-10.2-cseq" />
+
+The expiry can be in the `Expires` header, for every Contact, or in an `expires` parameter on one Contact. The parameter wins. With neither, the registrar uses its default:
+
+<RfcQuote id="rfc3261-10.2-expires-param" />
+
+The parameter belongs **outside** the angle brackets: `<sip:bob@203.0.113.20:5060>;expires=600`. Inside them, it is part of the URI, and the registrar ignores it (Module 4).
+
+REGISTER is a request outside any dialog. Its 200 OK has a To tag, but no dialog follows, and a Record-Route in a REGISTER means nothing:
+
+<RfcQuote id="rfc3261-10.2-no-dialog" />
+
+<RfcQuote id="rfc3261-10.2-record-route" />
+
+The phone sends REGISTER to the registrar that it is configured with. Without one, it uses the domain of its AOR, `sip:biloxi.example`, and finds the server with DNS (Module 11).
+
+## 12.3 Refresh, query, and remove a registration
+
+A binding is **soft state**: it expires unless the phone refreshes it. The same request, REGISTER, does all four jobs. The difference is in Contact and Expires:
+
+| Operation | Contact | Expiry | Result |
+|---|---|---|---|
+| **Add** | The phone's address | More than 0 | A new binding |
+| **Refresh** | The same address, same Call-ID, higher CSeq | More than 0 | The binding runs again from now |
+| **Query** | None | — | Nothing changes; the 200 OK lists the bindings |
+| **Remove one** | The address | `expires=0` | That binding goes |
+| **Remove all** | `*` | `Expires: 0` (required) | Every binding of the AOR goes, from every device |
+
+<RfcQuote id="rfc3261-10.2.2-soft" />
+
+Every 200 OK lists **all** current bindings of the AOR — not only the one in the request — each with the time it has left. The expires value always counts from **now**.
+
+<RfcQuote id="rfc3261-10.3-200" />
+
+Step through Bob's day: add, refresh, query, remove. The table on the right is the registrar's location service, as RFC 3261 §10.3 builds it.
+
+<RegistrarView flow="register-lifecycle" />
+
+<RfcQuote id="rfc3261-10.2.4-refresh" />
+
+<RfcQuote id="rfc3261-10.2.3-fetch" />
+
+<RfcQuote id="rfc3261-10.2.2-zero" />
+
+<RfcQuote id="rfc3261-10.2.2-star" />
+
+RFC 3261 says only "before the expiry". Most phones refresh at about half of it, or a fixed time before it. The expiry to use is the one in the **200 OK**, which can be shorter than the request (12.5):
+
+<RfcQuote id="rfc3261-10.2.4-compare" />
+
+A phone keeps one Call-ID while it runs. After a restart it uses a new one. The registrar compares the Call-ID and CSeq, so a delayed REGISTER cannot undo a newer one:
+
+<RfcQuote id="rfc3261-10.2.4-boot-cycle" />
+
+<RfcQuote id="rfc3261-10.3-order" />
+
+## 12.4 More than one device per AOR; q values
+
+Bob has a desk phone, a mobile app, and a softphone. Each one registers the same AOR, with its own Contact and its own Call-ID. The registrar keeps one binding per Contact, and each 200 OK shows all three.
+
+A `q` parameter from 0 to 1 on each Contact says which device Bob prefers:
+
+<RfcQuote id="rfc3261-10.2.1.2-q" />
+
+<RegistrarView flow="register-devices" />
+
+Proxy B uses q to order its targets. Devices with the same q can ring together; a higher q rings first:
+
+<RfcQuote id="rfc3261-16.6-qvalue" />
+
+| Bob's bindings | q | Proxy B with sequential forking | Proxy B with parallel forking |
+|---|---|---|---|
+| Desk phone | 1.0 | Rings first | All three ring at once |
+| Softphone | 0.7 | Rings if the desk phone does not answer | |
+| Mobile | 0.5 | Rings last | |
+
+Without q, all bindings have the same preference, and a proxy usually rings them all at once. Module 9 covers forking: several early dialogs, and what happens when two devices answer.
+
+Each device refreshes and removes **only its own** binding. One device that removes all bindings with `Contact: *` logs out the other devices too.
+
+## 12.5 423 Interval Too Brief and Min-Expires
+
+The registrar chooses the expiry, not the phone. It can **shorten** a long request, and it can **refuse** a very short one:
+
+<RfcQuote id="rfc3261-10.3-shorter" />
+
+<RfcQuote id="rfc3261-10.3-423" />
+
+<RfcQuote id="rfc3261-10.2.8-retry" />
+
+<RegistrarView flow="register-423" />
+
+Why would a phone ask for 60 seconds? Every REGISTER goes out through Bob's NAT router, and an outgoing packet keeps the router's mapping open. A short expiry is a crude keepalive. For the registrar, it is load: 10,000 phones that register every 60 seconds send almost 170 REGISTER requests per second, and each one may also need a digest check. That is why registrars set a Min-Expires, though RFC 3261 asks them to keep it low:
+
+<RfcQuote id="rfc3261-10.3-brief" />
+
+### Expiry and the NAT mapping
+
+Two timers decide whether a call reaches Bob behind NAT, and they are not related:
+
+- The **registration expiry**, at the registrar: does Proxy B know where Bob is?
+- The **NAT mapping timeout**, in Bob's router: does the router still let packets in on that public port?
+
+<RfcQuote id="rfc4787-4.3-mapping-timer" />
+
+<RfcQuote id="rfc4787-4.3-outbound-refresh" />
+
+Only **outgoing** packets keep the mapping open. An incoming INVITE does not. When the mapping is gone, the INVITE from Proxy B arrives at a closed port, and the router drops it. Bob's phone still shows "Registered". When the phone sends something again, the router may open a **new** mapping on a **new** public port — and the binding still has the old one until the next REGISTER.
+
+Change the settings and select a point in the hour to send Alice's INVITE:
+
+<ExpiryClock initial={{ asked: 300, natTimeout: 60, keepalive: 25, probe: 900 }} />
+
+| Fix | How it keeps the mapping open | Cost |
+|---|---|---|
+| **Keepalives** from the phone: a double CRLF, a STUN request, or an OPTIONS request | A small outgoing packet every 15 to 30 seconds | Almost none, but not every phone can do it |
+| **Short registration expiry** | Each REGISTER is an outgoing packet | Load on the registrar, which may answer 423 |
+| **OPTIONS from the proxy** to the phone | The phone's 200 OK to the OPTIONS goes out through the router | Load on the proxy; common in Kamailio and OpenSIPS set-ups |
+| **SIP Outbound** (12.7) | Keepalives on a flow the phone opened, defined in an RFC | Both sides must support RFC 5626 |
+
+RFC 5626 picked its UDP keepalive interval for exactly this reason:
+
+<RfcQuote id="rfc5626-4.4.2-nat-30" />
+
+## 12.6 Path and Service-Route
+
+Many providers put an **edge proxy** between the phones and the core: an SBC, or the P-CSCF in IMS (Module 27). Calls to Bob must go through the edge proxy, because only it can reach Bob's phone — it holds the connection, or it knows the NAT mapping. But Proxy B only has Bob's Contact. How does it know to go through the edge?
+
+**Path** (RFC 3327) records the edge proxy during registration. The edge proxy adds a Path header to the REGISTER, the registrar stores it with the binding, and Proxy B puts it in Route when it sends a request to that Contact:
+
+<RfcQuote id="rfc3327-5.2-insert" />
+
+<RfcQuote id="rfc3327-5.3-store" />
+
+<RfcQuote id="rfc3327-5.4-route" />
+
+<RegistrarView flow="register-path" />
+
+Path looks like Record-Route, but it lives longer:
+
+<RfcQuote id="rfc3327-4-future-dialogs" />
+
+**Service-Route** (RFC 3608) goes the other way. The registrar returns it in the 200 OK, and the phone uses it as a pre-loaded Route for its **own** new requests (Module 10.7), so they reach the proxy that serves Bob:
+
+<RfcQuote id="rfc3608-3-service-route" />
+
+<RfcQuote id="rfc3608-6.1-preloaded" />
+
+When Bob calls Carol, his phone puts its outbound proxy first, then the Service-Route:
+
+```
+INVITE sip:carol@chicago.example SIP/2.0
+Route: <sip:edge.biloxi.example;lr>, <sip:orig@proxy.biloxi.example;lr>
+```
+
+| | Record-Route | Path | Service-Route |
+|---|---|---|---|
+| **Added by** | A proxy, on the request that creates a dialog | A proxy, on a REGISTER | The registrar, in the 200 OK to REGISTER |
+| **Used by** | Both ends of the dialog | The proxy that looks up the binding | The registering phone |
+| **For** | Later requests in **this** dialog | Requests **to** the phone, in future dialogs | Requests **from** the phone, in future dialogs |
+| **Needs `;lr`** | Yes | Yes | Yes |
+
+A phone shows support with `Supported: path`. Without it, a registrar should refuse a REGISTER that has a Path, with 420 Bad Extension, because a proxy may have added itself to the path without the phone's knowledge:
+
+<RfcQuote id="rfc3327-5.1-supported" />
+
+## 12.7 SIP Outbound and GRUU (overview)
+
+### SIP Outbound: the phone keeps the connection
+
+Behind NAT or a firewall, nobody can open a connection **to** Bob's phone. RFC 5626, **SIP Outbound**, turns this around: the phone opens the connection, keeps it alive, and the server sends Bob's calls back over it.
+
+<RfcQuote id="rfc5626-1-flow" />
+
+Registration needs two new Contact parameters for this:
+
+- **`+sip.instance`**: a permanent, unique name for the device, the <Term t="instance ID" />. It does not change when the phone restarts or moves.
+- **`reg-id`**: the number of the flow. A device can register over two flows, to two edge proxies, for redundancy.
+
+<RfcQuote id="rfc5626-3.1-instance" />
+
+Without them, the registrar only sees Contact URIs. When Bob's mobile moves from Wi-Fi to 4G, its new Contact is a **second** binding, and the old one, which leads nowhere, stays until it expires. Calls to Bob fork to both, and the old branch fails slowly. With an instance ID and reg-id, the registrar knows that the new Contact **replaces** the old one. Compare the two:
+
+<RegistrarView flows="register-new-address,register-outbound" labels="Without SIP Outbound|With SIP Outbound" />
+
+<RfcQuote id="rfc5626-3.2-replace" />
+
+On the flow, the phone sends keepalives. On TCP and TLS, a keepalive is a double CRLF, and the server answers with one CRLF. On UDP, it is a STUN request.
+
+<RfcQuote id="rfc5626-3.5.1-crlf" />
+
+<RfcQuote id="rfc5626-4.4.1-interval" />
+
+<RfcQuote id="rfc5626-4.4.2-interval" />
+
+The registrar confirms Outbound with `Require: outbound` in the 200 OK. If it is missing, Outbound is not in use, and the phone must fall back to the methods in 12.5. Module 20 covers NAT traversal in detail.
+
+### GRUU: an address for one device
+
+The AOR reaches **all** of Bob's devices. Sometimes a request must reach exactly **one**: Alice transfers Bob's call to Carol, and Carol's phone must call Bob's desk phone, not his voicemail and not his mobile. The Contact address cannot do this, because it is often a private address behind NAT. A <Term t="GRUU" /> can:
+
+<RfcQuote id="rfc5627-1-gruu" />
+
+A phone that sends an instance ID and `Supported: gruu` gets two GRUUs in the 200 OK:
+
+<RfcQuote id="rfc5627-3.2-two-gruus" />
+
+```
+Contact: <sip:bob@198.51.100.77:41270;transport=tcp>
+ ;+sip.instance="<urn:uuid:5f3c0a2e-6b1d-4c8e-9a47-2d61b0e8c3f5>";reg-id=1
+ ;pub-gruu="sip:bob@biloxi.example;gr=urn:uuid:5f3c0a2e-6b1d-4c8e-9a47-2d61b0e8c3f5"
+ ;temp-gruu="sip:tgruu.1er2har@biloxi.example;gr";expires=600
+```
+
+| | Public GRUU | Temporary GRUU |
+|---|---|---|
+| **Looks like** | The AOR with `;gr=` and the instance ID | An opaque name, with `;gr` |
+| **Shows who Bob is** | Yes | No: for anonymous calls |
+| **Changes** | Never, for this device | A new one with each refresh; the older ones still work |
+
+<RfcQuote id="rfc5627-3.1.1-public" />
+
+The phone then puts its GRUU in the Contact of its INVITEs and 200 OKs. Proxy B receives a request for the GRUU and sends it only to the Contacts of that one device:
+
+<RfcQuote id="rfc5627-3.3-contact" />
+
+IMS uses instance IDs and GRUUs (Module 27). Many other networks use neither SIP Outbound nor GRUU: they rely on rport, keepalives, and an SBC or a proxy that rewrites the Contact (Module 20).
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="A registration expiry longer than the NAT mapping timeout">
+    Bob's phone registers for 3600 seconds, and the registrar is happy. But the NAT router closes the mapping after 60 seconds of silence. From then on, Proxy B sends each INVITE to a public port that the router no longer forwards. Bob's phone shows "Registered", outgoing calls work, and incoming calls fail — except in the minute after each REGISTER. In a trace taken at the proxy, the INVITE goes out and nothing comes back.
+
+    <ExpiryClock initial={{ asked: 3600, maxExpires: 3600, natTimeout: 60, keepalive: 0, probe: 900 }} title="Broken: a 1-hour registration behind a 60-second NAT timeout" />
+
+    <RfcQuote id="rfc5626-4.4.2-interval" />
+
+    <p class="fix"><b>Remember:</b> turn on keepalives shorter than the shortest NAT timeout you expect — 25 seconds is a common value — or let the proxy send OPTIONS to the phone. If you must use a short registration expiry instead, check the registrar's Min-Expires and its load.</p>
+  </Mistake>
+
+  <Mistake title="Contact: * without Expires: 0">
+    A phone that logs out sends `Contact: *` to remove all its bindings, but leaves out `Expires`, or sends `Expires: 3600`. The registrar must refuse the request with 400, and every binding stays. Calls keep ringing a device that the user logged out of.
+
+    <RfcQuote id="rfc3261-10.3-star-400" />
+
+    <BrokenFixedFlow broken="register-star-no-expires" fixed="register-remove-all" />
+
+    <p class="fix"><b>Remember:</b> <code>Contact: *</code> always goes with <code>Expires: 0</code>, and it removes the bindings of <b>every</b> device of the AOR. To remove one device, send its own Contact with <code>expires=0</code>.</p>
+  </Mistake>
+
+  <Mistake title="Ignoring the shorter expiry in the 200 OK">
+    The phone asks for 3600 seconds, and plans its next refresh from that number. The registrar grants only 600, and says so in the expires parameter of the 200 OK. After 600 seconds the binding is gone, and calls fail with 480, until the phone refreshes at 1800 seconds. Then the cycle repeats: Bob can be reached for 10 minutes in every 30.
+
+    <RfcQuote id="rfc3261-10.2.4-compare" />
+
+    <BrokenFixedFlow broken="register-refresh-late" fixed="register-refresh-granted" />
+
+    <p class="fix"><b>Remember:</b> the expiry that counts is the <code>expires</code> parameter on the phone's own Contact in the 200 OK. When a user is "registered" but unreachable at regular intervals, compare the refresh interval in the trace with that value.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- Registration stores a **binding** from an **AOR** to a **Contact** in the location service. No binding means a call to the user fails, often with **480**.
+- A REGISTER has the **domain** in its Request-URI and the **AOR** in To. It keeps one **Call-ID** while the phone runs, and adds one to **CSeq** each time.
+- One request does it all: a Contact **adds** or **refreshes**, no Contact **queries**, `expires=0` **removes** one binding, and `Contact: *` with `Expires: 0` removes **all**.
+- Every 200 OK lists **all** bindings of the AOR, each with the time left. The registrar may **shorten** the expiry; the phone must refresh before the expiry in the **200 OK**.
+- Several devices can register one AOR; **q** values order them. **423** with **Min-Expires** refuses a very short expiry.
+- Behind NAT, the **mapping timeout** matters as much as the registration expiry: keep the mapping open with **keepalives**.
+- **Path** puts edge proxies in the route to the phone; **Service-Route** gives the phone its route for outgoing requests. **SIP Outbound** replaces a moved device's binding and keeps its flow alive; a **GRUU** reaches one device.

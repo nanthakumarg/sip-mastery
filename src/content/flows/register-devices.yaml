@@ -1,0 +1,111 @@
+id: register-devices
+title: "Three devices, one AOR"
+summary: "Bob's desk phone, mobile, and softphone each register sip:bob@biloxi.example. Each 200 OK lists all of Bob's bindings, with q values."
+registrar: { lane: registrar }
+lanes:
+  - { id: desk, label: Desk phone, kind: ua, sub: 203.0.113.20 }
+  - { id: mobile, label: Mobile, kind: ua, sub: 198.51.100.77 }
+  - { id: soft, label: Softphone, kind: ua, sub: 203.0.113.21 }
+  - { id: registrar, label: Registrar, kind: registrar, sub: biloxi.example }
+steps:
+  - from: desk
+    to: registrar
+    at: 0
+    label: "REGISTER"
+    caption: "The desk phone registers with q=1.0, the highest preference."
+    rfc: rfc3261-10.2.1.2-q
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr005x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=d3sk81a
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Dk72hs01@203.0.113.20
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>;q=1.0
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: desk
+    label: "200 OK"
+    caption: "One binding so far."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr005x7
+      From: Bob <sip:bob@biloxi.example>;tag=d3sk81a
+      To: Bob <sip:bob@biloxi.example>;tag=rg8805
+      Call-ID: Dk72hs01@203.0.113.20
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:00:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;q=1.0;expires=3600
+      Content-Length: 0
+
+  - from: mobile
+    to: registrar
+    at: 120
+    label: "REGISTER"
+    caption: "Two minutes later, the mobile app registers over TCP. It asks for 600 seconds, with q=0.5."
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/TCP 198.51.100.77:41270;branch=z9hG4bKr006x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=m0b1l3e
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Mb93kq55@198.51.100.77
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@198.51.100.77:41270;transport=tcp>;q=0.5
+      Expires: 600
+      Content-Length: 0
+
+  - from: registrar
+    to: mobile
+    label: "200 OK"
+    caption: "The 200 OK lists both bindings. The desk phone binding has 3480 seconds left."
+    rfc: rfc3261-10.2.1-complete-list
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/TCP 198.51.100.77:41270;branch=z9hG4bKr006x7
+      From: Bob <sip:bob@biloxi.example>;tag=m0b1l3e
+      To: Bob <sip:bob@biloxi.example>;tag=rg8806
+      Call-ID: Mb93kq55@198.51.100.77
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:02:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;q=1.0;expires=3480
+      Contact: <sip:bob@198.51.100.77:41270;transport=tcp>;q=0.5;expires=600
+      Content-Length: 0
+
+  - from: soft
+    to: registrar
+    at: 300
+    label: "REGISTER"
+    caption: "The softphone registers with q=0.7. Each device has its own Call-ID."
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.21:5062;branch=z9hG4bKr007x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=s0ft22c
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Sf18ab40@203.0.113.21
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@203.0.113.21:5062>;q=0.7
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: soft
+    label: "200 OK"
+    caption: "Three bindings. Proxy B tries them from the highest q value: desk phone, softphone, mobile."
+    rfc: rfc3261-16.6-qvalue
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.21:5062;branch=z9hG4bKr007x7
+      From: Bob <sip:bob@biloxi.example>;tag=s0ft22c
+      To: Bob <sip:bob@biloxi.example>;tag=rg8807
+      Call-ID: Sf18ab40@203.0.113.21
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:05:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;q=1.0;expires=3300
+      Contact: <sip:bob@198.51.100.77:41270;transport=tcp>;q=0.5;expires=420
+      Contact: <sip:bob@203.0.113.21:5062>;q=0.7;expires=3600
+      Content-Length: 0

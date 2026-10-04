@@ -1,0 +1,109 @@
+id: register-star-no-expires
+title: "Broken: Contact: * without Expires: 0"
+summary: "The desk phone sends Contact: * without Expires: 0. The Registrar answers 400, and every binding stays."
+broken: true
+breaks: [register-star]
+registrar: { lane: registrar }
+lanes:
+  - { id: desk, label: Desk phone, kind: ua, sub: 203.0.113.20 }
+  - { id: mobile, label: Mobile, kind: ua, sub: 198.51.100.77 }
+  - { id: registrar, label: Registrar, kind: registrar, sub: biloxi.example }
+steps:
+  - from: desk
+    to: registrar
+    at: 0
+    label: "REGISTER"
+    caption: "The desk phone registers for 3600 seconds."
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr015x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=d3sk92b
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Dk11zz04@203.0.113.20
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@203.0.113.20:5060>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: registrar
+    to: desk
+    label: "200 OK"
+    caption: "One binding."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr015x7
+      From: Bob <sip:bob@biloxi.example>;tag=d3sk92b
+      To: Bob <sip:bob@biloxi.example>;tag=rg8816
+      Call-ID: Dk11zz04@203.0.113.20
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:00:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=3600
+      Content-Length: 0
+
+  - from: mobile
+    to: registrar
+    at: 60
+    label: "REGISTER"
+    caption: "One minute later, the mobile app registers too."
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/TCP 198.51.100.77:41270;branch=z9hG4bKr016x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=m0b2l7f
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Mb20vv61@198.51.100.77
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@198.51.100.77:41270;transport=tcp>
+      Expires: 600
+      Content-Length: 0
+
+  - from: registrar
+    to: mobile
+    label: "200 OK"
+    caption: "Two bindings for sip:bob@biloxi.example."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/TCP 198.51.100.77:41270;branch=z9hG4bKr016x7
+      From: Bob <sip:bob@biloxi.example>;tag=m0b2l7f
+      To: Bob <sip:bob@biloxi.example>;tag=rg8817
+      Call-ID: Mb20vv61@198.51.100.77
+      CSeq: 1 REGISTER
+      Date: Sun, 04 Oct 2026 09:01:00 GMT
+      Contact: <sip:bob@203.0.113.20:5060>;expires=3540
+      Contact: <sip:bob@198.51.100.77:41270;transport=tcp>;expires=600
+      Content-Length: 0
+
+  - from: desk
+    to: registrar
+    at: 120
+    label: "REGISTER (remove all)"
+    caption: "The desk phone sends Contact: * to log out, but with no Expires header."
+    warn: "Contact: * needs Expires: 0."
+    rfc: rfc3261-10.2.2-star
+    status: { desk: "Logging out" }
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr017x7
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=d3sk92b
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: Dk11zz04@203.0.113.20
+      CSeq: 2 REGISTER
+      Contact: *
+      Content-Length: 0
+
+  - from: registrar
+    to: desk
+    label: "400 Bad Request"
+    caption: "The Registrar rejects the request. Both bindings stay, so calls still ring the desk phone."
+    rfc: rfc3261-10.3-star-400
+    status: { desk: "Still registered" }
+    message: |
+      SIP/2.0 400 Bad Request
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKr017x7
+      From: Bob <sip:bob@biloxi.example>;tag=d3sk92b
+      To: Bob <sip:bob@biloxi.example>;tag=rg8818
+      Call-ID: Dk11zz04@203.0.113.20
+      CSeq: 2 REGISTER
+      Content-Length: 0

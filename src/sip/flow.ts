@@ -5,6 +5,7 @@
  */
 import { computeDigest, type DigestAlgorithm } from './digest.ts';
 import { byteLength, parseAuthParams, parseMessage, SipParseError, type SipMessage } from './parse.ts';
+import type { Policy } from './registrar.ts';
 
 /** Protocol colour keys. Each key is one colour in the design tokens. */
 export const PROTOCOLS = ['sip', 'sdp', 'rtp', 'rtcp', 'dns', 'net', 'err', 'down'] as const;
@@ -42,6 +43,8 @@ export interface FlowStep {
   detail?: string;
   /** Short state labels shown under nodes on the call map, e.g. { alice: Registered }. They persist until changed. */
   status?: Record<string, string>;
+  /** Seconds since the start of the flow, where time matters (registration). Steps without it keep the time of the step before. */
+  at?: number;
 }
 
 /** A chapter of a flow: steps from `from` (1-based) to the next phase. */
@@ -78,6 +81,14 @@ export interface FlowData {
   credentials?: { username: string; password: string };
   phases?: FlowPhase[];
   map?: FlowMap;
+  /** The registrar lane and its policy: the flow is checked against the registrar model (src/sip/registrar.ts). */
+  registrar?: RegistrarConfig;
+}
+
+export interface RegistrarConfig extends Partial<Policy> {
+  lane: string;
+  /** Lanes that look up the location service for an initial request. */
+  lookup?: string[];
 }
 
 export interface PreparedStep extends FlowStep {

@@ -2,7 +2,7 @@
  * Serializable data that Astro passes to the diagram islands.
  * Islands parse `wire` themselves with src/sip/parse.ts, so the HTML stays small.
  */
-import type { FlowMap, FlowPhase, Lane, Protocol, StepKind } from '../sip/flow.ts';
+import type { FlowMap, FlowPhase, Lane, Protocol, RegistrarConfig, StepKind } from '../sip/flow.ts';
 
 export interface ClientStep {
   index: number;
@@ -18,6 +18,7 @@ export interface ClientStep {
   wire?: string;
   status?: Record<string, string>;
   detail?: string;
+  at?: number;
 }
 
 export interface ClientFlow {
@@ -29,6 +30,7 @@ export interface ClientFlow {
   steps: ClientStep[];
   phases?: FlowPhase[];
   map?: FlowMap;
+  registrar?: RegistrarConfig;
 }
 
 export interface ClientQuote {

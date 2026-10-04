@@ -2136,3 +2136,448 @@
   title: The "Weight" field
   text: >-
     Weight is only intended for static, not dynamic, server selection.
+
+# --- Module 12: Registration ------------------------------------------------
+
+- id: rfc3261-10.1-registration
+  rfc: 3261
+  section: "10.1"
+  title: Registrations, Overview
+  text: >-
+    Registration creates bindings in a location service for a particular
+    domain that associates an address-of-record URI with one or more contact
+    addresses.
+
+- id: rfc3261-10.2-no-dialog
+  rfc: 3261
+  section: "10.2"
+  title: Constructing the REGISTER Request
+  text: >-
+    A REGISTER request does not establish a dialog.
+
+- id: rfc3261-10.2-record-route
+  rfc: 3261
+  section: "10.2"
+  title: Constructing the REGISTER Request
+  text: >-
+    The Record-Route header field has no meaning in REGISTER requests or
+    responses, and MUST be ignored if present.
+
+- id: rfc3261-10.2-request-uri
+  rfc: 3261
+  section: "10.2"
+  title: Constructing the REGISTER Request
+  text: >-
+    The Request-URI names the domain of the location service for which the
+    registration is meant (for example, "sip:chicago.com"). The "userinfo"
+    and "@" components of the SIP URI MUST NOT be present.
+
+- id: rfc3261-10.2-to
+  rfc: 3261
+  section: "10.2"
+  title: Constructing the REGISTER Request
+  text: >-
+    The To header field contains the address of record whose registration is
+    to be created, queried, or modified.
+
+- id: rfc3261-10.2-from
+  rfc: 3261
+  section: "10.2"
+  title: Constructing the REGISTER Request
+  text: >-
+    The value is the same as the To header field unless the request is a
+    third-party registration.
+
+- id: rfc3261-10.2-call-id
+  rfc: 3261
+  section: "10.2"
+  title: Constructing the REGISTER Request
+  text: >-
+    All registrations from a UAC SHOULD use the same Call-ID header field
+    value for registrations sent to a particular registrar.
+
+- id: rfc3261-10.2-cseq
+  rfc: 3261
+  section: "10.2"
+  title: Constructing the REGISTER Request
+  text: >-
+    A UA MUST increment the CSeq value by one for each REGISTER request with
+    the same Call-ID.
+
+- id: rfc3261-10.2-expires-param
+  rfc: 3261
+  section: "10.2"
+  title: Constructing the REGISTER Request
+  text: >-
+    The "expires" parameter indicates how long the UA would like the binding
+    to be valid. The value is a number indicating seconds. If this parameter
+    is not provided, the value of the Expires header field is used instead.
+
+- id: rfc3261-10.2.1-complete-list
+  rfc: 3261
+  section: "10.2.1"
+  title: Adding Bindings
+  text: >-
+    The 2xx response to the REGISTER request will contain, in a Contact header
+    field, a complete list of bindings that have been registered for this
+    address-of-record at this registrar.
+
+- id: rfc3261-10.2.1.1-server-chooses
+  rfc: 3261
+  section: "10.2.1.1"
+  title: Setting the Expiration Interval of Contact Addresses
+  text: >-
+    If neither mechanism for expressing a suggested expiration time is present
+    in a REGISTER, the client is indicating its desire for the server to
+    choose.
+
+- id: rfc3261-10.2.1.2-q
+  rfc: 3261
+  section: "10.2.1.2"
+  title: Preferences among Contact Addresses
+  text: >-
+    This list can be prioritized with the "q" parameter in the Contact header
+    field. The "q" parameter indicates a relative preference for the
+    particular Contact header field value compared to other bindings for this
+    address-of-record.
+
+- id: rfc3261-10.2.2-soft
+  rfc: 3261
+  section: "10.2.2"
+  title: Removing Bindings
+  text: >-
+    Registrations are soft state and expire unless refreshed, but can also be
+    explicitly removed.
+
+- id: rfc3261-10.2.2-zero
+  rfc: 3261
+  section: "10.2.2"
+  title: Removing Bindings
+  text: >-
+    A UA requests the immediate removal of a binding by specifying an
+    expiration interval of "0" for that contact address in a REGISTER
+    request.
+
+- id: rfc3261-10.2.2-star
+  rfc: 3261
+  section: "10.2.2"
+  title: Removing Bindings
+  text: >-
+    The REGISTER-specific Contact header field value of "*" applies to all
+    registrations, but it MUST NOT be used unless the Expires header field is
+    present with a value of "0".
+
+- id: rfc3261-10.2.3-fetch
+  rfc: 3261
+  section: "10.2.3"
+  title: Fetching Bindings
+  text: >-
+    A success response to any REGISTER request contains the complete list of
+    existing bindings, regardless of whether the request contained a Contact
+    header field. If no Contact header field is present in a REGISTER
+    request, the list of bindings is left unchanged.
+
+- id: rfc3261-10.2.4-refresh
+  rfc: 3261
+  section: "10.2.4"
+  title: Refreshing Bindings
+  text: >-
+    The UA then issues a REGISTER request for each of its bindings before the
+    expiration interval has elapsed.
+
+- id: rfc3261-10.2.4-compare
+  rfc: 3261
+  section: "10.2.4"
+  title: Refreshing Bindings
+  text: >-
+    The UA compares each contact address to see if it created the contact
+    address, using comparison rules in Section 19.1.4. If so, it updates the
+    expiration time interval according to the expires parameter or, if
+    absent, the Expires field value.
+
+- id: rfc3261-10.2.4-boot-cycle
+  rfc: 3261
+  section: "10.2.4"
+  title: Refreshing Bindings
+  text: >-
+    A UA SHOULD use the same Call-ID for all registrations during a single
+    boot cycle.
+
+- id: rfc3261-10.2.8-retry
+  rfc: 3261
+  section: "10.2.8"
+  title: Error Responses
+  text: >-
+    If a UA receives a 423 (Interval Too Brief) response, it MAY retry the
+    registration after making the expiration interval of all contact addresses
+    in the REGISTER request equal to or greater than the expiration interval
+    within the Min-Expires header field of the 423 (Interval Too Brief)
+    response.
+
+- id: rfc3261-10.3-aor
+  rfc: 3261
+  section: "10.3"
+  title: Processing REGISTER Requests
+  text: >-
+    If the address-of-record is not valid for the domain in the Request-URI,
+    the registrar MUST send a 404 (Not Found) response and skip the remaining
+    steps.
+
+- id: rfc3261-10.3-star-400
+  rfc: 3261
+  section: "10.3"
+  title: Processing REGISTER Requests
+  text: >-
+    If the request has additional Contact fields or an expiration time other
+    than zero, the request is invalid, and the server MUST return a 400
+    (Invalid Request) and skip the remaining steps.
+
+- id: rfc3261-10.3-order
+  rfc: 3261
+  section: "10.3"
+  title: Processing REGISTER Requests
+  text: >-
+    If the value is higher than that of the existing binding, it MUST update
+    or remove the binding as above. If not, the update MUST be aborted and
+    the request fails.
+
+- id: rfc3261-10.3-shorter
+  rfc: 3261
+  section: "10.3"
+  title: Processing REGISTER Requests
+  text: >-
+    The registrar MAY choose an expiration less than the requested expiration
+    interval.
+
+- id: rfc3261-10.3-423
+  rfc: 3261
+  section: "10.3"
+  title: Processing REGISTER Requests
+  text: >-
+    If and only if the requested expiration interval is greater than zero AND
+    smaller than one hour AND less than a registrar-configured minimum, the
+    registrar MAY reject the registration with a response of 423 (Interval
+    Too Brief). This response MUST contain a Min-Expires header field that
+    states the minimum expiration interval the registrar is willing to honor.
+
+- id: rfc3261-10.3-brief
+  rfc: 3261
+  section: "10.3"
+  title: Processing REGISTER Requests
+  text: >-
+    Therefore, registrars should accept brief registrations; a request should
+    only be rejected if the interval is so short that the refreshes would
+    degrade registrar performance.
+
+- id: rfc3261-10.3-200
+  rfc: 3261
+  section: "10.3"
+  title: Processing REGISTER Requests
+  text: >-
+    The response MUST contain Contact header field values enumerating all
+    current bindings. Each Contact value MUST feature an "expires" parameter
+    indicating its expiration interval chosen by the registrar.
+
+- id: rfc3261-16.6-qvalue
+  rfc: 3261
+  section: "16.6"
+  title: Request Forwarding
+  text: >-
+    Targets are processed from highest qvalue to lowest. Targets with equal
+    qvalues may be processed in parallel.
+
+- id: rfc4787-4.3-outbound-refresh
+  rfc: 4787
+  section: "4.3"
+  title: Mapping Refresh
+  text: >-
+    REQ-6: The NAT mapping Refresh Direction MUST have a "NAT Outbound refresh
+    behavior" of "True".
+
+- id: rfc4787-4.3-five-minutes
+  rfc: 4787
+  section: "4.3"
+  title: Mapping Refresh
+  text: >-
+    A default value of five minutes or more for the NAT UDP mapping timer is
+    RECOMMENDED.
+
+- id: rfc3327-4-future-dialogs
+  rfc: 3327
+  section: "4"
+  title: Path Header Field Definition and Syntax
+  text: >-
+    Furthermore, the vector established by Record-Route applies only to
+    requests within the dialog that established that Record-Route, whereas
+    the vector established by Path applies to future dialogs.
+
+- id: rfc3327-5.1-supported
+  rfc: 3327
+  section: "5.1"
+  title: Procedures at the UA
+  text: >-
+    The UA SHOULD include the option tag "path" as a header field value in all
+    Supported header fields, and SHOULD include a Supported header field in
+    all requests.
+
+- id: rfc3327-5.2-insert
+  rfc: 3327
+  section: "5.2"
+  title: Procedures at Intermediate Proxies
+  text: >-
+    When a proxy processing a REGISTER request wishes to be on the path for
+    future requests toward the UA originating that REGISTER request, the proxy
+    inserts a URI for that proxy as the topmost value in the Path header field
+    (or inserts a new topmost Path header) before proxying that request.
+
+- id: rfc3327-5.3-store
+  rfc: 3327
+  section: "5.3"
+  title: Procedures at the Registrar
+  text: >-
+    The registrar then stores this path vector in association with that
+    contact and the address-of-record indicated in the REGISTER request (the
+    "binding" as defined in [1]).
+
+- id: rfc3327-5.4-route
+  rfc: 3327
+  section: "5.4"
+  title: Procedures at the Home Proxy
+  text: >-
+    With the addition of Path, the home proxy also copies the stored path
+    vector associated with the specific contact in the registrar database into
+    the Route header field of the outgoing request as a preloaded route.
+
+- id: rfc3608-3-service-route
+  rfc: 3608
+  section: "3"
+  title: Discussion of Mechanism
+  text: >-
+    A registrar may use a Service-Route header field to inform a UA of a
+    service route that, if used by the UA, will provide services from a proxy
+    or set of proxies associated with that registrar.
+
+- id: rfc3608-3-originating
+  rfc: 3608
+  section: "3"
+  title: Discussion of Mechanism
+  text: >-
+    The routing established by the Service-Route mechanism applies only to
+    requests originating in the user agent.
+
+- id: rfc3608-6.1-preloaded
+  rfc: 3608
+  section: "6.1"
+  title: Procedures at the UA
+  text: >-
+    If so, it uses the content of the Service-Route header field as a
+    preloaded Route header field in outgoing initial requests [3].
+
+- id: rfc5626-1-flow
+  rfc: 5626
+  section: "1"
+  title: Introduction
+  text: >-
+    The key idea of this specification is that when a UA sends a REGISTER
+    request or a dialog-forming request, the proxy can later use this same
+    network "flow" -- whether this is a bidirectional stream of UDP datagrams,
+    a TCP connection, or an analogous concept in another transport protocol --
+    to forward any incoming requests that need to go to this UA in the context
+    of the registration or dialog.
+
+- id: rfc5626-3.1-instance
+  rfc: 5626
+  section: "3.1"
+  title: Summary of Mechanism
+  text: >-
+    Each UA has a unique instance-id that stays the same for this UA even if
+    the UA reboots or is power cycled.
+
+- id: rfc5626-3.2-replace
+  rfc: 5626
+  section: "3.2"
+  title: Single Registrar and UA
+  text: >-
+    If the instance-id and reg-id are the same as a previous registration for
+    the same AOR, the registrar replaces the old Contact URI and flow
+    information.
+
+- id: rfc5626-3.5.1-crlf
+  rfc: 5626
+  section: "3.5.1"
+  title: CRLF Keep-Alive Technique
+  text: >-
+    The client periodically sends a double-CRLF (the "ping") then waits to
+    receive a single CRLF (the "pong").
+
+- id: rfc5626-4.4.1-interval
+  rfc: 5626
+  section: "4.4.1"
+  title: Keep-Alive with CRLF
+  text: >-
+    The fixed upper bound or the default configurable upper bound SHOULD be
+    120 seconds (95 seconds for the lower bound) where battery power is not a
+    concern and 840 seconds (672 seconds for the lower bound) where battery
+    power is a concern.
+
+- id: rfc5626-4.4.2-interval
+  rfc: 5626
+  section: "4.4.2"
+  title: Keep-Alive with STUN
+  text: >-
+    When a Flow-Timer header field is not included in a successful
+    registration response, the time between each keep-alive request SHOULD be
+    a random number between 24 and 29 seconds.
+
+- id: rfc5626-4.4.2-nat-30
+  rfc: 5626
+  section: "4.4.2"
+  title: Keep-Alive with STUN
+  text: >-
+    Note on selection of time values: the upper bound of 29 seconds was
+    selected, as many NATs have UDP timeouts as low as 30 seconds.
+
+- id: rfc5626-6-one-flow
+  rfc: 5626
+  section: "6"
+  title: Registrar Procedures
+  text: >-
+    Therefore, if the Contact header field contains more than one header field
+    value with a non-zero expiration and any of these header field values
+    contain a "reg-id" Contact header field parameter, the entire registration
+    SHOULD be rejected with a 400 (Bad Request) response.
+
+- id: rfc5627-1-gruu
+  rfc: 5627
+  section: "1"
+  title: Introduction
+  text: >-
+    This specification describes a mechanism for providing a unique user-agent
+    identifier which is still globally routable. This identifier is called a
+    Globally Routable User Agent (UA) URI (GRUU).
+
+- id: rfc5627-3.2-two-gruus
+  rfc: 5627
+  section: "3.2"
+  title: Obtaining a GRUU
+  text: >-
+    The registrar detects this header field parameter and provides two GRUUs
+    in the REGISTER response. One of these is a temporary GRUU, and the other
+    is the public GRUU.
+
+- id: rfc5627-3.1.1-public
+  rfc: 5627
+  section: "3.1.1"
+  title: GRUUs That Expose the Underlying AOR
+  text: >-
+    It is constructed by taking the AOR, and adding the "gr" URI parameter
+    with a value chosen by the registrar in the domain.
+
+- id: rfc5627-3.3-contact
+  rfc: 5627
+  section: "3.3"
+  title: Using a GRUU
+  text: >-
+    First, it uses them as the contents of the Contact header field in
+    non-REGISTER requests and responses that it emits (for example, an INVITE
+    request and 200 OK response).

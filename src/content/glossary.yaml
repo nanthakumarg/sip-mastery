@@ -12,7 +12,7 @@
 - term: Proxy B
   definition: The inbound proxy for biloxi.example. It finds Bob through its location service.
 - term: Registrar
-  definition: The server that accepts REGISTER requests for atlanta.example and stores bindings.
+  definition: The server that accepts REGISTER requests for a domain and stores the bindings in its location service. In most examples it serves atlanta.example; in Module 12, biloxi.example.
 - term: Carol
   definition: A third user. Bob is transferred to Carol in transfer examples; she is another support agent in Module 9.
 - term: Proxy B1
@@ -329,3 +329,36 @@
 - term: MTU
   aliases: [maximum transmission unit]
   definition: The largest packet a link can carry in one piece. On Ethernet it is usually 1500 bytes.
+- term: Edge proxy
+  aliases: [edge proxies]
+  definition: The first proxy that a user agent reaches, at the edge of its provider's network. It often handles NAT and keeps the connection to the phone.
+- term: expiry
+  aliases: [expiry time, expiration interval]
+  definition: How long a binding lasts, in seconds, unless the user agent refreshes it.
+- term: refresh
+  definition: A new REGISTER, with the same Contact and Call-ID and a higher CSeq, that restarts the expiry of a binding.
+- term: keepalive
+  aliases: [keep-alive, keepalives, keep-alives]
+  definition: A small packet sent only to keep a NAT mapping or a connection open, such as a double CRLF, a STUN request, or an OPTIONS request.
+- term: NAT mapping
+  aliases: [NAT binding, pinhole]
+  definition: The NAT router's record of one private address and port and the public port it uses for them. It ends after a time with no outgoing traffic.
+- term: instance ID
+  aliases: [instance-id, +sip.instance]
+  definition: A permanent, unique URN for one device, sent in the +sip.instance Contact parameter (RFC 5626). It does not change when the device reboots or moves.
+- term: reg-id
+  definition: A Contact parameter that numbers the flows of one device (RFC 5626). Same instance ID and reg-id means "replace my old registration".
+- term: SIP Outbound
+  aliases: [outbound]
+  definition: RFC 5626. A user agent keeps its own connections to the server open, with keepalives, and receives its calls over them.
+- term: flow
+  definition: In SIP Outbound, the connection or UDP address pair that a user agent opened to its edge proxy or registrar.
+- term: GRUU
+  aliases: [globally routable user agent URI, public GRUU, temporary GRUU]
+  definition: A URI that reaches one device of a user, not all of them (RFC 5627). It has the gr parameter.
+- term: Path
+  definition: A header that proxies add to a REGISTER. The registrar stores it, so later requests to the user pass the same proxies (RFC 3327).
+- term: Service-Route
+  definition: A header in the 200 OK to REGISTER. It lists the proxies that the user agent puts in Route for its own requests (RFC 3608).
+- term: Min-Expires
+  definition: The header in a 423 response that gives the shortest expiry the registrar accepts.

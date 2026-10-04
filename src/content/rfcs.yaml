@@ -75,7 +75,7 @@ rfcs:
   - { n: 6189, area: media, proto: rtp, short: ZRTP, summary: "Key agreement inside the media path.", modules: [18] }
 
   # --- NAT traversal --------------------------------------------------------------
-  - { n: 4787, area: nat, proto: dns, short: NAT behaviour, summary: "Describes how NATs map and filter UDP packets.", modules: [20] }
+  - { n: 4787, area: nat, proto: dns, short: NAT behaviour, summary: "Describes how NATs map and filter UDP packets.", modules: [12, 20] }
   - { n: 5389, area: nat, proto: dns, short: STUN (second version), summary: "STUN as a toolkit for NAT traversal. RFC 8489 replaced it.", modules: [20] }
   - { n: 8489, area: nat, proto: dns, short: STUN, summary: "Lets a client learn its public IP address and port.", modules: [20] }
   - { n: 5766, area: nat, proto: dns, short: TURN (first version), summary: "The first TURN specification. RFC 8656 replaced it.", modules: [20] }
