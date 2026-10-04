@@ -3,6 +3,7 @@ import { prepareFlow, toWire, type FlowData } from '../src/sip/flow.ts';
 import { lintFlow } from '../src/sip/lint-flow.ts';
 import { lintDiagram } from '../src/sip/lint-diagram.ts';
 import { parseMessage } from '../src/sip/parse.ts';
+import { loadFlow } from '../src/lib/data.ts';
 
 const lanes = [
   { id: 'a', label: 'Alice', kind: 'ua' as const },
@@ -123,5 +124,14 @@ describe('lintDiagram: map, phases, status', () => {
     });
     const r = lintDiagram(f, ['Alice', 'Proxy A']).map(i => i.rule).sort();
     expect(r).toEqual(['map-nodes', 'phases', 'phases', 'phases', 'status', 'status']);
+  });
+});
+
+describe('cancel-after-final', () => {
+  it('flags a CANCEL after the INVITE has a final response, and only then', async () => {
+    const broken = lintFlow(await loadFlow('cancel-after-200'));
+    expect(broken.filter(i => i.severity === 'error').map(i => i.rule)).toEqual(['cancel-after-final']);
+    const ok = lintFlow(await loadFlow('cancel-before-answer'));
+    expect(ok.filter(i => i.severity === 'error')).toEqual([]);
   });
 });

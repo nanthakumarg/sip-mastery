@@ -11,6 +11,10 @@ import { prepareFlow, type FlowData, type PreparedFlow } from '../sip/flow.ts';
 const CONTENT = path.join(process.cwd(), 'src', 'content');
 /** Parsed YAML, cached until the file changes on disk (so the dev server sees edits). */
 const yamlCache = new Map<string, { mtime: number; data: unknown }>();
+export function readContent(rel: string): unknown {
+  return read(rel);
+}
+
 function read(rel: string): unknown {
   const file = path.join(CONTENT, rel);
   const mtime = fs.statSync(file).mtimeMs;

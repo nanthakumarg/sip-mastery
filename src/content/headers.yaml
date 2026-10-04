@@ -73,6 +73,38 @@ headers:
     rfc: 3261
     section: "20.28"
     who: The UAC. Proxies never add it.
+  Require:
+    summary: Extensions (option tags) that the receiver MUST understand to process this request. If it does not, it answers 420 Bad Extension.
+    rfc: 3261
+    section: "20.32"
+  Proxy-Require:
+    summary: Like Require, but for the proxies on the path. A proxy that does not understand a listed extension answers 420.
+    rfc: 3261
+    section: "20.29"
+  Unsupported:
+    summary: In a 420 response, lists the extensions from Require or Proxy-Require that the server does not understand.
+    rfc: 3261
+    section: "20.40"
+  Accept:
+    summary: The body types that the sender can receive, for example application/sdp.
+    rfc: 3261
+    section: "20.1"
+  Accept-Encoding:
+    summary: The content encodings, such as gzip, that the sender can receive.
+    rfc: 3261
+    section: "20.2"
+  Accept-Language:
+    summary: The languages that the sender prefers for reason phrases, warnings, and bodies.
+    rfc: 3261
+    section: "20.3"
+  RSeq:
+    summary: The sequence number of a reliable provisional response. The PRACK repeats it in RAck.
+    rfc: 3262
+    section: "7.1"
+  RAck:
+    summary: In a PRACK, names the reliable provisional response it acknowledges, by RSeq, CSeq number, and method.
+    rfc: 3262
+    section: "7.2"
   Allow:
     summary: The methods that the sender supports, for example INVITE, ACK, BYE, CANCEL, OPTIONS.
     rfc: 3261

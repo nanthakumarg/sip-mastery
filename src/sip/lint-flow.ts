@@ -62,6 +62,7 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   checkAuthRetries(msgs, add);
   checkInviteAcked(msgs, add);
   checkDialogTags(msgs, add);
+  checkCancels(msgs, add);
   return issues;
 }
 
@@ -186,4 +187,20 @@ function isAckFor2xx(msgs: MsgStep[], ack: MsgStep): boolean {
     }
   }
   return false;
+}
+
+/** cancel-after-final (RFC 3261 §9.1): a CANCEL is useless once the INVITE has a final response. */
+function checkCancels(msgs: MsgStep[], add: Add) {
+  msgs.forEach((c, i) => {
+    if (!isRequest(c.parsed, 'CANCEL')) return;
+    const cid = callId(c.parsed);
+    const branch = topVia(c.parsed)?.branch;
+    const invite = msgs.slice(0, i).reverse().find(x =>
+      sameHop(x, c) && isRequest(x.parsed, 'INVITE') && callId(x.parsed) === cid && topVia(x.parsed)?.branch === branch);
+    if (!invite) return;
+    const seq = cseq(invite.parsed)?.seq;
+    const final = msgs.slice(msgs.indexOf(invite) + 1, i).find(r =>
+      reverseHop(r, c) && isResponse(r.parsed) && r.parsed.status! >= 200 && cseq(r.parsed)?.method === 'INVITE' && cseq(r.parsed)?.seq === seq && callId(r.parsed) === cid);
+    if (final) add('cancel-after-final', c.index, `CANCEL sent after the INVITE already received ${final.parsed.status}. It has no effect; end the call with BYE`);
+  });
 }

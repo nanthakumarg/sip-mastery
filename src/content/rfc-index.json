@@ -187,6 +187,19 @@
   "updates": [],
   "updatedBy": []
  },
+ "3312": {
+  "title": "Integration of Resource Management and Session Initiation Protocol (SIP)",
+  "month": "October",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   4032,
+   5027
+  ]
+ },
  "3323": {
   "title": "A Privacy Mechanism for the Session Initiation Protocol (SIP)",
   "month": "December",
@@ -489,6 +502,16 @@
   "obsoletedBy": [
    8224
   ],
+  "updates": [],
+  "updatedBy": []
+ },
+ "4488": {
+  "title": "Suppression of Session Initiation Protocol (SIP) REFER Method Implicit Subscription",
+  "month": "May",
+  "year": 2006,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
   "updates": [],
   "updatedBy": []
  },
@@ -868,6 +891,18 @@
   ],
   "obsoletedBy": [],
   "updates": [],
+  "updatedBy": []
+ },
+ "7647": {
+  "title": "Clarifications for the Use of REFER with RFC 6665",
+  "month": "September",
+  "year": 2015,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [
+   3515
+  ],
   "updatedBy": []
  },
  "8174": {

@@ -29,24 +29,27 @@ rfcs:
   - { n: 7118, area: core, proto: sip, short: SIP over WebSocket, summary: "Carries SIP over WebSocket so that a browser can be a SIP user agent.", modules: [19, 26] }
 
   # --- SIP extensions -----------------------------------------------------------
-  - { n: 3262, area: ext, proto: sip, short: PRACK, summary: "Reliable provisional responses (100rel) and the PRACK method.", modules: [22] }
+  - { n: 3262, area: ext, proto: sip, short: PRACK, summary: "Reliable provisional responses (100rel) and the PRACK method.", modules: [5, 22] }
   - { n: 3265, area: ext, proto: sip, short: Events (first version), summary: "The first SUBSCRIBE and NOTIFY framework. RFC 6665 replaced it.", modules: [23] }
-  - { n: 3311, area: ext, proto: sip, short: UPDATE, summary: "The UPDATE method changes session parameters before the call is answered.", modules: [22] }
+  - { n: 3311, area: ext, proto: sip, short: UPDATE, summary: "The UPDATE method changes session parameters before the call is answered.", modules: [5, 22] }
+  - { n: 3312, area: ext, proto: sip, short: Preconditions, summary: "Lets a call wait for network resources, such as reserved bandwidth, before the phone rings.", modules: [5] }
+  - { n: 4488, area: ext, proto: sip, short: REFER without subscription, summary: "The norefersub option tag: a REFER that does not create an implicit subscription.", modules: [5, 22] }
+  - { n: 7647, area: ext, proto: sip, short: REFER clarifications, summary: "Updates REFER for RFC 6665. A REFER is now accepted with 200, never 202.", modules: [5, 22] }
   - { n: 3323, area: ext, proto: sip, short: Privacy, summary: "The Privacy header and how to hide the identity of a caller.", modules: [7, 24] }
   - { n: 3325, area: ext, proto: sip, short: P-Asserted-Identity, summary: "P-Asserted-Identity carries an identity that the network has checked, inside a trust domain.", modules: [7, 14, 24] }
   - { n: 3326, area: ext, proto: sip, short: Reason header, summary: "The Reason header says why a request was sent, for example with a Q.850 cause value.", modules: [6, 24] }
   - { n: 3327, area: ext, proto: sip, short: Path, summary: "Proxies on the REGISTER path stay in the path of incoming requests.", modules: [12] }
-  - { n: 3428, area: ext, proto: sip, short: MESSAGE, summary: "The MESSAGE method for instant messages.", modules: [23] }
-  - { n: 3515, area: ext, proto: sip, short: REFER, summary: "The REFER method asks another user agent to contact a third party. Call transfer uses it.", modules: [22] }
+  - { n: 3428, area: ext, proto: sip, short: MESSAGE, summary: "The MESSAGE method for instant messages.", modules: [5, 23] }
+  - { n: 3515, area: ext, proto: sip, short: REFER, summary: "The REFER method asks another user agent to contact a third party. Call transfer uses it.", modules: [5, 22] }
   - { n: 3608, area: ext, proto: sip, short: Service-Route, summary: "The registrar tells the user agent which proxies to use for its requests.", modules: [12, 27] }
   - { n: 3842, area: ext, proto: sip, short: Message waiting, summary: "An event package for message waiting indication (the voicemail light).", modules: [23] }
-  - { n: 3891, area: ext, proto: sip, short: Replaces, summary: "The Replaces header lets a new dialog replace an existing one. Attended transfer uses it.", modules: [22] }
-  - { n: 3903, area: ext, proto: sip, short: PUBLISH, summary: "The PUBLISH method publishes event state, such as presence.", modules: [23] }
-  - { n: 4028, area: ext, proto: sip, short: Session timers, summary: "Refreshes a call at intervals so that both sides can detect a dead call.", modules: [9, 22] }
+  - { n: 3891, area: ext, proto: sip, short: Replaces, summary: "The Replaces header lets a new dialog replace an existing one. Attended transfer uses it.", modules: [5, 22] }
+  - { n: 3903, area: ext, proto: sip, short: PUBLISH, summary: "The PUBLISH method publishes event state, such as presence.", modules: [5, 23] }
+  - { n: 4028, area: ext, proto: sip, short: Session timers, summary: "Refreshes a call at intervals so that both sides can detect a dead call.", modules: [5, 9, 22] }
   - { n: 4235, area: ext, proto: sip, short: Dialog events, summary: "An event package that reports dialog state. Busy lamp fields use it.", modules: [23] }
   - { n: 5627, area: ext, proto: sip, short: GRUU, summary: "A globally routable URI that reaches one specific device.", modules: [12] }
   - { n: 6086, area: ext, proto: sip, short: INFO, summary: "The INFO method and Info Packages.", modules: [5] }
-  - { n: 6665, area: ext, proto: sip, short: Events, summary: "The SUBSCRIBE and NOTIFY event framework.", modules: [23] }
+  - { n: 6665, area: ext, proto: sip, short: Events, summary: "The SUBSCRIBE and NOTIFY event framework.", modules: [5, 23] }
   - { n: 7044, area: ext, proto: sip, short: History-Info, summary: "The History-Info header records how a request was retargeted.", modules: [7, 24] }
   - { n: 3398, area: ext, proto: sip, short: ISUP mapping, summary: "Maps ISUP messages and cause values from the telephone network to SIP.", modules: [24] }
   - { n: 6432, area: ext, proto: sip, short: Q.850 in responses, summary: "Carries Q.850 cause values in the Reason header of SIP responses.", modules: [24] }
@@ -59,7 +62,7 @@ rfcs:
   - { n: 4566, area: media, proto: sdp, short: SDP (second version), summary: "The second SDP specification. RFC 8866 replaced it.", modules: [15] }
   - { n: 8866, area: media, proto: sdp, short: SDP, summary: "The Session Description Protocol format.", modules: [15] }
   - { n: 3264, area: media, proto: sdp, short: Offer/answer, summary: "The offer/answer model for negotiating media with SDP.", modules: [15] }
-  - { n: 4733, area: media, proto: rtp, short: DTMF in RTP, summary: "Telephone events (DTMF digits) as RTP packets.", modules: [16] }
+  - { n: 4733, area: media, proto: rtp, short: DTMF in RTP, summary: "Telephone events (DTMF digits) as RTP packets.", modules: [5, 16] }
   - { n: 3611, area: media, proto: rtcp, short: RTCP XR, summary: "Extended RTCP reports, including VoIP quality metrics.", modules: [17] }
   - { n: 4585, area: media, proto: rtcp, short: RTCP feedback, summary: "The AVPF profile for fast RTCP feedback such as NACK.", modules: [17] }
   - { n: 5761, area: media, proto: rtcp, short: rtcp-mux, summary: "RTP and RTCP on one port.", modules: [17] }

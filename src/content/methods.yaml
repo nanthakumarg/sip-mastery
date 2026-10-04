@@ -1,0 +1,211 @@
+# Method cards (Module 5). One card per SIP method.
+# ladder: lane ids from `lanes` below; labels and captions follow the
+# diagram language (checked by npm run check:content).
+
+lanes:
+  alice: { label: Alice, kind: ua, sub: 192.0.2.10 }
+  bob: { label: Bob, kind: ua, sub: 203.0.113.20 }
+  carol: { label: Carol, kind: ua, sub: 203.0.113.30 }
+  registrar: { label: Registrar, kind: registrar, sub: atlanta.example }
+  proxyA: { label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  presence: { label: Presence server, kind: server, sub: biloxi.example }
+
+methods:
+  - method: INVITE
+    group: core
+    rfc: 3261
+    section: "13"
+    purpose: Starts a session. Inside a dialog, a re-INVITE changes the session, for example to put a call on hold.
+    dialog: Creates a dialog
+    body: Usually an SDP offer
+    note: The only method with a three-way handshake. A 2xx response is confirmed with ACK.
+    quote: rfc3261-12.1-dialog-creation
+    ladder:
+      - [alice, bob, INVITE, Alice's phone sends the INVITE with an SDP offer.]
+      - [bob, alice, 180 Ringing, Bob's phone rings.]
+      - [bob, alice, 200 OK, Bob answers. The 200 OK carries the SDP answer.]
+      - [alice, bob, ACK, Alice's phone confirms the 200 OK. The call is up.]
+
+  - method: ACK
+    group: core
+    rfc: 3261
+    section: "13.2.2.4"
+    purpose: Confirms the final response to an INVITE. It is the only request that never gets a response.
+    dialog: For a 2xx, sent inside the new dialog
+    body: Usually none. Can carry the SDP answer when the INVITE had no offer.
+    note: The ACK for a non-2xx response is part of the INVITE transaction. The ACK for a 2xx is a new transaction (Module 8).
+    quote: rfc3261-13.2.2.4-ack-2xx
+    ladder:
+      - [alice, bob, INVITE, Alice's phone sends the INVITE.]
+      - [bob, alice, 200 OK, Bob answers.]
+      - [alice, bob, ACK, Alice's phone confirms the 200 OK. Nothing answers an ACK.]
+
+  - method: BYE
+    group: core
+    rfc: 3261
+    section: "15"
+    purpose: Ends a session. Either side can send it.
+    dialog: Only inside a dialog
+    body: None
+    note: The caller may send BYE before the answer, on an early dialog. The callee may not.
+    quote: rfc3261-15-bye
+    ladder:
+      - [bob, alice, BYE, Bob hangs up. Bob's phone sends BYE inside the dialog.]
+      - [alice, bob, 200 OK, Alice's phone accepts. Both phones stop the media.]
+
+  - method: CANCEL
+    group: core
+    rfc: 3261
+    section: "9"
+    purpose: Stops an INVITE that has no final response yet, for example when the caller hangs up during ringing.
+    dialog: Outside the dialog, hop by hop
+    body: None
+    note: Copies the Request-URI, Call-ID, From, To, CSeq number, and top Via branch of the INVITE. It has no effect after a final response.
+    quote: rfc3261-9-no-effect
+    ladder:
+      - [alice, bob, INVITE, Alice's phone sends the INVITE.]
+      - [bob, alice, 180 Ringing, Bob's phone rings.]
+      - [alice, bob, CANCEL, Alice hangs up before Bob answers.]
+      - [bob, alice, 200 OK (CANCEL), Bob's phone accepts the CANCEL.]
+      - [bob, alice, 487 Request Terminated, Bob's phone ends the INVITE with 487.]
+      - [alice, bob, ACK, Alice's phone confirms the 487.]
+
+  - method: REGISTER
+    group: core
+    rfc: 3261
+    section: "10"
+    purpose: Binds the user's AOR to the address of a device, in the registrar's location service.
+    dialog: Never creates a dialog
+    body: None
+    note: The To header holds the AOR; the Contact header holds the device address and the expiry time (Module 12).
+    quote: rfc3261-6-registrar
+    ladder:
+      - [alice, registrar, REGISTER, Alice's phone registers its Contact for Alice's AOR.]
+      - [registrar, alice, 200 OK, The Registrar stores the binding and lists the current Contacts.]
+
+  - method: OPTIONS
+    group: core
+    rfc: 3261
+    section: "11"
+    purpose: Asks a user agent or a server what it supports, without ringing anybody. Also used as a keepalive ("SIP ping").
+    dialog: Usually outside a dialog
+    body: None in the request. The response may carry SDP.
+    note: Every user agent must support OPTIONS. The 200 OK lists Allow, Supported, and Accept.
+    quote: rfc3261-11-options
+    ladder:
+      - [alice, proxyA, OPTIONS, Alice's phone asks Proxy A what it supports.]
+      - [proxyA, alice, 200 OK, Proxy A answers with Allow and Supported.]
+
+  - method: PRACK
+    group: ext
+    rfc: 3262
+    section: "1"
+    purpose: Confirms a reliable provisional response, such as a 183 with early media. Needs the 100rel extension.
+    dialog: Inside the early dialog
+    body: Sometimes an SDP answer or offer
+    note: "The 1xx carries Require: 100rel and an RSeq number. The PRACK names it in RAck."
+    quote: rfc3262-1-prack
+    ladder:
+      - [alice, bob, INVITE, "Alice's phone sends the INVITE with Supported: 100rel."]
+      - [bob, alice, 183 Session Progress, Bob's phone sends a reliable 183 with RSeq 1.]
+      - [alice, bob, PRACK, "Alice's phone confirms the 183 with RAck: 1 1 INVITE."]
+      - [bob, alice, 200 OK (PRACK), Bob's phone stops retransmitting the 183.]
+
+  - method: UPDATE
+    group: ext
+    rfc: 3311
+    section: "1"
+    purpose: Changes the session — codecs, addresses, hold — without changing the dialog. Works before the call is answered.
+    dialog: Inside a dialog, early or confirmed
+    body: An SDP offer
+    note: Often used for session timer refreshes, and to change early media before the answer.
+    quote: rfc3311-1-update
+    ladder:
+      - [alice, bob, INVITE, Alice's phone sends the INVITE.]
+      - [bob, alice, 183 Session Progress, Bob's side plays early media.]
+      - [alice, bob, UPDATE, Alice's phone sends a new SDP offer before the answer.]
+      - [bob, alice, 200 OK (UPDATE), Bob's phone answers the offer. The INVITE is still pending.]
+
+  - method: INFO
+    group: ext
+    rfc: 6086
+    section: "1"
+    purpose: Carries application information inside a call, such as an Info Package for DTMF or a fast video update.
+    dialog: Only inside an INVITE dialog
+    body: Defined by the Info Package
+    note: "RFC 6086 adds Info Packages: Recv-Info says what a side accepts, Info-Package says what an INFO carries."
+    quote: rfc6086-1-info
+    ladder:
+      - [alice, bob, INFO, Alice's phone sends application data inside the call.]
+      - [bob, alice, 200 OK, Bob's phone accepts the INFO.]
+
+  - method: SUBSCRIBE
+    group: ext
+    rfc: 6665
+    section: "3.1"
+    purpose: Asks to be told about the state of something — presence, a mailbox, a call — for a period of time.
+    dialog: Creates a dialog (a subscription)
+    body: Usually none
+    note: "The Event header names the event package, for example Event: presence. Expires sets the duration."
+    quote: rfc6665-3.1.3-dialog
+    ladder:
+      - [alice, presence, SUBSCRIBE, Alice's phone subscribes to Bob's presence.]
+      - [presence, alice, 200 OK, The Presence server accepts the subscription.]
+      - [presence, alice, NOTIFY, The Presence server sends Bob's current state at once.]
+      - [alice, presence, 200 OK, Alice's phone accepts the NOTIFY.]
+
+  - method: NOTIFY
+    group: ext
+    rfc: 6665
+    section: "3.2"
+    purpose: Reports the state of a subscription, at once and then on each change.
+    dialog: Inside the subscription dialog
+    body: The event state, such as a PIDF document or message/sipfrag
+    note: "Subscription-State says active, pending, or terminated. A NOTIFY with terminated ends the subscription."
+    quote: rfc6665-3.1.3-dialog
+    ladder:
+      - [presence, alice, NOTIFY, Bob's state changes. The Presence server sends a NOTIFY.]
+      - [alice, presence, 200 OK, Alice's phone accepts the NOTIFY.]
+
+  - method: REFER
+    group: ext
+    rfc: 3515
+    section: "1"
+    purpose: Asks the other side to contact a third party. The basis of call transfer (Module 22).
+    dialog: Usually inside a call; creates an implicit subscription
+    body: None. The target is in the Refer-To header.
+    note: The other side reports progress with NOTIFY and a message/sipfrag body. Old traces show 202 Accepted; today the answer is 200 OK.
+    quote: rfc3515-1-transfer
+    ladder:
+      - [alice, bob, REFER, "Alice's phone asks Bob's phone to call Carol (Refer-To: Carol)."]
+      - [bob, alice, 200 OK, Bob's phone accepts the request.]
+      - [bob, carol, INVITE, Bob's phone calls Carol.]
+      - [carol, bob, 200 OK, Carol answers.]
+      - [bob, alice, NOTIFY, Bob's phone reports success with a 200 OK sipfrag.]
+      - [alice, bob, 200 OK, Alice's phone accepts the NOTIFY. Alice can now hang up.]
+
+  - method: MESSAGE
+    group: ext
+    rfc: 3428
+    section: "1"
+    purpose: Sends an instant message, such as a text chat or an SMS over IMS.
+    dialog: Outside a dialog (page mode)
+    body: The message, for example text/plain
+    note: Each MESSAGE stands alone. A 200 OK means the message was delivered, not that the user read it.
+    quote: rfc3428-1-message
+    ladder:
+      - [alice, bob, MESSAGE, Alice's phone sends a text message.]
+      - [bob, alice, 200 OK, Bob's phone accepts the message.]
+
+  - method: PUBLISH
+    group: ext
+    rfc: 3903
+    section: "1"
+    purpose: Uploads the sender's own event state, such as presence, to a server that shares it with subscribers.
+    dialog: Outside a dialog
+    body: The event state, such as PIDF
+    note: "The server returns a SIP-ETag. Refreshes and changes quote it in SIP-If-Match."
+    quote: rfc3903-1-publish
+    ladder:
+      - [bob, presence, PUBLISH, Bob's phone publishes Bob's new presence.]
+      - [presence, bob, 200 OK, The Presence server stores it and returns a SIP-ETag.]

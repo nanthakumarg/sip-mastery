@@ -198,6 +198,7 @@ Rendering choices:
 | `auth-retry` | A retry after 401/407 has CSeq + 1, the same Call-ID and From-tag, a new branch, and Authorization/Proxy-Authorization |
 | `invite-final-ack` | Every final response to an INVITE is followed by an ACK from the UAC side |
 | `dialog-tags` | In-dialog requests (and the ACK for a 2xx) use the From/To tags of an established dialog |
+| `cancel-after-final` | No CANCEL after the INVITE has a final response on that hop (RFC 3261 §9.1) |
 
 ### 6.2 Diagram language checks (`lint-diagram.ts`)
 | Rule ID | Check |

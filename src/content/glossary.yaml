@@ -13,6 +13,10 @@
   definition: The inbound proxy for biloxi.example. It finds Bob through its location service.
 - term: Registrar
   definition: The server that accepts REGISTER requests for atlanta.example and stores bindings.
+- term: Carol
+  definition: A third user in transfer examples. Bob is transferred to Carol.
+- term: Presence server
+  definition: The server that collects presence state with PUBLISH and sends it to watchers with NOTIFY.
 - term: SBC
   definition: Session Border Controller. A B2BUA at the edge of a network that protects and normalises SIP.
 - term: NAT router
@@ -79,6 +83,12 @@
 - term: B2BUA
   aliases: [back-to-back user agent]
   definition: An element that ends one call leg as a UAS and starts a new leg as a UAC.
+- term: option tag
+  definition: The name of a SIP extension, such as 100rel or timer, used in Supported, Require, and Unsupported.
+- term: early dialog
+  definition: A dialog created by a 1xx response with a To tag, before the call is answered.
+- term: in-dialog request
+  definition: A request sent inside an existing dialog. It carries both tags and follows the dialog's route set.
 - term: location service
   definition: The database of bindings from AORs to Contact addresses.
 - term: stateless proxy

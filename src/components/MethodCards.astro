@@ -1,0 +1,23 @@
+---
+/** <MethodCards initial="INVITE" /> : one card per SIP method (src/content/methods.yaml) */
+import Island from '../diagrams/MethodCards.tsx';
+import type { ClientFlow } from '../diagrams/types.ts';
+import { quoteMap } from '../lib/bundle.ts';
+import { rfcUrl } from '../lib/data.ts';
+import { loadMethods, methodFlow } from '../lib/methods.ts';
+import { prepareFlow } from '../sip/flow.ts';
+
+interface Props { initial?: string }
+const { lanes, methods } = loadMethods();
+const flows: Record<string, ClientFlow> = {};
+for (const m of methods) {
+  const f = await prepareFlow(methodFlow(m, lanes));
+  flows[m.method] = {
+    id: f.id, title: f.title, summary: f.summary, lanes: f.lanes,
+    steps: f.steps.map(s => ({ index: s.index, kind: s.kind, from: s.from, to: s.to, proto: s.proto, label: s.label, caption: s.caption })),
+  };
+}
+const cards = methods.map(({ ladder: _l, ...m }) => ({ ...m, url: rfcUrl(m.rfc, m.section) }));
+const quotes = quoteMap([...new Set(methods.map(m => m.quote))]);
+---
+<div class="wide"><Island client:visible cards={cards} flows={flows} quotes={quotes} initial={Astro.props.initial} /></div>

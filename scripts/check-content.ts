@@ -6,6 +6,8 @@
 import { glossaryTerms, listFlowIds, loadElements, loadFlow, loadHeaderRef, loadQuotes } from '../src/lib/data.ts';
 import { lintDiagram } from '../src/sip/lint-diagram.ts';
 import { lintFlow, type LintIssue } from '../src/sip/lint-flow.ts';
+import { prepareFlow } from '../src/sip/flow.ts';
+import { loadMethods, methodFlow } from '../src/lib/methods.ts';
 
 // Parse every data file first, so a YAML error fails here and not only in the dev server.
 loadHeaderRef();
@@ -57,6 +59,17 @@ for (const c of loadElements()) {
   if (!quoteIds.has(c.quote)) bad.push(`unknown quote id "${c.quote}"`);
   console.log(`${bad.length ? '✗' : '✓'} element ${c.id}`);
   for (const b of bad) { console.log(`  ✗ ${b}`); errors++; }
+}
+
+// Method cards: their ladders follow the same diagram language.
+const { lanes: methodLanes, methods } = loadMethods();
+for (const m of methods) {
+  const issues = lintDiagram(await prepareFlow(methodFlow(m, methodLanes)), terms);
+  const bad = issues.filter(i => i.severity === 'error');
+  if (!quoteIds.has(m.quote)) { bad.push({ rule: 'rfc-ref', severity: 'error', step: -1, message: `unknown quote id "${m.quote}"` }); }
+  console.log(`${bad.length ? '✗' : '✓'} method ${m.method}`);
+  for (const i of bad) { console.log(`  ✗ ${fmt(i)}`); errors++; }
+  for (const i of issues.filter(x => x.severity === 'warn')) { console.log(`  ⚠ ${fmt(i)}`); warnings++; }
 }
 
 console.log(`\n${errors} error(s), ${warnings} warning(s)`);

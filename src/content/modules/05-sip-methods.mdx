@@ -1,0 +1,187 @@
+---
+module: 5
+title: SIP methods
+part: 2
+level: [basic, intermediate]
+paths: { noc: core, dev: core }
+summary: The fourteen request methods you meet in real traces — what each one asks for, which ones create a dialog, and how two user agents agree on the extensions they both understand.
+objectives:
+  - Explain what each of the six core methods does, and when CANCEL is too late.
+  - Name the eight common extension methods and the job of each one.
+  - Say which methods create a dialog, which only work inside one, and which work outside one.
+  - Read Allow, Supported, Require, Proxy-Require, and Unsupported, and predict a 420 or a 421.
+status: draft
+---
+
+## 5.1 The six core methods
+
+The **method** is the first word of a request line. It says what the request asks for. RFC 3261 defines six methods; extensions add more. Every method has a different job, and each has a short ladder below. Select a card to turn it over, then step through its ladder.
+
+<MethodCards initial="INVITE" />
+
+| Method | Asks the other side to… | Response? |
+|---|---|---|
+| INVITE | start a session, or change one (re-INVITE) | Yes. A 2xx is confirmed with ACK. |
+| ACK | accept that the INVITE has its final response | **Never** |
+| BYE | end the session | Yes |
+| CANCEL | stop an INVITE that has no final response yet | Yes, and the INVITE gets 487 |
+| REGISTER | bind an AOR to a Contact address (Module 12) | Yes |
+| OPTIONS | say what it supports, without ringing | Yes |
+
+### CANCEL: only while the phone rings
+
+CANCEL stops a pending INVITE: the caller hangs up while the callee's phone still rings. It has strict rules.
+
+- A CANCEL copies the Request-URI, Call-ID, From, To, CSeq number, and top Via branch of the INVITE. That is how the receiver finds the transaction to cancel.
+- It may only be sent after a provisional response, such as 100 Trying or 180 Ringing:
+
+<RfcQuote id="rfc3261-9.1-wait-provisional" />
+
+- It is **hop by hop**: each stateful proxy answers it at once with 200 OK, and sends its own CANCEL on the next hop.
+- The cancelled INVITE ends with **487 Request Terminated**, which is confirmed with ACK like any other failure.
+
+<Flow id="cancel-before-answer" eyebrow="Call flow · CANCEL" />
+
+Once the INVITE has a final response, CANCEL does nothing. An answered call ends with BYE.
+
+<RfcQuote id="rfc3261-9-no-effect" />
+
+### OPTIONS: "what can you do?"
+
+OPTIONS asks a user agent or a server for its capabilities. The callee's phone does not ring. The 200 OK lists the methods in **Allow**, the extensions in **Supported**, the body types in **Accept**, and often the codecs in an SDP body.
+
+<Flow id="options-query" eyebrow="Call flow · OPTIONS" />
+
+<RfcQuote id="rfc3261-11-options" />
+
+<Note title="For support engineers: OPTIONS as a keepalive">
+SBCs, carriers, and PBXs send OPTIONS every 30 to 60 seconds to check that a trunk is alive. Any response — even 404 or 405 — proves that the other side is reachable. A trunk that is marked down while calls work is often an OPTIONS problem: blocked, unanswered, or answered by an element that is not the trunk.
+</Note>
+
+## 5.2 Extension methods
+
+Eight more methods are common. Each comes from its own RFC, and a user agent lists the ones it accepts in **Allow**. The method cards above show a ladder for each.
+
+| Method | RFC | Typical use |
+|---|---|---|
+| PRACK | 3262 | Confirms a reliable 1xx, such as a 183 with early media |
+| UPDATE | 3311 | Changes the session before or after the answer; session timer refresh |
+| INFO | 6086 | Application data inside a call, with an Info Package |
+| SUBSCRIBE | 6665 | Asks for notifications: presence, voicemail, call state |
+| NOTIFY | 6665 | Sends those notifications |
+| REFER | 3515 | Asks the other side to call a third party: call transfer |
+| MESSAGE | 3428 | Instant messages, and SMS over IMS |
+| PUBLISH | 3903 | Uploads presence or other event state to a server |
+
+**PRACK** gives provisional responses the reliability that ACK gives to a 2xx response — useful for a 183 with early media, which must not be lost:
+
+<RfcQuote id="rfc3262-1-prack" />
+
+**UPDATE** changes the session without touching the dialog, so it also works while the phone still rings, when a re-INVITE is not allowed:
+
+<RfcQuote id="rfc3311-1-update" />
+
+**INFO** carries application data inside an existing call:
+
+<RfcQuote id="rfc6086-1-info" />
+
+**SUBSCRIBE** and **NOTIFY** form the SIP events framework: a subscriber asks for an event package, and the notifier reports the state at once and on every change. **REFER** builds on it. In call transfer, Alice asks Bob's phone to call Carol, and Bob's phone reports progress with NOTIFY:
+
+<RfcQuote id="rfc3515-1-transfer" />
+
+<RfcQuote id="rfc7647-5-no-202" />
+
+**MESSAGE** carries one instant message, outside any dialog. **PUBLISH** sends a user agent's own state, such as "busy", to the server that shares it with subscribers.
+
+<RfcQuote id="rfc3428-1-message" />
+
+## 5.3 Which methods make a dialog
+
+A **dialog** is the lasting relationship between two user agents for one call or one subscription (Module 9). Only some methods create one:
+
+<RfcQuote id="rfc3261-12.1-dialog-creation" />
+
+| | Methods | How to recognise it in a trace |
+|---|---|---|
+| **Creates a dialog** | INVITE, SUBSCRIBE, and REFER (through its implicit subscription) | No To tag in the request; the response adds one |
+| **Only inside a dialog** | BYE, ACK for a 2xx, PRACK, UPDATE, INFO, NOTIFY, re-INVITE | The To header has a tag; the Request-URI is the other side's Contact |
+| **Outside any dialog** | REGISTER, OPTIONS, MESSAGE, PUBLISH | No To tag, and no dialog follows |
+| **Special** | CANCEL, and the ACK for a failure | Part of the INVITE transaction they belong to |
+
+A request inside a dialog is an <Term t="in-dialog request" />. It carries both tags, the dialog's Call-ID, and a CSeq one higher than the last request from that side. A BYE is the clearest example:
+
+<RfcQuote id="rfc3261-15-bye" />
+
+<RfcQuote id="rfc6665-3.1.3-dialog" />
+
+## 5.4 Capability headers
+
+SIP grows through extensions. Each extension has an <Term t="option tag" />, such as `100rel` or `timer`. Five headers let two user agents agree on which extensions to use:
+
+| Header | Means | Sent in |
+|---|---|---|
+| **Allow** | "These are the methods I accept." | Requests and responses |
+| **Supported** | "I understand these extensions. Use them if you want." | Requests and responses |
+| **Require** | "You **must** understand these extensions, or reject my request." | Requests; reliable 1xx |
+| **Proxy-Require** | Like Require, but for every proxy on the path | Requests |
+| **Unsupported** | "I do not understand these extensions from your Require." | 420 responses |
+
+<RfcQuote id="rfc3261-20.37-supported" />
+
+If a user agent does not understand an option tag in Require, it must refuse the request:
+
+<RfcQuote id="rfc3261-8.2.2.3-420" />
+
+<RfcQuote id="rfc3261-20.29-proxy-require" />
+
+The opposite case also exists: the callee needs an extension that the caller did not list in Supported. It can answer **421 Extension Required** — but only as a last resort:
+
+<RfcQuote id="rfc3261-21.4.16-421" />
+
+Set what each phone supports or requires, and see which response comes back.
+
+<CapabilityLab />
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Sending CANCEL after the 200 OK">
+    When the callee answers at the same moment the caller hangs up, a phone may send CANCEL. But the INVITE already has its final response, so the CANCEL has no effect: the callee stays in the call, talking to silence. Once a 2xx arrives, the call exists — confirm it with ACK, then end it with BYE.
+
+    <BrokenFixedFlow broken="cancel-after-200" fixed="bye-after-200" />
+  </Mistake>
+
+  <Mistake title="Putting an option tag in Require that the peer does not support">
+    Require means "reject me if you do not understand this". A phone that puts `Require: 100rel` or `Require: precondition` in every INVITE fails with every peer that lacks that extension — 420 Bad Extension, with the tag in Unsupported.
+
+    <p class="fix"><b>Remember:</b> use Supported unless the call truly cannot work without the extension. Check the peer with OPTIONS first.</p>
+  </Mistake>
+
+  <Mistake title="Using INFO for DTMF without an agreed Info Package">
+    Many devices send key presses in INFO with a vendor body, such as `application/dtmf-relay`. Nothing in the call says that the other side understands it, so digits get lost between vendors.
+
+    <RfcQuote id="rfc6086-2-dtmf" />
+
+    <p class="fix"><b>Remember:</b> the standard way is RFC 4733 telephone-events inside the RTP stream (Module 16). Use INFO only with an Info Package that both sides announce in Recv-Info.</p>
+  </Mistake>
+
+  <Mistake title="Sending CANCEL before any provisional response">
+    A phone that cancels an INVITE before it receives 100 Trying or 180 Ringing breaks the rule in RFC 3261 §9.1. The CANCEL can overtake the INVITE, find no transaction, and get 481 — while the INVITE then rings the callee.
+
+    <p class="fix"><b>Remember:</b> wait for a provisional response. If none comes, let the INVITE time out.</p>
+  </Mistake>
+
+  <Mistake title="Expecting 202 Accepted for REFER">
+    Old traces and old monitoring rules expect `202 Accepted` for a REFER. Since RFC 7647, a REFER is accepted with `200 OK`, and a 202 counts as a 200.
+
+    <p class="fix"><b>Remember:</b> treat any 2xx to REFER as success.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- The **method** is the first word of a request. RFC 3261 defines INVITE, ACK, BYE, CANCEL, REGISTER, and OPTIONS.
+- **ACK** is the only request without a response. **CANCEL** only works before the final response; after it, use **BYE**.
+- Common extension methods are PRACK, UPDATE, INFO, SUBSCRIBE, NOTIFY, REFER, MESSAGE, and PUBLISH. A user agent lists the methods it accepts in **Allow**.
+- **INVITE** and **SUBSCRIBE** (and REFER, through its subscription) create dialogs. BYE, PRACK, UPDATE, INFO, and NOTIFY only work inside one. REGISTER, OPTIONS, MESSAGE, and PUBLISH work outside.
+- **Supported** offers extensions; **Require** demands them. An unknown tag in Require gets **420 Bad Extension** with **Unsupported**. A callee that needs a missing extension can answer **421 Extension Required**.

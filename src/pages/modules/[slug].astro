@@ -32,6 +32,8 @@ import ElementGallery from '../../components/ElementGallery.astro';
 import LocationService from '../../components/LocationService.astro';
 import MessageAnatomy from '../../components/MessageAnatomy.astro';
 import FramingLab from '../../components/FramingLab.astro';
+import MethodCards from '../../components/MethodCards.astro';
+import CapabilityLab from '../../components/CapabilityLab.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -56,7 +58,8 @@ const nextPlanned = flat.find(m => m.n === d.module + 1);
 const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mistakes, Mistake, Term, Stats, Stat, Digest, CallPlayer, TwoPaths, ProtocolStack, ColourKey,
   CircuitVsPacket, ProtocolCompare, HttpVsSip, RfcMap, Landscape,
   AddressClassifier, CompareFlows, NatRewrite, PacketExplorer,
-  UriDissector, ElementGallery, LocationService, MessageAnatomy, FramingLab };
+  UriDissector, ElementGallery, LocationService, MessageAnatomy, FramingLab,
+  MethodCards, CapabilityLab };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

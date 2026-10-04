@@ -807,3 +807,61 @@ svg.callmap { display: block; width: 100%; min-width: 600px; height: auto; font-
 .ma-controls .seg, .fx-controls .seg { max-width: 100%; overflow-x: auto; }
 .ma-controls .seg button, .fx-controls .seg button { flex: none; }
 .fx-controls > div { min-width: 0; max-width: 100%; }
+
+/* ---------- Method cards (Module 5) ---------- */
+.mcards { position: relative; max-width: 1640px; margin-inline: auto; background: var(--bg-deep); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.mc-group { margin-top: 14px; }
+.mc-group-title { margin-bottom: 8px; }
+.mc-grid { display: grid; gap: 8px; }
+.mc-grid.g-core { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.mc-grid.g-ext { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .mc-grid.g-core { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .mc-grid.g-core, .mc-grid.g-ext { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.mc-card { position: relative; display: grid; align-content: start; gap: 4px; height: auto; min-height: 118px; padding: 12px 12px 30px; text-align: left; background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; color: var(--dim); transform-style: preserve-3d; }
+.mc-card:hover { border-color: var(--line); color: var(--text); }
+.mc-card.is-sel { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); color: var(--text); animation: mc-flip .5s var(--ease); }
+@keyframes mc-flip { from { transform: perspective(600px) rotateY(-90deg); } to { transform: perspective(600px) rotateY(0); } }
+@media (prefers-reduced-motion: reduce) { .mc-card.is-sel { animation: none; } }
+.mc-name { font: 600 17px var(--mono); color: var(--sip); letter-spacing: .02em; }
+.mc-rfc { font: 400 11px var(--mono); color: var(--muted); }
+.mc-short { font-size: 13px; line-height: 1.4; }
+.mc-chip { display: inline-block; padding: 0 6px; border: 1px solid var(--line); border-radius: 3px; font: 500 10.5px/1.7 var(--mono); color: var(--dim); }
+.mc-chip.is-dialog { border-color: var(--text); color: var(--text); }
+.mc-card .mc-chip { position: absolute; left: 12px; bottom: 9px; }
+.mc-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 18px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line-2); align-items: start; }
+@media (max-width: 1000px) { .mc-detail { grid-template-columns: minmax(0, 1fr); } }
+.mc-big { font: 600 28px var(--mono); color: var(--sip); }
+.mc-purpose { margin-top: 6px; font-size: 16px; color: var(--text); }
+.mc-note { margin-top: 12px; font-size: 14.5px; color: var(--dim); }
+.mc-facts .insp-quote { margin-top: 14px; border: 1px solid var(--line-2); border-radius: 6px; }
+.mc-facts a { font: 400 12.5px var(--mono); }
+.mc-flow { display: grid; gap: 10px; min-width: 0; outline: none; }
+.mc-flow:focus-visible { outline: 2px solid var(--sip); outline-offset: 4px; border-radius: 6px; }
+.mc-ladder { background: var(--panel); border: 1px solid var(--line-2); border-radius: 6px; padding: 8px; overflow-x: auto; }
+.mc-ladder .ladder { width: 100%; height: auto; max-width: var(--lw); display: block; margin-inline: auto; }
+
+/* ---------- Capability negotiation (Module 5.4) ---------- */
+.caplab { max-width: 1500px; }
+.cl-presets { margin-top: 14px; }
+.cl-table-wrap { margin-top: 12px; overflow-x: auto; }
+.cl-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.cl-table th, .cl-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: middle; }
+.cl-table thead th { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cl-table tbody th { font: 400 14px/1.4 var(--display); letter-spacing: 0; text-transform: none; vertical-align: middle; color: var(--dim); min-width: 220px; }
+.cl-table tbody th code { display: block; font: 500 14px var(--mono); color: var(--text); background: none; border: 0; padding: 0; }
+.cl-table tbody th span { font: 400 12.5px var(--display); color: var(--muted); }
+.cl-table .seg { white-space: nowrap; }
+.cl-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 16px; align-items: start; }
+@media (max-width: 1000px) { .cl-result { grid-template-columns: minmax(0, 1fr); } }
+.cl-left { display: grid; gap: 12px; min-width: 0; }
+.cl-msgs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+@media (max-width: 600px) { .cl-msgs { grid-template-columns: minmax(0, 1fr); } }
+.cl-msgs pre { margin-top: 6px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 6px; font: 400 12.5px/1.6 var(--mono); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.cl-msgs pre.is-err { color: var(--err); border-color: rgba(255,107,90,.45); }
+.caplab .insp-quote { border: 1px solid var(--line-2); border-radius: 6px; }
+.cl-ladder { display: grid; gap: 10px; min-width: 0; }
+.cl-ladder .ladder { width: 100%; height: auto; max-width: var(--lw); display: block; margin-inline: auto; background: var(--panel); border: 1px solid var(--line-2); border-radius: 6px; }
+.cl-captions { margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--muted); display: grid; gap: 4px; }
+.cl-captions li.is-cur { color: var(--text); }
+.cl-captions b { color: var(--dim); font-weight: 600; }
+.cl-captions li.is-cur b { color: var(--text); }

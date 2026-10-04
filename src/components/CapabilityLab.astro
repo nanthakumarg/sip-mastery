@@ -1,0 +1,8 @@
+---
+/** <CapabilityLab /> : Supported, Require, 420 and 421 (Module 5.4) */
+import Island from '../diagrams/CapabilityLab.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap(['rfc3261-8.2.2.3-420', 'rfc3261-21.4.16-421', 'rfc3262-1-prack', 'rfc3261-20.37-supported']);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>
