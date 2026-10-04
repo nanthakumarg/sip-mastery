@@ -1,0 +1,257 @@
+id: ack-lost-32s
+title: "Broken: the ACK never reaches Bob"
+summary: "Bob's phone is behind NAT and sends a private Contact. Proxy B does not record-route. Alice sends the ACK to a private address, so after 32 seconds Bob ends the call."
+broken: true
+breaks: [invite-final-ack]
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+  - { id: bob, label: Bob, kind: ua, sub: 10.0.0.20 · NAT }
+steps:
+  - from: alice
+    to: proxyB
+    label: INVITE
+    caption: Alice sends the INVITE to Proxy B.
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776asdhds
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: proxyB
+    to: alice
+    label: "100 Trying"
+    caption: Proxy B answers 100 Trying on this hop.
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776asdhds
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: bob
+    label: INVITE
+    caption: Proxy B forwards the INVITE to Bob through the NAT router. It does not add Record-Route.
+    message: |
+      INVITE sip:bob@10.0.0.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bK2d4790
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776asdhds
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: bob
+    to: proxyB
+    label: "180 Ringing"
+    caption: "Bob's phone rings. Its Contact is a private address: 10.0.0.20."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bK2d4790
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776asdhds
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.20:5060>
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: alice
+    label: "180 Ringing"
+    caption: Proxy B forwards the 180 with the private Contact.
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776asdhds
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.20:5060>
+      Content-Length: {auto}
+
+  - from: bob
+    to: proxyB
+    label: "200 OK"
+    caption: "Bob answers. Bob's UA core starts to send the 200 OK again until an ACK arrives."
+    rfc: rfc3261-13.3.1.4-2xx-retransmit
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bK2d4790
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776asdhds
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 10.0.0.20
+      s=-
+      c=IN IP4 10.0.0.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: alice
+    label: "200 OK"
+    caption: "Proxy B forwards the 200 OK. The route set is empty: no Record-Route."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776asdhds
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 10.0.0.20
+      s=-
+      c=IN IP4 10.0.0.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: alice
+    to: bob
+    label: ACK
+    caption: Alice sends the ACK straight to the Contact, 10.0.0.20. That address is private, so the ACK never arrives.
+    warn: The ACK goes to a private address. No router on the Internet can deliver it.
+    lost: true
+    message: |
+      ACK sip:bob@10.0.0.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK5a1e0
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: bob
+    to: proxyB
+    label: "200 OK (again)"
+    caption: "No ACK after 500 ms. Bob's phone sends the 200 OK again, and again, up to 32 seconds."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bK2d4790
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776asdhds
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 10.0.0.20
+      s=-
+      c=IN IP4 10.0.0.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: alice
+    label: "200 OK (again)"
+    caption: Proxy B forwards each copy.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776asdhds
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 10.0.0.20
+      s=-
+      c=IN IP4 10.0.0.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: alice
+    to: bob
+    label: ACK (again)
+    caption: Alice ACKs each copy. Every ACK goes to the same private address.
+    lost: true
+    message: |
+      ACK sip:bob@10.0.0.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK5a1e0
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: bob
+    to: alice
+    label: BYE
+    caption: "After 64×T1 (32 seconds) with no ACK, Bob's phone ends the call with BYE."
+    rfc: rfc3261-13.3.1.4-bye
+    warn: The call drops 32 seconds after the answer, every time.
+    message: |
+      BYE sip:alice@192.0.2.10:5060 SIP/2.0
+      Via: SIP/2.0/UDP 10.0.0.20:5060;branch=z9hG4bKb7e3a1;rport
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      To: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 BYE
+      Content-Length: {auto}
+
+  - from: alice
+    to: bob
+    label: "200 OK"
+    caption: Alice answers the BYE. The NAT router lets this response through to Bob.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 10.0.0.20:5060;branch=z9hG4bKb7e3a1;received=203.0.113.77;rport=41000
+      From: Bob <sip:bob@biloxi.example>;tag=a6c85cf
+      To: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      Call-ID: a84b4c76e66710@192.0.2.10
+      CSeq: 1 BYE
+      Content-Length: {auto}

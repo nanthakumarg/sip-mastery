@@ -1,0 +1,254 @@
+---
+module: 8
+title: Transactions
+part: 3
+level: [intermediate, advanced]
+paths: { noc: optional, dev: core }
+summary: How SIP delivers one request and its responses reliably over an unreliable network — the branch that names a transaction, four state machines, the timers that drive retransmissions, and why the ACK for a 2xx is different.
+objectives:
+  - Say what a transaction is, and which elements keep transaction state.
+  - Match a request or a response to its transaction with the Via branch, the sent-by, and the method.
+  - Follow the INVITE and non-INVITE state machines, on the client side and on the server side.
+  - Calculate when a request or response is retransmitted over UDP, and when the attempt times out.
+  - Explain why the ACK for a 300–699 response is hop by hop, and the ACK for a 2xx is end to end.
+  - Explain the "32-second drop" and find its cause in a trace.
+status: draft
+---
+
+## 8.1 A transaction: one request and all its responses
+
+SIP does its work in small exchanges. Each exchange is a **transaction**:
+
+<RfcQuote id="rfc3261-17-transaction" />
+
+A transaction has two sides. The **client transaction** sends the request and receives the responses. The **server transaction** receives the request and sends the responses. Above each side sits the **transaction user** (TU): the UA core in a phone, or the proxy core in a stateful proxy. The TU decides *what* to send; the transaction makes sure it *arrives*.
+
+Transactions exist hop by hop. In a call from Alice through Proxy B to Bob, there are two INVITE transactions: Alice's client transaction with Proxy B's server transaction, and Proxy B's client transaction with Bob's server transaction. A stateless proxy is not part of either:
+
+<RfcQuote id="rfc3261-17-stateless" />
+
+| | Transaction | Dialog (Module 9) |
+|---|---|---|
+| What it is | One request and its responses | A relationship between two UAs, made of many transactions |
+| Named by | The top Via `branch` (and the method) | Call-ID + From tag + To tag |
+| Lives | Seconds | Minutes or hours — as long as the call |
+| Exists at | Each hop: UAs and stateful proxies | Only the two UAs (and B2BUAs) |
+
+## 8.2 How elements match a transaction
+
+Every request carries a **branch** in its top Via. The branch names the transaction, so it must be new for every new request:
+
+<RfcQuote id="rfc3261-8.1.1.7-branch-unique" />
+
+The branch starts with the **magic cookie** `z9hG4bK`. The cookie tells the receiver that the sender follows RFC 3261, so the branch is unique and can be used as the key:
+
+<RfcQuote id="rfc3261-8.1.1.7-cookie" />
+
+<RfcQuote id="rfc3261-17.2.3-cookie" />
+
+The two sides match differently:
+
+| Receiver | Compares | Why |
+|---|---|---|
+| **Server** (a request arrives) | Top Via branch, top Via sent-by, method | Sent-by, because another client could pick the same branch. Method, so that a CANCEL with the same branch is not taken for the INVITE. |
+| **Client** (a response arrives) | Top Via branch, CSeq method | The CSeq method separates the response to a CANCEL from the response to the INVITE it cancels. |
+
+There is one exception for the method: an ACK matches the INVITE transaction it acknowledges.
+
+<RfcQuote id="rfc3261-17.2.3-ack-method" />
+
+<RfcQuote id="rfc3261-17.1.3-cseq" />
+
+Pick a message below and watch Bob — or Alice — look for its transaction.
+
+<TransactionMatcher />
+
+## 8.3 Four state machines
+
+RFC 3261 defines a state machine for each side of each kind of transaction. INVITE is different because a person must answer it: it can take many seconds, so it uses a three-way handshake (INVITE, final response, ACK). Every other method is a quick two-way exchange.
+
+| Machine | States |
+|---|---|
+| INVITE client | Calling → Proceeding → Completed → Terminated |
+| INVITE server | Proceeding → Completed → Confirmed → Terminated |
+| Non-INVITE client | Trying → Proceeding → Completed → Terminated |
+| Non-INVITE server | Trying → Proceeding → Completed → Terminated |
+
+The player shows one hop: Alice's client transaction on the left, Bob's server transaction on the right, and the messages between them. Step through the call, then press **Lose this…** on any message and watch the timers take over.
+
+<TransactionPlayer />
+
+Things to try:
+
+- **INVITE, 486, lose the 486.** Timer G sends it again after 500 ms; Alice's transaction, already waiting in Completed, ACKs the copy.
+- **INVITE, Bob is down, UDP.** Seven INVITEs, then Timer B ends the attempt at 32 s. Switch to **TCP**: the connection fails at once.
+- **OPTIONS, answers after 6 s.** Bob sends 100 Trying at 3.5 s, and Alice's retransmissions slow down to one every 4 s.
+- **INVITE, 200 OK, every ACK lost.** The 32-second drop — see *Common mistakes* below.
+
+## 8.4 Timers
+
+All the timers grow from three values:
+
+| Value | Default | Meaning |
+|---|---|---|
+| **T1** | 500 ms | Estimate of the round-trip time |
+| **T2** | 4 s | Longest interval between retransmissions of a non-INVITE request or an INVITE response |
+| **T4** | 5 s | Longest time a message stays in the network |
+
+<RfcQuote id="rfc3261-17.1.1.1-t1" />
+
+Retransmit timers start at T1 and double. For an INVITE, there is no cap:
+
+<RfcQuote id="rfc3261-17.1.1.2-timer-a" />
+
+For everything else, the interval stops growing at T2:
+
+<RfcQuote id="rfc3261-17.1.2.2-intervals" />
+
+Timeout timers are 64×T1 — 32 seconds by default:
+
+<RfcQuote id="rfc3261-17.1.1.2-timer-b" />
+
+| Timer | Side | Value | Job |
+|---|---|---|---|
+| **A** | INVITE client | T1, doubling | Send the INVITE again (UDP) |
+| **B** | INVITE client | 64×T1 | Give up: no response |
+| **D** | INVITE client | ≥ 32 s UDP, 0 TCP | Absorb copies of the 300–699 response |
+| **E** | Non-INVITE client | T1, doubling to T2 | Send the request again (UDP) |
+| **F** | Non-INVITE client | 64×T1 | Give up: no final response |
+| **G** | INVITE server | T1, doubling to T2 | Send the 300–699 response again (UDP) |
+| **H** | INVITE server | 64×T1 | Give up: no ACK |
+| **I** | INVITE server | T4 UDP, 0 TCP | Absorb copies of the ACK |
+| **J** | Non-INVITE server | 64×T1 UDP, 0 TCP | Answer copies of the request |
+| **K** | Non-INVITE client | T4 UDP, 0 TCP | Absorb copies of the response |
+| **L**, **M** | INVITE server, client | 64×T1 | Stay in Accepted after a 2xx (RFC 6026, §8.8) |
+
+Timer C is a proxy timer: a stateful proxy uses it to give up on an INVITE branch that has no final response after more than 3 minutes.
+
+<RfcQuote id="rfc3261-17.1.1.2-timer-d" />
+
+Change T1 below and see every schedule stretch with it. A larger T1 suits slow links, such as satellite; the RFC allows it.
+
+<TimerTimeline />
+
+## 8.5 Retransmissions: UDP only
+
+UDP gives no delivery guarantee, so the transaction layer retransmits. TCP and TLS deliver every byte or report an error, so the transaction layer does not:
+
+<RfcQuote id="rfc3261-17.1.1.1-reliable" />
+
+A **retransmission** is a byte-for-byte copy: same branch, same CSeq, same everything. The receiver's transaction absorbs it, and may answer with the last response it sent. The 100 Trying exists mainly to stop INVITE retransmissions early:
+
+<RfcQuote id="rfc3261-17.2.1-100" />
+
+<Flow id="invite-retransmit" eyebrow="Call flow · retransmissions over UDP" />
+
+<Note title="For support engineers: copies in a trace">
+A message with the same Call-ID, CSeq, and Via branch as an earlier one is a copy, not a new request. A few copies on a UDP hop are normal. Many copies, at 0.5, 1, 2, 4 s intervals, mean the other side does not answer — or its answers do not come back (a firewall, a NAT, a wrong Via).
+</Note>
+
+## 8.6 ACK for a non-2xx and ACK for a 2xx
+
+The ACK comes in two kinds, and they behave very differently:
+
+<RfcQuote id="rfc3261-17-ack-2xx" />
+
+| | ACK for 300–699 | ACK for 2xx |
+|---|---|---|
+| Part of | The INVITE transaction | Its own transaction |
+| Sent by | The client transaction | The UA core of the caller |
+| Branch | Same as the INVITE | New |
+| Travels | One hop: each stateful proxy ACKs on its own hop | End to end, to the callee's Contact, through the route set |
+| Response retransmitted by | The server transaction (Timer G) | The UA core of the callee |
+
+<RfcQuote id="rfc3261-17.1.1.3-ack-via" />
+
+<RfcQuote id="rfc3261-13.2.2.4-ack-core" />
+
+Why the difference? A forked INVITE can be answered by several phones, and the caller must see — and ACK — every 2xx. So proxies forward each 2xx, and the 2xx and its ACK travel between the two UAs. The callee's UA core sends the 2xx again until the ACK arrives, even over TCP, because a later hop may be UDP:
+
+<RfcQuote id="rfc3261-13.3.1.4-2xx-retransmit" />
+
+<CompareFlows a="ack-non2xx-hops" b="ack-2xx-hops" labels={['ACK for 486: hop by hop', 'ACK for 200: end to end']} />
+
+## 8.7 CANCEL: its own transaction, aimed at another
+
+A CANCEL copies the top Via of the INVITE it cancels — with the same branch — so each hop can find that INVITE:
+
+<RfcQuote id="rfc3261-9.1-cancel-via" />
+
+But its CSeq method is CANCEL, so it is a transaction of its own, with its own 200 OK:
+
+<RfcQuote id="rfc3261-9.1-cancel-own" />
+
+The result is two transactions on each hop: the CANCEL transaction, answered 200 OK, and the INVITE transaction, which ends with 487 Request Terminated and its ACK. Like the ACK for a non-2xx, a CANCEL is hop by hop: each proxy answers it and sends its own CANCEL downstream.
+
+<Flow id="cancel-before-answer" eyebrow="Call flow · CANCEL, hop by hop" />
+
+## 8.8 Later fixes: RFC 6026 and RFC 4320
+
+Field experience found two problems in the RFC 3261 machines.
+
+**RFC 6026: the Accepted state.** In RFC 3261, an INVITE transaction ends the moment it sends or receives a 2xx. A late copy of the INVITE then matches nothing, and a proxy may treat it as a new call:
+
+<RfcQuote id="rfc6026-3-problem" />
+
+RFC 6026 adds an **Accepted** state on both sides. The transaction stays there for 64×T1 (Timer L on the server, Timer M on the client), absorbs INVITE copies, and passes each 2xx and ACK to the TU:
+
+<RfcQuote id="rfc6026-7.1-accepted" />
+
+It also stops proxies from forwarding **stray responses** — responses that match no transaction — which attackers could use to bounce traffic:
+
+<RfcQuote id="rfc6026-7.3-stray" />
+
+Switch the **RFC 6026** box in the player above on and off to compare the two machines.
+
+**RFC 4320: non-INVITE fixes.** A non-INVITE transaction must finish quickly, so RFC 4320 removes two kinds of useless messages. Only 100 is allowed as a provisional response — and over UDP, only after Timer E has grown to T2:
+
+<RfcQuote id="rfc4320-4.1-100" />
+
+And a late 408 is pointless, because the client has already timed out:
+
+<RfcQuote id="rfc4320-4.2-408" />
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="The 32-second drop">
+    The call connects, both sides talk, and after about 32 seconds the call ends — every time. The 200 OK arrived, but the ACK never reached the callee. The callee's UA core sends the 200 OK again for 64×T1 and then gives up with BYE.
+
+    <RfcQuote id="rfc3261-13.3.1.4-bye" />
+
+    The usual cause: the ACK follows the Contact of the 2xx, and that Contact is wrong — a private address behind NAT — while no proxy record-routes to carry the ACK. In a trace, look for repeated 200 OKs, and check where each ACK goes.
+
+    <BrokenFixedFlow broken="ack-lost-32s" fixed="ack-reaches-bob" />
+  </Mistake>
+
+  <Mistake title="A new branch on the ACK for a non-2xx">
+    The ACK for a 300–699 response belongs to the INVITE transaction, so it must reuse the INVITE's branch. With a new branch, the server cannot match it: it keeps sending the response until Timer H, and may report a failure.
+
+    <BrokenFixedFlow broken="invite-407-ack-new-branch" fixed="invite-407-ack" />
+  </Mistake>
+
+  <Mistake title="The same branch on the ACK for a 2xx">
+    The ACK for a 2xx is a new transaction and needs a new branch. With the INVITE's branch, an element that still holds the INVITE transaction may match the ACK to it and absorb it, instead of passing it on. The ACK never reaches the callee — and the call drops after 32 seconds.
+
+    <p class="fix"><b>Remember:</b> ACK for 300–699 → same branch as the INVITE. ACK for 2xx → new branch, built like any request in the dialog.</p>
+  </Mistake>
+
+  <Mistake title="Counting retransmissions as new calls">
+    A monitoring tool or a script that counts every INVITE it sees reports seven "calls" for one unanswered INVITE over UDP. Retransmissions have the same Call-ID, CSeq, and branch.
+
+    <p class="fix"><b>Remember:</b> count transactions (branch + method), or calls (Call-ID), not packets.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A **transaction** is one request and its responses, between a client transaction and a server transaction on one hop. UAs and stateful proxies keep transactions; stateless proxies do not.
+- The top Via **branch**, starting with **z9hG4bK**, names the transaction. Servers also compare the sent-by and the method; clients compare the CSeq method.
+- Four state machines: INVITE and non-INVITE, client and server.
+- Over UDP, requests and responses are **retransmitted** at T1, 2×T1, 4×T1… (capped at T2 except for Timer A). After **64×T1 = 32 s**, the attempt times out. Over TCP and TLS, the transaction layer does not retransmit.
+- The **ACK for 300–699** is part of the INVITE transaction: same branch, hop by hop. The **ACK for 2xx** is a new transaction: new branch, end to end. A lost ACK for a 2xx ends the call after 32 seconds.
+- **CANCEL** shares the INVITE's branch but is its own transaction.
+- **RFC 6026** adds the Accepted state and stops stray responses; **RFC 4320** removes late 408s and early provisional responses to non-INVITE requests.

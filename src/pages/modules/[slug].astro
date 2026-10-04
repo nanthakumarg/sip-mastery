@@ -37,6 +37,9 @@ import CapabilityLab from '../../components/CapabilityLab.astro';
 import CodeAtlas from '../../components/CodeAtlas.astro';
 import HeaderReference from '../../components/HeaderReference.astro';
 import HeaderJourney from '../../components/HeaderJourney.astro';
+import TransactionPlayer from '../../components/TransactionPlayer.astro';
+import TimerTimeline from '../../components/TimerTimeline.astro';
+import TransactionMatcher from '../../components/TransactionMatcher.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -63,7 +66,8 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   AddressClassifier, CompareFlows, NatRewrite, PacketExplorer,
   UriDissector, ElementGallery, LocationService, MessageAnatomy, FramingLab,
   MethodCards, CapabilityLab, CodeAtlas,
-  HeaderReference, HeaderJourney };
+  HeaderReference, HeaderJourney,
+  TransactionPlayer, TimerTimeline, TransactionMatcher };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

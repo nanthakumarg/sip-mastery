@@ -173,13 +173,52 @@
   aliases: [response]
   definition: The final hash that proves the UAC knows the password.
 
-# --- Timers ----------------------------------------------------------------
-- term: Timer G
-  definition: The timer for retransmitting a final INVITE response over UDP until an ACK arrives.
-- term: Timer H
-  definition: The limit, 64×T1 (32 seconds), for receiving an ACK for a final INVITE response.
+# --- Transactions and timers ---------------------------------------------
+- term: client transaction
+  definition: The side of a transaction that sends the request and receives the responses.
+- term: server transaction
+  definition: The side of a transaction that receives the request and sends the responses.
+- term: transaction user
+  aliases: [TU]
+  definition: The layer above a transaction that uses it, such as the UA core or a stateful proxy core.
+- term: UA core
+  definition: The part of a user agent above the transaction layer. It sends the ACK for a 2xx and retransmits a 2xx to INVITE.
+- term: magic cookie
+  definition: The text z9hG4bK at the start of a branch. It says that the branch is unique (RFC 3261).
+- term: retransmission
+  definition: The same message sent again because no answer came. It has the same branch and CSeq.
+- term: stray response
+  definition: A response that matches no client transaction. A proxy drops it (RFC 6026).
 - term: T1
   definition: The round-trip time estimate. The default is 500 ms.
+- term: T2
+  definition: The longest interval between retransmissions of a non-INVITE request or an INVITE response. The default is 4 s.
+- term: T4
+  definition: The longest time a message stays in the network. The default is 5 s.
+- term: Timer A
+  definition: Resends an INVITE over UDP. It starts at T1 and doubles each time.
+- term: Timer B
+  definition: Ends an INVITE client transaction that has no response after 64×T1 (32 seconds).
+- term: Timer D
+  definition: Keeps an INVITE client transaction in Completed (32 s on UDP) to absorb copies of a 300–699 response.
+- term: Timer E
+  definition: Resends a non-INVITE request over UDP. It starts at T1 and doubles up to T2.
+- term: Timer F
+  definition: Ends a non-INVITE client transaction that has no final response after 64×T1.
+- term: Timer G
+  definition: Resends a 300–699 response to INVITE over UDP until the ACK arrives. It starts at T1 and doubles up to T2.
+- term: Timer H
+  definition: The limit, 64×T1 (32 seconds), for receiving the ACK for a 300–699 response to INVITE.
+- term: Timer I
+  definition: Keeps an INVITE server transaction in Confirmed (T4 on UDP) to absorb copies of the ACK.
+- term: Timer J
+  definition: Keeps a non-INVITE server transaction in Completed (64×T1 on UDP) to answer copies of the request.
+- term: Timer K
+  definition: Keeps a non-INVITE client transaction in Completed (T4 on UDP) to absorb copies of the response.
+- term: Timer L
+  definition: Keeps an INVITE server transaction in the Accepted state for 64×T1 after a 2xx (RFC 6026).
+- term: Timer M
+  definition: Keeps an INVITE client transaction in the Accepted state for 64×T1 after a 2xx (RFC 6026).
 
 # --- Media -----------------------------------------------------------------
 - term: RTP
