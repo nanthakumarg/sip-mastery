@@ -3,12 +3,11 @@ import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
 
-// GitHub Pages project site: https://nanthakumarg.github.io/sip-mastery/
-// CI sets SITE and BASE from the repository (.github/workflows/deploy.yml).
-// Custom domain later: BASE=/
+// GitHub Pages with a custom domain: https://sip.nanthakumar.com/
+// Without the custom domain: SITE=https://nanthakumarg.github.io BASE=/sip-mastery
 export default defineConfig({
-  site: process.env.SITE ?? 'https://nanthakumarg.github.io',
-  base: process.env.BASE ?? '/sip-mastery',
+  site: process.env.SITE ?? 'https://sip.nanthakumar.com',
+  base: process.env.BASE ?? '/',
   trailingSlash: 'ignore',
   integrations: [mdx(), react()],
 });

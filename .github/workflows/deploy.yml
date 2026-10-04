@@ -41,18 +41,12 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      - name: Work out the site URL and base path
-        id: site
-        run: |
-          repo="${{ github.event.repository.name }}"
-          echo "site=https://${{ github.repository_owner }}.github.io" >> "$GITHUB_OUTPUT"
-          if [[ "$repo" == *.github.io ]]; then echo "base=/" >> "$GITHUB_OUTPUT"; else echo "base=/$repo" >> "$GITHUB_OUTPUT"; fi
-
       - name: Build (runs the content checks first)
         run: npm run build
         env:
-          SITE: ${{ steps.site.outputs.site }}
-          BASE: ${{ steps.site.outputs.base }}
+          # Custom domain (Settings → Pages → Custom domain), served from the root.
+          SITE: https://sip.nanthakumar.com
+          BASE: /
           PUBLIC_REPO_URL: https://github.com/${{ github.repository }}
 
       - uses: actions/upload-pages-artifact@v4

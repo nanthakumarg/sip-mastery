@@ -13,7 +13,7 @@ Needs Node.js 24 (see `.nvmrc`).
 ```bash
 nvm use
 npm install
-npm run dev        # http://localhost:4321/sip-mastery/
+npm run dev        # http://localhost:4321
 ```
 
 | Command | What it does |
@@ -75,13 +75,14 @@ All course content lives in `src/content/`.
 
 ## Deploy
 
-Live site: https://nanthakumarg.github.io/sip-mastery/
+Live site: https://sip.nanthakumar.com/
 
 GitHub Actions builds and deploys to GitHub Pages on every push to `main` (`.github/workflows/deploy.yml`).
 
 1. Push the repository to GitHub (`https://github.com/nanthakumarg/sip-mastery`).
 2. In **Settings → Pages**, set **Source** to **GitHub Actions**.
-3. Push to `main`. The workflow sets the site URL and base path from the repository name.
+3. In **Settings → Pages → Custom domain**, enter `sip.nanthakumar.com`, then tick **Enforce HTTPS**. DNS: a `CNAME` record from `sip` to `nanthakumarg.github.io`.
+4. Push to `main`. The workflow builds for `https://sip.nanthakumar.com` with base path `/`.
 
 ## Licences
 
