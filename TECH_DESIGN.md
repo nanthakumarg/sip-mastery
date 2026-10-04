@@ -196,9 +196,10 @@ Rendering choices:
 | `ack-non2xx-branch` | ACK for a non-2xx response has the INVITE's branch and CSeq number |
 | `ack-2xx-branch` | ACK for a 2xx response has a new branch |
 | `auth-retry` | A retry after 401/407 has CSeq + 1, the same Call-ID and From-tag, a new branch, and Authorization/Proxy-Authorization |
-| `invite-final-ack` | Every final response to an INVITE is followed by an ACK from the UAC side |
+| `invite-final-ack` | Every final response to an INVITE is ACKed: a 300–699 on its own hop; a 2xx end to end (the receiving UA sends an ACK, and an ACK reaches the sending UA) |
 | `dialog-tags` | In-dialog requests (and the ACK for a 2xx) use the From/To tags of an established dialog |
 | `cancel-after-final` | No CANCEL after the INVITE has a final response on that hop (RFC 3261 §9.1) |
+| `dialog-target` | A UA sends each request inside a dialog to the remote target, with the route set as Route (RFC 3261 §12.2.1.1). Dialog state comes from `src/sip/dialog.ts`. |
 
 ### 6.2 Diagram language checks (`lint-diagram.ts`)
 | Rule ID | Check |

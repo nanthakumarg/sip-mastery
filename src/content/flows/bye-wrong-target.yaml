@@ -1,0 +1,220 @@
+id: bye-wrong-target
+title: "Broken: BYE to the first Request-URI"
+summary: "Alice's phone sends the BYE to the address it first called, the support line, not to the remote target. The BYE reaches another agent, and Bob's call stays up."
+broken: true
+breaks: [dialog-target]
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+  - { id: carol, label: Carol, kind: ua, sub: 203.0.113.30 }
+steps:
+  - from: alice
+    to: proxyB
+    label: INVITE
+    caption: "Alice calls the support line: sip:support@biloxi.example."
+    message: |
+      INVITE sip:support@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: alice
+    label: "100 Trying"
+    caption: Proxy B answers 100 Trying on this hop.
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp1
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: bob
+    label: INVITE
+    caption: Proxy B picks a free agent, Bob. It does not record-route.
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKsp1b
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp1
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: bob
+    to: proxyB
+    label: "180 Ringing"
+    caption: "Bob's phone rings."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKsp1b
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp1
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>;tag=b0b7a9
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: alice
+    label: "180 Ringing"
+    caption: Proxy B forwards the 180.
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp1
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>;tag=b0b7a9
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}
+
+  - from: bob
+    to: proxyB
+    label: "200 OK"
+    caption: "Bob answers. His Contact is sip:bob@203.0.113.20."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKsp1b
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp1
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>;tag=b0b7a9
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: alice
+    label: "200 OK"
+    caption: "The route set is empty, and the remote target is Bob's Contact."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp1
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>;tag=b0b7a9
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: alice
+    to: bob
+    label: ACK
+    caption: Alice sends the ACK straight to the remote target.
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp2
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>;tag=b0b7a9
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: alice
+    to: proxyB
+    label: BYE
+    caption: "Alice hangs up. Her phone sends the BYE to sip:support@biloxi.example, the first Request-URI."
+    warn: The Request-URI must be the remote target from the Contact, not the first Request-URI.
+    message: |
+      BYE sip:support@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp3
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>;tag=b0b7a9
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: carol
+    label: BYE
+    caption: Proxy B routes the BYE like a new request to the support line. The next free agent is Carol.
+    message: |
+      BYE sip:carol@203.0.113.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKsp3b
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp3
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>;tag=b0b7a9
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}
+
+  - from: carol
+    to: proxyB
+    label: "481 Call Does Not Exist"
+    caption: "Carol's phone has no dialog with these tags. It answers 481."
+    message: |
+      SIP/2.0 481 Call/Transaction Does Not Exist
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKsp3b
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp3
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>;tag=b0b7a9
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: alice
+    label: "481 Call Does Not Exist"
+    caption: "Alice's phone ends its dialog. Bob's phone still shows a call with nobody on it."
+    warn: Bob never receives the BYE.
+    message: |
+      SIP/2.0 481 Call/Transaction Does Not Exist
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKsp3
+      From: Alice <sip:alice@atlanta.example>;tag=4a7e1f
+      To: Support <sip:support@biloxi.example>;tag=b0b7a9
+      Call-ID: 2c9e5a71@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}

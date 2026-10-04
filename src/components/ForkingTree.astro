@@ -1,0 +1,9 @@
+---
+/** <ForkingTree flows={['fork-one-answers', 'fork-two-answer']} labels={['One answers', 'Two answer']} /> (Module 9.5) */
+import Island from '../diagrams/ForkingTree.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+
+interface Props { flows: string[]; labels: string[] }
+const bundles = await flowBundle(...Astro.props.flows);
+---
+<div class="wide"><Island client:visible flows={bundles.map(b => b.flow)} labels={Astro.props.labels} /></div>

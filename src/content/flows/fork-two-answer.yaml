@@ -1,0 +1,377 @@
+id: fork-two-answer
+title: "Fixed: Alice ACKs and ends the extra dialog"
+summary: "Two of Bob's devices answer at the same moment. Alice ACKs both 200 OKs, keeps the first dialog, and ends the second with BYE."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+  - { id: desk, label: Desk phone, kind: ua, sub: 203.0.113.20 }
+  - { id: mobile, label: Mobile, kind: ua, sub: 203.0.113.40 }
+steps:
+  - from: alice
+    to: proxyB
+    label: INVITE
+    caption: Alice calls bob@biloxi.example.
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: alice
+    label: "100 Trying"
+    caption: Proxy B answers 100 Trying on this hop.
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: desk
+    label: INVITE
+    caption: Bob has 2 registered devices. Proxy B forks the INVITE to the desk phone, with its own branch.
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKf1a
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Max-Forwards: 69
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: mobile
+    label: INVITE
+    caption: Proxy B also sends the INVITE to the mobile.
+    message: |
+      INVITE sip:bob@203.0.113.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKf1b
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Max-Forwards: 69
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: desk
+    to: proxyB
+    label: "180 Ringing"
+    caption: "The desk phone rings. It picks its own To tag: d7c1."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKf1a
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=d7c1
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: alice
+    label: "180 Ringing"
+    caption: Alice now has 1 early dialog, one for each To tag.
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=d7c1
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: {auto}
+
+  - from: mobile
+    to: proxyB
+    label: "180 Ringing"
+    caption: "The mobile rings. It picks its own To tag: m2a8."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKf1b
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.40:5060>
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: alice
+    label: "180 Ringing"
+    caption: Alice now has 2 early dialogs, one for each To tag.
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.40:5060>
+      Content-Length: {auto}
+
+  - from: desk
+    to: proxyB
+    label: "200 OK"
+    caption: Bob answers on the desk phone.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKf1a
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=d7c1
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: alice
+    label: "200 OK"
+    caption: "Proxy B forwards the 200 OK. Alice's dialog with the desk phone becomes confirmed."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=d7c1
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: mobile
+    to: proxyB
+    label: "200 OK"
+    caption: At the same moment, someone answers the mobile too.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKf1b
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.40:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.40
+      s=-
+      c=IN IP4 203.0.113.40
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: proxyB
+    to: alice
+    label: "200 OK"
+    caption: Proxy B forwards every 2xx. Alice now has two confirmed dialogs.
+    rfc: rfc3261-13.2.2.4-forking
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK776fork
+      Record-Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.40:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.40
+      s=-
+      c=IN IP4 203.0.113.40
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+
+  - from: alice
+    to: proxyB
+    label: ACK
+    caption: "Alice ACKs the desk phone's 200 OK."
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKak1
+      Max-Forwards: 70
+      Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=d7c1
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: desk
+    label: ACK
+    caption: Proxy B forwards the ACK to the desk phone.
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpk1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKak1
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=d7c1
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: alice
+    to: proxyB
+    label: ACK
+    caption: "Alice must ACK the mobile's 200 OK too, even though she wants only one call."
+    rfc: rfc3261-13.2.2.4-ack-core
+    message: |
+      ACK sip:bob@203.0.113.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKak2
+      Max-Forwards: 70
+      Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: mobile
+    label: ACK
+    caption: Proxy B forwards the ACK. The mobile stops sending its 200 OK.
+    message: |
+      ACK sip:bob@203.0.113.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpk2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKak2
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: alice
+    to: proxyB
+    label: BYE
+    caption: Then Alice ends the extra dialog with BYE.
+    rfc: rfc3261-13.2.2.4-bye-extra
+    message: |
+      BYE sip:bob@203.0.113.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKby2
+      Max-Forwards: 70
+      Route: <sip:proxy.biloxi.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: mobile
+    label: BYE
+    caption: Proxy B forwards the BYE to the mobile.
+    message: |
+      BYE sip:bob@203.0.113.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKby2
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}
+
+  - from: mobile
+    to: proxyB
+    label: "200 OK"
+    caption: The mobile ends its call.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKby2
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}
+
+  - from: proxyB
+    to: alice
+    label: "200 OK"
+    caption: "One call remains: Alice and the desk phone."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKby2
+      From: Alice <sip:alice@atlanta.example>;tag=88sja8x
+      To: Bob <sip:bob@biloxi.example>;tag=m2a8
+      Call-ID: f81d4fae7dec11d0@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: {auto}

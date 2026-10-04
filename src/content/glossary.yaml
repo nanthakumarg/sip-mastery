@@ -14,7 +14,13 @@
 - term: Registrar
   definition: The server that accepts REGISTER requests for atlanta.example and stores bindings.
 - term: Carol
-  definition: A third user in transfer examples. Bob is transferred to Carol.
+  definition: A third user. Bob is transferred to Carol in transfer examples; she is another support agent in Module 9.
+- term: Desk phone
+  definition: One of Bob's three registered devices in the forking examples.
+- term: Mobile
+  definition: One of Bob's three registered devices in the forking examples, a SIP app on his mobile phone.
+- term: Softphone
+  definition: One of Bob's three registered devices in the forking examples, a SIP app on his computer.
 - term: Presence server
   definition: The server that collects presence state with PUBLISH and sends it to watchers with NOTIFY.
 - term: SBC
@@ -145,6 +151,20 @@
   definition: One request and all its responses. An ACK for a non-2xx response is part of the INVITE transaction.
 - term: dialog
   definition: A peer-to-peer SIP relationship identified by Call-ID, local tag, and remote tag.
+- term: dialog ID
+  definition: Call-ID, local tag, and remote tag. Each side sees the same tags, swapped.
+- term: confirmed dialog
+  definition: A dialog created or confirmed by a 2xx response. It lasts until BYE.
+- term: remote target
+  definition: The URI where a UA sends its next request in a dialog. It comes from the peer's Contact.
+- term: target refresh
+  definition: A request that can change the remote target, such as re-INVITE or UPDATE.
+- term: glare
+  definition: Two re-INVITEs in the same dialog that cross. Both get 491 Request Pending.
+- term: session timer
+  definition: A keepalive for a call (RFC 4028). One side refreshes the session before Session-Expires runs out.
+- term: refresher
+  definition: The side that sends the session refreshes, named in the refresher parameter of Session-Expires.
 - term: route set
   definition: The list of proxies that in-dialog requests must visit, built from Record-Route.
 

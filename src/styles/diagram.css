@@ -1119,3 +1119,62 @@ svg.tp-ladder { display: block; width: 100%; height: auto; font-family: var(--mo
 .tm-verdict { padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-2); border-left: 3px solid var(--muted); border-radius: 6px; font-size: 15px; color: var(--dim); }
 .tm-verdict.is-hit { border-left-color: var(--sip); }
 .tm-verdict-title { font: 700 16px var(--display); color: var(--text); margin-bottom: 4px; }
+
+/* ---------- Live dialog table (Module 9) ---------- */
+.dtable { max-width: 1640px; }
+.dt-main { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(330px, 1fr); gap: 18px; margin-top: 16px; align-items: start; }
+@media (max-width: 1100px) { .dt-main { grid-template-columns: minmax(0, 1fr); } }
+.dt-left { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.dt-ladder { max-height: min(56vh, 560px); }
+.dt-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; min-width: 0; }
+.dt-side { min-width: 0; padding: 10px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; display: grid; gap: 10px; align-content: start; }
+.dt-who { font: 700 16px var(--display); color: var(--text); display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.dt-who span { font: 400 11.5px var(--mono); color: var(--muted); }
+.dt-empty { font-size: 14px; color: var(--muted); }
+.dtable .dt-dialog, .ftree .ft-dialogs { display: table; width: 100%; border-collapse: collapse; font: 400 12px/1.45 var(--mono); }
+.dtable .dt-dialog th, .dtable .dt-dialog td { padding: 5px 8px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: top; letter-spacing: 0; text-transform: none; min-width: 0; font-size: 12px; }
+.dtable .dt-dialog th { width: 110px; font: 500 11px var(--mono); color: var(--muted); }
+.dtable .dt-dialog td { color: var(--dim); overflow-wrap: anywhere; }
+.dtable .dt-dialog.is-terminated td { color: var(--muted); }
+.dtable .dt-dialog tr.is-changed td { color: var(--text); background: rgba(236,231,220,.07); }
+.dtable .dt-dialog tr.is-changed th { color: var(--text); }
+.dt-mark { display: inline-block; width: 1.2em; font-weight: 700; color: var(--text); }
+.dt-state { display: inline-block; padding: 1px 7px; border: 1px solid var(--line); border-radius: 10px; font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .04em; color: var(--dim); }
+.dt-state.is-early { color: var(--sip); border-color: var(--sip); }
+.dt-state.is-confirmed { color: var(--bg); background: var(--sip); border-color: var(--sip); }
+.dt-state.is-terminated { color: var(--muted); text-decoration: line-through; }
+.dt-note { display: block; margin-top: 3px; font: 400 11px var(--mono); color: var(--muted); }
+.dt-layers { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 6px; font-size: 13.5px; color: var(--dim); }
+.dt-layers dt { font: 500 11px/1.9 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.dt-layers dd { margin: 0; overflow-wrap: anywhere; }
+.dt-layers code { font-size: 12px; color: var(--text); background: none; border: 0; padding: 0; }
+.dt-none { color: var(--muted); }
+
+/* ---------- Forking tree (Module 9.5) ---------- */
+.ftree { max-width: 1640px; }
+.ftree .stage-head .seg { max-width: 100%; overflow-x: auto; }
+.ftree .stage-head .seg button { flex: none; }
+.ft-main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr); gap: 18px; margin-top: 16px; align-items: start; }
+@media (max-width: 1100px) { .ft-main { grid-template-columns: minmax(0, 1fr); } }
+.ft-svgwrap { min-width: 0; overflow-x: auto; border: 1px solid var(--line-2); border-radius: 8px; scrollbar-color: var(--line) transparent; }
+svg.ft-svg { display: block; width: 100%; min-width: 540px; height: auto; background: var(--bg-deep); font-family: var(--mono); }
+.ft-edge { stroke: var(--line); stroke-width: 2; }
+.ft-edge.is-done { opacity: .35; }
+.ft-wire { fill: none; stroke-width: 3.2; stroke-dasharray: var(--len, 400); animation: wire-draw .5s var(--ease) both; }
+.ft-wire.is-direct { stroke-dasharray: none; animation: none; opacity: .9; }
+.ft-label { font-size: 15px; font-weight: 600; fill: var(--text); paint-order: stroke; stroke: var(--bg-deep); stroke-width: 6px; stroke-linejoin: round; }
+.ft-node rect { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+.ft-node text { font: 700 17px var(--display); fill: var(--text); }
+.ft-node .ft-sub, .ft-sub { font: 400 12px var(--mono); fill: var(--muted); }
+.ft-branch { font: 500 12.5px var(--mono); fill: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+.ft-node.b-ringing rect, .ft-node.b-trying rect { stroke: var(--sip); }
+.ft-node.b-answered rect, .ft-node.b-in-call rect { stroke: var(--text); stroke-width: 2.5; }
+.ft-node.b-answered .ft-branch, .ft-node.b-in-call .ft-branch { fill: var(--text); }
+.ft-node.b-cancelled, .ft-node.b-ended { opacity: .5; }
+.ft-side { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.ft-dtitle { margin-top: 4px; }
+.ftree .ft-dialogs th, .ftree .ft-dialogs td { padding: 6px 8px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: top; letter-spacing: 0; text-transform: none; min-width: 0; font-size: 12.5px; }
+.ftree .ft-dialogs thead th { font: 500 11px var(--mono); color: var(--muted); }
+.ftree .ft-dialogs td { color: var(--dim); }
+.ftree .ft-dialogs tr.is-changed td { background: rgba(236,231,220,.07); color: var(--text); }
+.ftree .ft-dialogs code { background: none; border: 0; padding: 0; color: var(--text); }

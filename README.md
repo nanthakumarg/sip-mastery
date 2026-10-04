@@ -23,7 +23,7 @@ npm run dev        # http://localhost:4321
 | `npm run check:content` | Protocol checks and diagram language checks on every flow |
 | `npm run verify:rfc` | Checks every RFC quote word for word against rfc-editor.org |
 | `npm run sync:rfc-index` | Refreshes `rfc-index.json` (titles, dates, status, obsoletes/updates) from the official RFC index, for the RFCs in `rfcs.yaml` |
-| `npm test` | Unit tests (parser, checks, digest maths, transaction timers) |
+| `npm test` | Unit tests (parser, checks, digest maths, transaction timers, dialog state) |
 | `npm run verify` | `check:content`, `verify:rfc`, and `test` together |
 | `npm run check` | TypeScript and Astro type check |
 
@@ -62,6 +62,7 @@ All course content lives in `src/content/`.
 <HeaderReference initial="Via" />  <HeaderJourney flow="header-journey" />  <CodeAtlas initial={486} />  <MethodCards initial="INVITE" />  <CapabilityLab />  <MessageAnatomy />  <FramingLab />  <UriDissector mode="header" />
 <UriDissector />  <LocationService />  <AddressClassifier />  <NatRewrite />  <PacketExplorer flow="…" step={1} />
 <TransactionPlayer />  <TimerTimeline />  <TransactionMatcher />                transaction state machines, timers, matching (src/sip/transaction.ts)
+<DialogTable flow="dialog-call" />  <ForkingTree flows={['fork-one-answers', 'fork-two-answer']} labels={[…]} />   dialog state per UA (src/sip/dialog.ts)
 ```
 
 ### Flow file rules

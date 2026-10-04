@@ -40,6 +40,8 @@ import HeaderJourney from '../../components/HeaderJourney.astro';
 import TransactionPlayer from '../../components/TransactionPlayer.astro';
 import TimerTimeline from '../../components/TimerTimeline.astro';
 import TransactionMatcher from '../../components/TransactionMatcher.astro';
+import DialogTable from '../../components/DialogTable.astro';
+import ForkingTree from '../../components/ForkingTree.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -67,7 +69,8 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   UriDissector, ElementGallery, LocationService, MessageAnatomy, FramingLab,
   MethodCards, CapabilityLab, CodeAtlas,
   HeaderReference, HeaderJourney,
-  TransactionPlayer, TimerTimeline, TransactionMatcher };
+  TransactionPlayer, TimerTimeline, TransactionMatcher,
+  DialogTable, ForkingTree };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

@@ -1,0 +1,219 @@
+---
+module: 9
+title: Dialogs
+part: 3
+level: [intermediate, advanced]
+paths: { noc: optional, dev: core }
+summary: The relationship between two user agents that lasts for a whole call — how a dialog starts, what state each side keeps, how requests inside it are built, and what happens when an INVITE forks, when re-INVITEs cross, and when nobody refreshes the session.
+objectives:
+  - Build the dialog ID from Call-ID and tags, from both sides of the call.
+  - Tell an early dialog from a confirmed dialog, and say what ends each one.
+  - Follow the dialog state — CSeq numbers, remote target, route set — through a call.
+  - Build the Request-URI and Route header of a request inside a dialog.
+  - Explain what a caller must do when a forked INVITE gets more than one 2xx.
+  - Explain glare, 491 Request Pending, and the retry timers.
+  - Explain how session timers end a call that nobody refreshes.
+status: draft
+---
+
+## 9.1 The dialog ID: Call-ID and two tags
+
+A transaction lasts seconds (Module 8). A call lasts minutes, and many transactions happen during it: the INVITE, a re-INVITE for hold, an INFO for a key press, the BYE. The **dialog** ties them together:
+
+<RfcQuote id="rfc3261-12-dialog" />
+
+Each side names the dialog with three values: the Call-ID, its own tag (the **local tag**), and the other side's tag (the **remote tag**). The two sides see the same values, with the tags swapped:
+
+<RfcQuote id="rfc3261-12-dialog-id" />
+
+| | Alice (she called) | Bob (he answered) |
+|---|---|---|
+| Call-ID | `3848276298220188511@192.0.2.10` | `3848276298220188511@192.0.2.10` |
+| Local tag | `9fxced76sl` — her From tag | `314159` — his To tag |
+| Remote tag | `314159` — the To tag | `9fxced76sl` — the From tag |
+
+In every request, From carries the sender's tag and To the receiver's. So in Alice's requests, From has `9fxced76sl`; in Bob's requests — a re-INVITE, or a BYE when he hangs up — From has `314159` (Module 7).
+
+## 9.2 Early dialogs and confirmed dialogs
+
+A response with a To tag creates a dialog — but only some responses:
+
+<RfcQuote id="rfc3261-12.1-dialog-creation" />
+
+- A **180 Ringing** or **183 Session Progress** with a To tag creates an **early dialog**. It already has state, so requests such as PRACK and UPDATE can travel in it before the call is answered.
+- A **2xx** creates a **confirmed dialog**, or confirms the early dialog with the same tags.
+- A **100 Trying** never creates a dialog. It usually has no To tag, and it stays on one hop.
+
+<RfcQuote id="rfc3261-12-early" />
+
+## 9.3 What each side remembers
+
+<RfcQuote id="rfc3261-12-state" />
+
+| Field | The caller (UAC) takes it from | The callee (UAS) takes it from |
+|---|---|---|
+| Local CSeq | The CSeq of its INVITE | Empty, until it sends its first request |
+| Remote CSeq | Empty, until the callee sends a request | The CSeq of the INVITE |
+| Local URI / remote URI | From / To of the INVITE | To / From of the INVITE |
+| **Remote target** | Contact of the response | Contact of the INVITE |
+| **Route set** | Record-Route of the response, **reversed** | Record-Route of the request, in order |
+
+<RfcQuote id="rfc3261-12.1.2-route-set" />
+
+<RfcQuote id="rfc3261-12.1.1-route-set" />
+
+Each side counts its own requests. Alice's CSeq goes 1 (INVITE), 2 (BYE); Bob starts wherever he likes — 4711 in the example — and adds one from there. ACK and CANCEL reuse the number of the request they belong to:
+
+<RfcQuote id="rfc3261-12.2.1.1-cseq" />
+
+The remote target changes only with a **target refresh** request — a re-INVITE or an UPDATE — or the 2xx to one. That is how a phone that changes its address keeps the call:
+
+<RfcQuote id="rfc3261-12.2-target-refresh" />
+
+Step through the call below. Watch both tables: the dialog appears with the 180, becomes confirmed with the 200 OK, gets a new remote target from Bob's re-INVITE, and ends with the BYE. The panel under the player shows the four layers that each message belongs to (9.8).
+
+<DialogTable flow="dialog-call" />
+
+## 9.4 Requests inside a dialog
+
+Every request inside a dialog is built from the dialog state, not from the first INVITE:
+
+- **To** and **From**: the remote and local URI, with the remote and local tag.
+- **Call-ID**: the dialog's Call-ID.
+- **CSeq**: the local CSeq plus one.
+- **Request-URI**: the remote target.
+- **Route**: the route set, in order.
+
+<RfcQuote id="rfc3261-12.2.1.1-target" />
+
+| Request | In a dialog it… |
+|---|---|
+| **re-INVITE** | Changes the session (hold, codec, video) with a new offer. A target refresh. |
+| **UPDATE** | Changes the session, even before the answer (RFC 3311). A target refresh. |
+| **BYE** | Ends the session and the dialog. |
+| **INFO** | Carries application data, such as a key press (RFC 6086). |
+| **REFER** | Asks the other side to call someone (transfer, Module 22). |
+| **NOTIFY** | Reports the progress of a REFER, in the same dialog. |
+| **PRACK** | Acknowledges a reliable provisional response, in the early dialog (RFC 3262). |
+| **ACK** | Acknowledges a 2xx to INVITE or re-INVITE. Not a target refresh. |
+
+A re-INVITE goes to one device — the remote target — so it never forks:
+
+<RfcQuote id="rfc3261-14.1-no-fork" />
+
+A request with tags that match no dialog gets **481 Call/Transaction Does Not Exist**:
+
+<RfcQuote id="rfc3261-12.2.2-481" />
+
+<RfcQuote id="rfc3261-12.2.1.2-terminate" />
+
+## 9.5 Forking: many early dialogs, and more than one 2xx
+
+When Proxy B forks an INVITE to Bob's three devices (Module 3), each device that rings adds **its own To tag**. Alice gets one early dialog per tag — all with the same Call-ID and the same local tag. If two devices answer at once, both 2xx responses reach her:
+
+<RfcQuote id="rfc3261-13.2.2.4-forking" />
+
+Alice must ACK **every** 2xx. If she wants only one call, she then ends the others with BYE:
+
+<RfcQuote id="rfc3261-13.2.2.4-bye-extra" />
+
+The early dialogs that never got a 2xx do not end at once. Alice waits 64×T1 after the first 2xx, in case another 2xx is on its way:
+
+<RfcQuote id="rfc3261-13.2.2.4-early-end" />
+
+<ForkingTree flows={['fork-one-answers', 'fork-two-answer']} labels={['One device answers', 'Two devices answer']} />
+
+## 9.6 Glare and 491 Request Pending
+
+A dialog allows only one INVITE transaction at a time, in either direction:
+
+<RfcQuote id="rfc3261-14.1-no-overlap" />
+
+When both sides send a re-INVITE at the same moment — **glare** — each side has its own INVITE in progress, so each rejects the other's:
+
+<RfcQuote id="rfc3261-14.2-491" />
+
+Both then wait a random time and try again. The side that created the Call-ID waits longer (2.1 to 4 seconds); the other side waits 0 to 2 seconds, so it usually goes first:
+
+<RfcQuote id="rfc3261-14.1-491-timer" />
+
+<Flow id="glare-491" eyebrow="Call flow · two re-INVITEs cross" />
+
+## 9.7 Session timers: who refreshes, and how
+
+Module 7 introduced Session-Expires and Min-SE. In the dialog, both sides run a timer for the session interval, and one side — the **refresher** — must send a refresh before it runs out:
+
+<RfcQuote id="rfc4028-3-refresher" />
+
+The `refresher` parameter says `uac` or `uas` — relative to the **current** transaction. When Bob, who answered the call, sends the refresh UPDATE, he is the UAC of that UPDATE, so it says `refresher=uac`.
+
+<RfcQuote id="rfc4028-7.2-half" />
+
+A refresh is a re-INVITE or an UPDATE; only its 2xx restarts the timer. If no refresh arrives, the other side ends the call slightly before the session expires:
+
+<RfcQuote id="rfc4028-10-bye" />
+
+<Flow id="session-timer-refresh" eyebrow="Call flow · session timer refreshes" />
+
+<RfcQuote id="rfc4028-3-session" />
+
+## 9.8 Call, session, dialog, transaction
+
+Four words that are easy to mix up:
+
+| | What it is | Named by | How many in one simple call |
+|---|---|---|---|
+| **Call** | Everything that belongs to one Call-ID | Call-ID | 1 |
+| **Session** | The media exchange: audio, video | SDP `o=` line (Module 15) | 1 |
+| **Dialog** | The SIP relationship between two UAs | Call-ID + both tags | 1 — or more after forking |
+| **Transaction** | One request and its responses | Top Via branch + method | One per request: INVITE, ACK for 2xx, BYE… on each hop |
+
+They do not always line up:
+
+- A forked INVITE is **one call** with **several dialogs** (9.5).
+- A B2BUA joins **two dialogs**, often with two Call-IDs, into one conversation (Module 3).
+- A session timer refreshes the **session**; a BYE ends the session and the **dialog** together.
+- A re-INVITE is a **new transaction** in the **same dialog**, and it changes the **same session**.
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Sending an in-dialog request to the first Request-URI">
+    The first INVITE went to an address of record, a group, or a phone number. Requests inside the dialog must go to the **remote target** — the Contact — through the route set. A phone that reuses the first Request-URI sends its BYE back into routing, where it can reach another device, or no device at all.
+
+    <BrokenFixedFlow broken="bye-wrong-target" fixed="bye-right-target" />
+  </Mistake>
+
+  <Mistake title="481 Call/Transaction Does Not Exist">
+    The receiver has no dialog with these tags. The usual causes:
+
+    - An element restarted or failed over, and lost its dialog state.
+    - A B2BUA or SBC changed the tags on one side, and a request reached the wrong leg.
+    - The sender used the wrong tags, or swapped them (Module 7).
+    - The request went to the wrong device (see the mistake above).
+
+    <p class="fix"><b>Remember:</b> after a 481 (or a 408) to a request inside a dialog, the sender ends the dialog. Check which element answered 481, and compare its tags with the 200 OK that created the dialog.</p>
+  </Mistake>
+
+  <Mistake title="Not ACKing and ending the extra 2xx after forking">
+    Two devices answer at the same moment. A caller that ACKs only the first 2xx leaves the second device in a call with nobody: it sends its 200 OK for 32 seconds, then gives up with BYE. The caller must ACK every 2xx, then BYE the dialogs it does not want.
+
+    <BrokenFixedFlow broken="fork-second-200-ignored" fixed="fork-two-answer" />
+  </Mistake>
+
+  <Mistake title="The call drops at the same time, every time">
+    A call that always ends after the same time — often just under 15 or 30 minutes — is usually a session timer with no refresh. One side agreed to refresh, but its refresh never arrives, or gets a non-2xx response. The other side then ends the call with BYE, slightly before the session expires.
+
+    <CompareFlows a="session-timer-expires" b="session-timer-refresh" labels={['No refresh', 'Bob refreshes']} />
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A **dialog** is the SIP relationship between two UAs for a whole call. Each side names it by **Call-ID + local tag + remote tag**; the two sides see the tags swapped.
+- A 101–199 response with a To tag creates an **early dialog**; a 2xx creates or confirms a **confirmed dialog**. A non-2xx final response ends the early dialogs; a BYE ends a confirmed one.
+- Each side keeps **local and remote CSeq**, local and remote URI, the **remote target** (the peer's Contact), and the **route set** (Record-Route, reversed by the caller).
+- Requests inside a dialog go to the **remote target** through the **route set**. Only a target refresh — re-INVITE or UPDATE — changes the remote target.
+- A forked INVITE can create **many early dialogs** and **more than one 2xx**. The caller ACKs every 2xx and ends the extra dialogs with BYE.
+- Two re-INVITEs that cross get **491 Request Pending**; each side retries after a random wait.
+- With **session timers**, the refresher refreshes at half the interval; without a refresh, the other side ends the call just before it expires.

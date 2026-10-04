@@ -1,0 +1,9 @@
+---
+/** <DialogTable flow="dialog-call" /> : each UA's dialog state, step by step (Module 9) */
+import Island from '../diagrams/DialogTable.tsx';
+import { flowBundle } from '../lib/bundle.ts';
+
+interface Props { flow: string }
+const [b] = await flowBundle(Astro.props.flow);
+---
+<div class="wide"><Island client:visible flow={b!.flow} /></div>

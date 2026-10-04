@@ -1369,3 +1369,212 @@
   text: >-
     A transaction-stateful SIP element MUST NOT send a response with
     Status-Code of 408 to a non-INVITE request.
+
+# --- Module 9: Dialogs ------------------------------------------------------
+
+- id: rfc3261-12-dialog
+  rfc: 3261
+  section: "12"
+  title: Dialogs
+  text: >-
+    A dialog represents a peer-to-peer SIP relationship between two user
+    agents that persists for some time.
+
+- id: rfc3261-12-dialog-id
+  rfc: 3261
+  section: "12"
+  title: Dialogs
+  text: >-
+    A dialog is identified at each UA with a dialog ID, which consists of a
+    Call-ID value, a local tag and a remote tag.  The dialog ID at each UA
+    involved in the dialog is not the same.  Specifically, the local tag at
+    one UA is identical to the remote tag at the peer UA.
+
+- id: rfc3261-12-state
+  rfc: 3261
+  section: "12"
+  title: Dialogs
+  text: >-
+    This state consists of the dialog ID, a local sequence number (used to
+    order requests from the UA to its peer), a remote sequence number (used
+    to order requests from its peer to the UA), a local URI, a remote URI,
+    remote target, a boolean flag called "secure", and a route set, which is
+    an ordered list of URIs.
+
+- id: rfc3261-12-early
+  rfc: 3261
+  section: "12"
+  title: Dialogs
+  text: >-
+    A dialog can also be in the "early" state, which occurs when it is
+    created with a provisional response, and then transition to the
+    "confirmed" state when a 2xx final response arrives.  For other
+    responses, or if no response arrives at all on that dialog, the early
+    dialog terminates.
+
+- id: rfc3261-12.1.1-route-set
+  rfc: 3261
+  section: "12.1.1"
+  title: UAS behavior
+  text: >-
+    The route set MUST be set to the list of URIs in the Record-Route header
+    field from the request, taken in order and preserving all URI parameters.
+
+- id: rfc3261-12.1.2-route-set
+  rfc: 3261
+  section: "12.1.2"
+  title: UAC Behavior
+  text: >-
+    The route set MUST be set to the list of URIs in the Record-Route header
+    field from the response, taken in reverse order and preserving all URI
+    parameters.
+
+- id: rfc3261-12.2-target-refresh
+  rfc: 3261
+  section: "12.2"
+  title: Requests within a Dialog
+  text: >-
+    Specifically, requests that are not target refresh requests do not modify
+    the dialog's remote target URI, and requests that are target refresh
+    requests do.
+
+- id: rfc3261-12.2.1.1-cseq
+  rfc: 3261
+  section: "12.2.1.1"
+  title: Generating the Request
+  text: >-
+    Requests within a dialog MUST contain strictly monotonically increasing
+    and contiguous CSeq sequence numbers (increasing-by-one) in each
+    direction (excepting ACK and CANCEL of course, whose numbers equal the
+    requests being acknowledged or cancelled).
+
+- id: rfc3261-12.2.1.1-target
+  rfc: 3261
+  section: "12.2.1.1"
+  title: Generating the Request
+  text: >-
+    If the route set is not empty, and the first URI in the route set
+    contains the lr parameter (see Section 19.1.1), the UAC MUST place the
+    remote target URI into the Request-URI and MUST include a Route header
+    field containing the route set values in order, including all
+    parameters.
+
+- id: rfc3261-12.2.2-refresh
+  rfc: 3261
+  section: "12.2.2"
+  title: UAS Behavior
+  text: >-
+    When a UAS receives a target refresh request, it MUST replace the
+    dialog's remote target URI with the URI from the Contact header field in
+    that request, if present.
+
+- id: rfc3261-12.2.2-481
+  rfc: 3261
+  section: "12.2.2"
+  title: UAS Behavior
+  text: >-
+    If the UAS wishes to reject the request because it does not wish to
+    recreate the dialog, it MUST respond to the request with a 481
+    (Call/Transaction Does Not Exist) status code and pass that to the server
+    transaction.
+
+- id: rfc3261-12.2.1.2-terminate
+  rfc: 3261
+  section: "12.2.1.2"
+  title: Processing the Responses
+  text: >-
+    If the response for a request within a dialog is a 481 (Call/Transaction
+    Does Not Exist) or a 408 (Request Timeout), the UAC SHOULD terminate the
+    dialog.
+
+- id: rfc3261-13.2.2.4-forking
+  rfc: 3261
+  section: "13.2.2.4"
+  title: 2xx Responses
+  text: >-
+    Multiple 2xx responses may arrive at the UAC for a single INVITE request
+    due to a forking proxy.  Each response is distinguished by the tag
+    parameter in the To header field, and each represents a distinct dialog,
+    with a distinct dialog identifier.
+
+- id: rfc3261-13.2.2.4-early-end
+  rfc: 3261
+  section: "13.2.2.4"
+  title: 2xx Responses
+  text: >-
+    The UAC core considers the INVITE transaction completed 64*T1 seconds
+    after the reception of the first 2xx response.  At this point all the
+    early dialogs that have not transitioned to established dialogs are
+    terminated.
+
+- id: rfc3261-13.2.2.4-bye-extra
+  rfc: 3261
+  section: "13.2.2.4"
+  title: 2xx Responses
+  text: >-
+    If, after acknowledging any 2xx response to an INVITE, the UAC does not
+    want to continue with that dialog, then the UAC MUST terminate the dialog
+    by sending a BYE request as described in Section 15.
+
+- id: rfc3261-14.1-no-overlap
+  rfc: 3261
+  section: "14.1"
+  title: UAC Behavior
+  text: >-
+    Note that a UAC MUST NOT initiate a new INVITE transaction within a
+    dialog while another INVITE transaction is in progress in either
+    direction.
+
+- id: rfc3261-14.1-no-fork
+  rfc: 3261
+  section: "14.1"
+  title: UAC Behavior
+  text: >-
+    Unlike an INVITE, which can fork, a re-INVITE will never fork, and
+    therefore, only ever generate a single final response.
+
+- id: rfc3261-14.1-491-timer
+  rfc: 3261
+  section: "14.1"
+  title: UAC Behavior
+  text: >-
+    If the UAC is the owner of the Call-ID of the dialog ID (meaning it
+    generated the value), T has a randomly chosen value between 2.1 and 4
+    seconds in units of 10 ms.
+
+- id: rfc3261-14.2-491
+  rfc: 3261
+  section: "14.2"
+  title: UAS Behavior
+  text: >-
+    A UAS that receives an INVITE on a dialog while an INVITE it had sent on
+    that dialog is in progress MUST return a 491 (Request Pending) response
+    to the received INVITE.
+
+- id: rfc4028-3-refresher
+  rfc: 4028
+  section: "3"
+  title: Overview of Operation
+  text: >-
+    The Session-Expires header field also contains a 'refresher' parameter,
+    which indicates who is doing the refreshing -- the UA that is currently
+    the UAC, or the UA that is currently the UAS.
+
+- id: rfc4028-3-session
+  rfc: 4028
+  section: "3"
+  title: Overview of Operation
+  text: >-
+    Note that the session timer refreshes the session, not the dialog used to
+    establish the session.
+
+- id: rfc4028-10-bye
+  rfc: 4028
+  section: "10"
+  title: Performing Refreshes
+  text: >-
+    Similarly, if the side not performing refreshes does not receive a
+    session refresh request before the session expiration, it SHOULD send a
+    BYE to terminate the session, slightly before the session expiration.
+    The minimum of 32 seconds and one third of the session interval is
+    RECOMMENDED.

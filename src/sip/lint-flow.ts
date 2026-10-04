@@ -3,6 +3,7 @@
  * Each rule follows RFC 3261. A flow marked `broken: true` must break exactly
  * the rules it lists in `breaks`; every other flow must break none.
  */
+import { liveDialogFor, trackDialogs, uriList } from './dialog.ts';
 import type { PreparedFlow, PreparedStep } from './flow.ts';
 import {
   byteLength, cseq, getHeader, getHeaders, headerParam, isRequest, isResponse, tagOf, topVia,
@@ -60,9 +61,12 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
 
   checkAcks(msgs, add);
   checkAuthRetries(msgs, add);
-  checkInviteAcked(msgs, add);
+  // Proxies and NAT routers forward a 2xx and its ACK; every other element is an end of the dialog.
+  const ends = new Set(flow.lanes.filter(l => l.kind !== 'proxy' && l.kind !== 'nat').map(l => l.id));
+  checkInviteAcked(msgs, ends, add);
   checkDialogTags(msgs, add);
   checkCancels(msgs, add);
+  checkDialogTargets(flow, add);
   return issues;
 }
 
@@ -145,14 +149,23 @@ function checkAuthRetries(msgs: MsgStep[], add: Add) {
   });
 }
 
-/** invite-final-ack (RFC 3261 §17.1.1.3, §13.2.2.4): every final INVITE response is ACKed on its hop. */
-function checkInviteAcked(msgs: MsgStep[], add: Add) {
+/**
+ * invite-final-ack (RFC 3261 §17.1.1.3, §13.2.2.4): every final INVITE response is ACKed.
+ * A 300–699 is ACKed on its own hop. A 2xx is ACKed end to end: the UA that receives it
+ * must send an ACK, and an ACK must reach the UA that sent it (directly, or through the
+ * proxies of the route set). Where the ACK goes is checked by dialog-target.
+ */
+function checkInviteAcked(msgs: MsgStep[], ends: Set<string>, add: Add) {
   msgs.forEach((r, i) => {
     const rc = cseq(r.parsed);
     if (!isResponse(r.parsed) || r.parsed.status! < 200 || rc?.method !== 'INVITE') return;
-    const acked = msgs.slice(i + 1).some(a =>
-      reverseHop(a, r) && isRequest(a.parsed, 'ACK') && callId(a.parsed) === callId(r.parsed) && cseq(a.parsed)?.seq === rc.seq);
-    if (!acked) add('invite-final-ack', r.index, `${r.parsed.status} to INVITE is never ACKed on this hop`);
+    const acks = msgs.slice(i + 1).filter(a => isRequest(a.parsed, 'ACK') && callId(a.parsed) === callId(r.parsed) && cseq(a.parsed)?.seq === rc.seq);
+    if (r.parsed.status! >= 300) {
+      if (!acks.some(a => reverseHop(a, r))) add('invite-final-ack', r.index, `${r.parsed.status} to INVITE is never ACKed on this hop`);
+    } else {
+      if (ends.has(r.to) && !acks.some(a => a.from === r.to)) add('invite-final-ack', r.index, `${r.parsed.status} to INVITE: the receiver never sends an ACK`);
+      if (ends.has(r.from) && !acks.some(a => a.to === r.from && !a.lost)) add('invite-final-ack', r.index, `${r.parsed.status} to INVITE: no ACK ever reaches the sender`);
+    }
   });
 }
 
@@ -203,4 +216,26 @@ function checkCancels(msgs: MsgStep[], add: Add) {
       reverseHop(r, c) && isResponse(r.parsed) && r.parsed.status! >= 200 && cseq(r.parsed)?.method === 'INVITE' && cseq(r.parsed)?.seq === seq && callId(r.parsed) === cid);
     if (final) add('cancel-after-final', c.index, `CANCEL sent after the INVITE already received ${final.parsed.status}. It has no effect; end the call with BYE`);
   });
+}
+
+/** dialog-target (RFC 3261 §12.2.1.1): a UA sends in-dialog requests to the remote target, through the route set. */
+function checkDialogTargets(flow: PreparedFlow, add: Add) {
+  const steps = flow.steps.map(s => ({ from: s.from, to: s.to, msg: s.parsed }));
+  for (const ua of flow.lanes.filter(l => l.kind === 'ua').map(l => l.id)) {
+    const snaps = trackDialogs(steps, ua);
+    flow.steps.forEach((s, i) => {
+      const m = s.parsed;
+      if (!m || s.from !== ua || m.kind !== 'request' || m.method === 'CANCEL' || i === 0) return;
+      const d = liveDialogFor(snaps[i - 1], m);
+      if (!d || (m.method === 'ACK' && d.state !== 'confirmed')) return;
+      if (d.routeSet.length && !/;lr\b/.test(d.routeSet[0]!)) return; // strict routing is not checked
+      if (m.requestUri !== d.remoteTarget) {
+        add('dialog-target', s.index, `${m.method} goes to ${m.requestUri}, but the remote target of the dialog is ${d.remoteTarget}`);
+      }
+      const routes = uriList(m, 'Route');
+      if (routes.join(',') !== d.routeSet.join(',')) {
+        add('dialog-target', s.index, `${m.method} has Route [${routes.join(', ')}], but the route set is [${d.routeSet.join(', ')}]`);
+      }
+    });
+  }
 }
