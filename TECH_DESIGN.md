@@ -58,6 +58,7 @@ sip-course/
 │  │  ├─ expiry.ts               # registration expiry vs NAT mapping timeline (Module 12)
 │  │  ├─ attacks.ts              # attacks and the defences that close them (Module 14)
 │  │  ├─ cert.ts                 # RFC 5922 §7 server certificate check (Module 14)
+│  │  ├─ sdp.ts                  # SDP parser and linter, RFC 3264 offer/answer, hold (Module 15)
 │  │  └─ digest.ts               # HA1 / HA2 / response
 │  ├─ diagrams/                  # React islands
 │  │  ├─ Ladder.tsx              # call-flow ladder, step player
@@ -145,6 +146,7 @@ Rules:
 - Non-message steps (`kind: note`, `kind: timer`, `kind: media`) are supported for timers and RTP.
 - `at: 900` on a step gives its time in seconds since the start of the flow, where time matters (registration). Later steps without `at` keep that time.
 - `trust: [proxyA, alice]` lists the lanes in the trust domain and turns on the `pai-trust` check.
+- Every SDP body is checked (`src/sip/sdp.ts`): `sdp-syntax` (RFC 8866), `sdp-version` and `sdp-mlines` (RFC 3264 §8), `answer-codec` and `answer-direction` (RFC 3264 §6.1), and `sdp-private-address` (a private `c=` address that reaches a user agent with a public address). Offers and answers are tracked on each hop, following RFC 3261 §13.2.1 and RFC 3262 §5; a rejected offer restores the previous SDP. `oneway: true` on a media step draws one arrowhead.
 - `registrar: { lane: registrar, maxExpires: 600, lookup: [proxyB] }` marks a registration flow. The `registrar-model` rule runs the registrar model (`src/sip/registrar.ts`) over its REGISTER requests, with that policy, and checks every response of the registrar and every location-service lookup of the `lookup` lanes.
 
 ### 4.3 RFC quotes (YAML)
@@ -219,6 +221,12 @@ Rendering choices:
 | `registrar-model` | In a flow with `registrar:`, each registrar response has the status, Contact list (with expires, q, and GRUUs), Path, and Service-Route of the registrar model, and a proxy that looks up the AOR forwards to a registered Contact with the stored Path as Route, or answers with an error when there is none (RFC 3261 §10.3, RFC 3327, RFC 3608, RFC 5626 §6, RFC 5627 §5) |
 | `pai-trust` | In a flow with `trust: [...]`, a lane in the trust domain does not forward a P-Asserted-Identity that it received from a lane outside it (RFC 3325 §5) |
 | `user-enumeration` | Security practice, not an RFC rule (Module 14): a server does not answer 404 to an unauthenticated request for one user and 401/407 for another |
+| `sdp-syntax` | Every SDP body is valid: line order, required lines, `c=` for every stream, an `rtpmap` for every dynamic payload type (RFC 8866 §5, RFC 3551 §3) |
+| `sdp-version` | A changed SDP from the same side has the next `o=` version; an unchanged version means an unchanged SDP (RFC 3264 §8) |
+| `sdp-mlines` | The answer has the m= lines of the offer, in the same order and of the same types; a new SDP never has fewer m= lines (RFC 3264 §6, §8) |
+| `answer-codec` | An accepted stream in the answer has at least one codec from the offer (RFC 3264 §6.1) |
+| `answer-direction` | The direction in the answer is one that the offered direction allows: sendonly → recvonly or inactive, and so on (RFC 3264 §6.1) |
+| `sdp-private-address` | A private `c=` address does not reach a user agent with a public address (RFC 6314 §3) |
 
 ### 6.2 Diagram language checks (`lint-diagram.ts`)
 | Rule ID | Check |

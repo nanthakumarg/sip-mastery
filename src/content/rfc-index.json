@@ -371,6 +371,16 @@
   "updates": [],
   "updatedBy": []
  },
+ "3605": {
+  "title": "Real Time Control Protocol (RTCP) attribute in Session Description Protocol (SDP)",
+  "month": "October",
+  "year": 2003,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
  "3608": {
   "title": "Session Initiation Protocol (SIP) Extension Header Field for Service Route Discovery During Registration",
   "month": "October",
@@ -824,6 +834,16 @@
  "6314": {
   "title": "NAT Traversal Practices for Client-Server SIP",
   "month": "July",
+  "year": 2011,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "6337": {
+  "title": "Session Initiation Protocol (SIP) Usage of the Offer/Answer Model",
+  "month": "August",
   "year": 2011,
   "status": "INFORMATIONAL",
   "obsoletes": [],

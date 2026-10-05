@@ -1,0 +1,8 @@
+---
+/** <HoldPlayer /> : hold and resume on either phone, and see the media arrows (RFC 3264 §8.4, Module 15) */
+import Island from '../diagrams/HoldPlayer.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap(['rfc3264-8-same', 'rfc3264-6.1-direction', 'rfc3264-8.4-hold', 'rfc6337-5.3-inactive', 'rfc6337-5.3-stuck', 'rfc3264-8-version']);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

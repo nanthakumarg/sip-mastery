@@ -1,0 +1,15 @@
+---
+/** <SdpLinter /> : paste SDP and see each line explained and each error flagged (RFC 8866, Module 15) */
+import Island from '../diagrams/SdpLinter.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap([
+  'rfc8866-5-order', 'rfc8866-5-type', 'rfc8866-5-unknown', 'rfc8866-5.1-version', 'rfc8866-5.2-origin', 'rfc8866-5.3-s',
+  'rfc8866-5.7-c', 'rfc8866-5.14-m', 'rfc8866-6.4-ptime', 'rfc8866-6.5-maxptime', 'rfc8866-6.6-rtpmap', 'rfc8866-6.7-one',
+  'rfc8866-6.7-default', 'rfc8866-6.15-fmtp', 'rfc8866-6.15-format', 'rfc3551-3-mapping', 'rfc3551-3-static',
+  'rfc3264-5-t', 'rfc3264-5-zero', 'rfc3264-5.1-ptime', 'rfc3264-5.1-bandwidth', 'rfc3264-8.4-zero',
+  'rfc4733-2.5.1.1-negotiate', 'rfc4733-2.5.1.1-events', 'rfc3605-2.1-rtcp', 'rfc5761-5.1.1-offer', 'rfc9143-5-bundle',
+  'rfc6314-3-private',
+]);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

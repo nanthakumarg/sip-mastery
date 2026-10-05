@@ -1,0 +1,157 @@
+id: sdp-private-address
+title: "Broken: a private address in c="
+summary: "Alice's phone behind a NAT router puts its private address in the SDP. Bob's audio never reaches her."
+broken: true
+breaks: [sdp-private-address]
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.168.1.20 }
+  - { id: nat, label: NAT router, kind: nat, sub: 198.51.100.7 }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: alice
+    to: nat
+    label: "INVITE (offer)"
+    caption: "Alice's phone puts its own address in c=: 192.168.1.20. It is a private address."
+    rfc: rfc3264-5.1-address
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKaa1b201
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: a1b2c3d4e5f6@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@198.51.100.7:40112>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.168.1.20
+      s=-
+      c=IN IP4 192.168.1.20
+      t=0 0
+      m=audio 49170 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: nat
+    to: bob
+    label: "INVITE (offer)"
+    caption: "The NAT router changes the IP header, not the SDP. Bob receives c=IN IP4 192.168.1.20."
+    rfc: rfc6314-3-private
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKaa1b201
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: a1b2c3d4e5f6@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@198.51.100.7:40112>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.168.1.20
+      s=-
+      c=IN IP4 192.168.1.20
+      t=0 0
+      m=audio 49170 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: bob
+    to: nat
+    label: "200 OK (answer)"
+    caption: "Bob answers. His SDP has his public address, 203.0.113.20."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;received=198.51.100.7;branch=z9hG4bKaa1b201
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: a1b2c3d4e5f6@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: nat
+    to: alice
+    label: "200 OK (answer)"
+    caption: "The NAT router sends the 200 OK back to Alice through the NAT mapping."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;received=198.51.100.7;branch=z9hG4bKaa1b201
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: a1b2c3d4e5f6@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: alice
+    to: nat
+    label: "ACK"
+    caption: "Alice confirms the call."
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKaa1b202
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: a1b2c3d4e5f6@192.168.1.20
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - from: nat
+    to: bob
+    label: "ACK"
+    caption: "Signaling works: the call is up."
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKaa1b202
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: a1b2c3d4e5f6@192.168.1.20
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - kind: media
+    from: alice
+    to: bob
+    label: "RTP Alice to Bob"
+    caption: "Alice sends RTP to 203.0.113.20:3456. It crosses the NAT router and arrives."
+    oneway: true
+
+  - kind: media
+    from: bob
+    to: alice
+    label: "RTP to 192.168.1.20"
+    caption: "Bob sends RTP to 192.168.1.20. That address is private, so the packets never arrive."
+    lost: true
+    oneway: true
+    warn: "One-way audio: Bob hears Alice, but Alice hears nothing."

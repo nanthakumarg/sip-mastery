@@ -285,6 +285,30 @@
   definition: Secure RTP. It encrypts and authenticates media packets.
 - term: TLS
   definition: Transport Layer Security. It encrypts SIP between two hops.
+- term: offer
+  aliases: [SDP offer]
+  definition: The SDP that one side sends first, listing the media it wants and the codecs it can use.
+- term: answer
+  aliases: [SDP answer]
+  definition: The SDP sent back for an offer. It accepts or rejects each stream and picks codecs from the offer.
+- term: media description
+  aliases: [m= line, m-line, media section]
+  definition: One stream in SDP. It starts with an m= line that gives the media type, port, transport, and formats.
+- term: payload type
+  aliases: [PT]
+  definition: The number in each RTP packet that says which codec the packet uses. 0 to 95 are static; 96 to 127 are dynamic.
+- term: DTMF
+  aliases: [telephone-event]
+  definition: The tones of the telephone keypad. In VoIP they usually travel as RTP telephone-event packets (RFC 4733).
+- term: early offer
+  definition: The offer is in the INVITE, and the answer is in the 200 OK (or a reliable 1xx).
+- term: late offer
+  aliases: [delayed offer]
+  definition: The INVITE has no SDP. The offer is in the 200 OK (or a reliable 1xx), and the answer is in the ACK (or PRACK).
+- term: hold
+  definition: Stopping the media from the other side with a new offer, usually a=sendonly or a=inactive.
+- term: STUN
+  definition: A protocol that tells a device its public address and port, as a NAT router maps them.
 
 # --- Networking (Module 2) ------------------------------------------------
 - term: IP address

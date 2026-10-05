@@ -1,0 +1,11 @@
+---
+/** <OfferAnswer /> : build an offer, set the answerer's codecs, and see the answer (RFC 3264, Module 15) */
+import Island from '../diagrams/OfferAnswer.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap([
+  'rfc3264-7-first', 'rfc3264-6-reject', 'rfc3264-6.1-no-common', 'rfc3264-6.1-order', 'rfc3264-6.1-answerer-send',
+  'rfc3264-5.1-pt-send', 'rfc3264-6.1-direction', 'rfc4733-1.2-why',
+]);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

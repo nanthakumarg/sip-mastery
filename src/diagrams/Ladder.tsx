@@ -114,7 +114,7 @@ export default function Ladder({ flow, current, onSelect, compact = false, futur
               d={`M${startX} ${y} H${endX}`}
               style={{ stroke: `var(--${s.proto})`, ['--len' as string]: len }}
               markerEnd={s.lost ? undefined : `url(#${uid}-mk-${s.proto})`}
-              markerStart={media ? `url(#${uid}-mk-${s.proto})` : undefined}
+              markerStart={media && !s.oneway ? `url(#${uid}-mk-${s.proto})` : undefined}
             />
             {s.lost && <text className="lost" x={lostX} y={y + 6} textAnchor="middle">✕</text>}
             <text className="step-label" x={mid} y={y - 9} textAnchor="middle">

@@ -1,0 +1,189 @@
+id: sdp-183-prack-update
+title: "SDP in a 183, then PRACK and UPDATE"
+summary: "Bob's 183 carries the answer reliably, so early media can start. Alice then narrows the codecs to one with UPDATE, before the call is answered."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: alice
+    to: bob
+    label: "INVITE (offer)"
+    caption: "The offer lists PCMU, PCMA, and telephone-event. Supported: 100rel says Alice can acknowledge provisional responses."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKac3d401
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: c3d4e5f60718@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Supported: 100rel
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+      a=ptime:20
+
+  - from: bob
+    to: alice
+    label: "183 Session Progress (answer)"
+    caption: "The 183 carries the answer and Require: 100rel, so Alice must acknowledge it. Early media can start now."
+    rfc: rfc3262-5-answer-1xx
+    message: |
+      SIP/2.0 183 Session Progress
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKac3d401
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: c3d4e5f60718@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Require: 100rel
+      RSeq: 1
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0 8 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+      a=ptime:20
+
+  - from: alice
+    to: bob
+    label: "PRACK"
+    caption: "Alice acknowledges the 183. RAck names its RSeq and the INVITE CSeq."
+    message: |
+      PRACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKac3d402
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: c3d4e5f60718@192.0.2.10
+      CSeq: 2 PRACK
+      RAck: 1 1 INVITE
+      Content-Length: 0
+
+  - from: bob
+    to: alice
+    label: "200 OK (PRACK)"
+    caption: "Bob confirms the PRACK. The session exists, although nobody has answered yet."
+    rfc: rfc3262-5-session
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKac3d402
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: c3d4e5f60718@192.0.2.10
+      CSeq: 2 PRACK
+      Content-Length: 0
+
+  - kind: media
+    from: bob
+    to: alice
+    label: "RTP early media"
+    caption: "Bob's network plays a ringback tone or an announcement. It flows to Alice only."
+    oneway: true
+
+  - from: alice
+    to: bob
+    label: "UPDATE (new offer)"
+    caption: "The answer kept two codecs. Alice offers PCMU alone, and the o= version goes up by one."
+    rfc: rfc3264-8-version
+    message: |
+      UPDATE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKac3d403
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: c3d4e5f60718@192.0.2.10
+      CSeq: 3 UPDATE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844527 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+      a=ptime:20
+
+  - from: bob
+    to: alice
+    label: "200 OK (answer)"
+    caption: "Bob answers with PCMU alone. His o= version goes up too, because his SDP changed."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKac3d403
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: c3d4e5f60718@192.0.2.10
+      CSeq: 3 UPDATE
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844565 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+      a=ptime:20
+
+  - from: bob
+    to: alice
+    label: "200 OK (INVITE)"
+    caption: "Bob answers the call. The 200 OK has no SDP: the offer and answer are already done."
+    rfc: rfc3261-13.2.1-first-answer
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKac3d401
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: c3d4e5f60718@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: 0
+
+  - from: alice
+    to: bob
+    label: "ACK"
+    caption: "The ACK completes the INVITE."
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKac3d404
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: c3d4e5f60718@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - kind: media
+    from: alice
+    to: bob
+    label: "RTP audio (PCMU)"
+    caption: "Both sides now send PCMU."

@@ -2895,3 +2895,593 @@
     relationships with the outbound proxies of other specific domains, the
     server might allow only connections authenticated as coming from those
     domains.
+
+# --- Module 15: SDP and offer/answer ----------------------------------------
+
+- id: rfc8866-5-order
+  rfc: 8866
+  section: "5"
+  title: SDP Specification
+  text: >-
+    Some lines in each description are required and some are optional, but
+    when present, they must appear in exactly the order given here.
+
+- id: rfc8866-5-type
+  rfc: 8866
+  section: "5"
+  title: SDP Specification
+  text: >-
+    Whitespace separators are not used on either side of the "=" sign,
+    however, the value can contain a leading whitespace as part of its
+    syntax, i.e., that whitespace is part of the value.
+
+- id: rfc8866-5-unknown
+  rfc: 8866
+  section: "5"
+  title: SDP Specification
+  text: >-
+    The set of type letters is deliberately small and not intended to be
+    extensible -- an SDP parser MUST completely ignore or reject any session
+    description that contains a type letter that it does not understand.
+
+- id: rfc8866-5-sections
+  rfc: 8866
+  section: "5"
+  title: SDP Specification
+  text: >-
+    An SDP description consists of a session-level section followed by zero
+    or more media descriptions.
+
+- id: rfc8866-5.1-version
+  rfc: 8866
+  section: "5.1"
+  title: Protocol Version ("v=")
+  text: >-
+    This memo defines version 0. There is no minor version number.
+
+- id: rfc8866-5.2-origin
+  rfc: 8866
+  section: "5.2"
+  title: Origin ("o=")
+  text: >-
+    In general, the "o=" line serves as a globally unique identifier for
+    this version of the session description, and the subfields excepting
+    the version, taken together identify the session irrespective of any
+    modifications.
+
+- id: rfc8866-5.3-s
+  rfc: 8866
+  section: "5.3"
+  title: Session Name ("s=")
+  text: >-
+    There MUST be one and only one "s=" line per session description. The
+    "s=" line MUST NOT be empty.
+
+- id: rfc8866-5.7-c
+  rfc: 8866
+  section: "5.7"
+  title: Connection Information ("c=")
+  text: >-
+    A session description MUST contain either at least one "c=" line in
+    each media description or a single "c=" line at the session level.
+
+- id: rfc8866-5.14-m
+  rfc: 8866
+  section: "5.14"
+  title: Media Descriptions ("m=")
+  text: >-
+    When a list of payload type numbers is given, this implies that all of
+    these payload formats MAY be used in the session, and these payload
+    formats are listed in order of preference, with the first format listed
+    being preferred.
+
+- id: rfc8866-6.4-ptime
+  rfc: 8866
+  section: "6.4"
+  title: ptime (Packet Time)
+  text: >-
+    This gives the length of time in milliseconds represented by the media
+    in a packet.
+
+- id: rfc8866-6.5-maxptime
+  rfc: 8866
+  section: "6.5"
+  title: maxptime (Maximum Packet Time)
+  text: >-
+    This gives the maximum amount of media that can be encapsulated in each
+    packet, expressed as time in milliseconds.
+
+- id: rfc8866-6.6-rtpmap
+  rfc: 8866
+  section: "6.6"
+  title: rtpmap
+  text: >-
+    This attribute maps from an RTP payload type number (as used in an "m="
+    line) to an encoding name denoting the payload format to be used.
+
+- id: rfc8866-6.6-static
+  rfc: 8866
+  section: "6.6"
+  title: rtpmap
+  text: >-
+    Although an RTP profile can make static assignments of payload type
+    numbers to payload formats, it is more common for that assignment to be
+    done dynamically using "a=rtpmap:" attributes.
+
+- id: rfc8866-6.7-one
+  rfc: 8866
+  section: "6.7"
+  title: Media Direction Attributes
+  text: >-
+    At most one occurrence of "a=recvonly", "a=sendrecv", "a=sendonly", or
+    "a=inactive" MAY appear at session level, and at most one MAY appear in
+    each media description.
+
+- id: rfc8866-6.7-default
+  rfc: 8866
+  section: "6.7"
+  title: Media Direction Attributes
+  text: >-
+    If none of the media direction attributes is present at either session
+    level or media level, "a=sendrecv" SHOULD be assumed as the default.
+
+- id: rfc8866-6.15-fmtp
+  rfc: 8866
+  section: "6.15"
+  title: fmtp (Format Parameters)
+  text: >-
+    This attribute allows parameters that are specific to a particular
+    format to be conveyed in a way that SDP does not have to understand
+    them.
+
+- id: rfc8866-6.15-format
+  rfc: 8866
+  section: "6.15"
+  title: fmtp (Format Parameters)
+  text: >-
+    The format must be one of the formats specified for the media.
+
+- id: rfc3551-3-dynamic
+  rfc: 3551
+  section: "3"
+  title: Registering Additional Encodings
+  text: >-
+    This profile reserves payload type numbers in the range 96-127
+    exclusively for dynamic assignment.
+
+- id: rfc3551-3-mapping
+  rfc: 3551
+  section: "3"
+  title: Registering Additional Encodings
+  text: >-
+    Dynamic payload types SHOULD NOT be used without a well-defined
+    mechanism to indicate the mapping.
+
+- id: rfc3551-3-static
+  rfc: 3551
+  section: "3"
+  title: Registering Additional Encodings
+  text: >-
+    Redefining payload types below 96 may cause incorrect operation if an
+    attempt is made to join a session without obtaining session description
+    information that defines the dynamic payload types.
+
+- id: rfc3551-4.5.2-g722
+  rfc: 3551
+  section: "4.5.2"
+  title: G722
+  text: >-
+    Even though the actual sampling rate for G.722 audio is 16,000 Hz, the
+    RTP clock rate for the G722 payload format is 8,000 Hz because that
+    value was erroneously assigned in RFC 1890 and must remain unchanged for
+    backward compatibility.
+
+- id: rfc3264-4-pending
+  rfc: 3264
+  section: "4"
+  title: Protocol Operation
+  text: >-
+    However, it MUST NOT generate a new offer if it has received an offer
+    which it has not yet answered or rejected.
+
+- id: rfc3264-4-atomic
+  rfc: 3264
+  section: "4"
+  title: Protocol Operation
+  text: >-
+    The offer/answer exchange is atomic; if the answer is rejected, the
+    session reverts to the state prior to the offer (which may be absence of
+    a session).
+
+- id: rfc3264-5-t
+  rfc: 3264
+  section: "5"
+  title: Generating the Initial Offer
+  text: >-
+    Generally, streams for unicast sessions are created and destroyed
+    through external signaling means, such as SIP. In that case, the "t="
+    line SHOULD have a value of "0 0".
+
+- id: rfc3264-5-zero
+  rfc: 3264
+  section: "5"
+  title: Generating the Initial Offer
+  text: >-
+    Zero media streams implies that the offerer wishes to communicate, but
+    that the streams for the session will be added at a later time through a
+    modified offer.
+
+- id: rfc3264-5.1-sendonly
+  rfc: 3264
+  section: "5.1"
+  title: Unicast Streams
+  text: >-
+    If the offerer wishes to only send media on a stream to its peer, it
+    MUST mark the stream as sendonly with the "a=sendonly" attribute.
+
+- id: rfc3264-5.1-address
+  rfc: 3264
+  section: "5.1"
+  title: Unicast Streams
+  text: >-
+    For recvonly and sendrecv streams, the port number and address in the
+    offer indicate where the offerer would like to receive the media stream.
+
+- id: rfc3264-5.1-preference
+  rfc: 3264
+  section: "5.1"
+  title: Unicast Streams
+  text: >-
+    In all cases, the formats in the "m=" line MUST be listed in order of
+    preference, with the first format listed being preferred.
+
+- id: rfc3264-5.1-pt-send
+  rfc: 3264
+  section: "5.1"
+  title: Unicast Streams
+  text: >-
+    However, for sendonly and sendrecv streams, the answer might indicate
+    different payload type numbers for the same codecs, in which case, the
+    offerer MUST send with the payload type numbers from the answer.
+
+- id: rfc3264-5.1-ptime
+  rfc: 3264
+  section: "5.1"
+  title: Unicast Streams
+  text: >-
+    If the ptime attribute is present for a stream, it indicates the desired
+    packetization interval that the offerer would like to receive. The ptime
+    attribute MUST be greater than zero.
+
+- id: rfc3264-5.1-bandwidth
+  rfc: 3264
+  section: "5.1"
+  title: Unicast Streams
+  text: >-
+    If the bandwidth attribute is present for a stream, it indicates the
+    desired bandwidth that the offerer would like to receive.
+
+- id: rfc3264-6-origin
+  rfc: 3264
+  section: "6"
+  title: Generating the Answer
+  text: >-
+    If the answer is different from the offer in any way (different IP
+    addresses, ports, etc.), the origin line MUST be different in the
+    answer, since the answer is generated by a different entity.
+
+- id: rfc3264-6-mlines
+  rfc: 3264
+  section: "6"
+  title: Generating the Answer
+  text: >-
+    The answer MUST contain exactly the same number of "m=" lines as the
+    offer. This allows for streams to be matched up based on their order.
+
+- id: rfc3264-6-reject
+  rfc: 3264
+  section: "6"
+  title: Generating the Answer
+  text: >-
+    To reject an offered stream, the port number in the corresponding stream
+    in the answer MUST be set to zero.
+
+- id: rfc3264-6.1-direction
+  rfc: 3264
+  section: "6.1"
+  title: Unicast Streams
+  text: >-
+    If a stream is offered as sendonly, the corresponding stream MUST be
+    marked as recvonly or inactive in the answer. If a media stream is
+    listed as recvonly in the offer, the answer MUST be marked as sendonly
+    or inactive in the answer.
+
+- id: rfc3264-6.1-common
+  rfc: 3264
+  section: "6.1"
+  title: Unicast Streams
+  text: >-
+    For streams marked as sendrecv in the answer, the "m=" line MUST contain
+    at least one codec the answerer is willing to both send and receive,
+    from amongst those listed in the offer.
+
+- id: rfc3264-6.1-no-common
+  rfc: 3264
+  section: "6.1"
+  title: Unicast Streams
+  text: >-
+    If the answerer has no media formats in common for a particular offered
+    stream, the answerer MUST reject that media stream by setting the port
+    to zero.
+
+- id: rfc3264-6.1-pt-same
+  rfc: 3264
+  section: "6.1"
+  title: Unicast Streams
+  text: >-
+    In the case of RTP, if a particular codec was referenced with a specific
+    payload type number in the offer, that same payload type number SHOULD
+    be used for that codec in the answer.
+
+- id: rfc3264-6.1-rtpmap
+  rfc: 3264
+  section: "6.1"
+  title: Unicast Streams
+  text: >-
+    Even if the same payload type number is used, the answer MUST contain
+    rtpmap attributes to define the payload type mappings for dynamic
+    payload types, and SHOULD contain mappings for static payload types.
+
+- id: rfc3264-6.1-order
+  rfc: 3264
+  section: "6.1"
+  title: Unicast Streams
+  text: >-
+    Although the answerer MAY list the formats in their desired order of
+    preference, it is RECOMMENDED that unless there is a specific reason,
+    the answerer list formats in the same relative order they were present
+    in the offer.
+
+- id: rfc3264-6.1-answerer-send
+  rfc: 3264
+  section: "6.1"
+  title: Unicast Streams
+  text: >-
+    The answerer MUST send using a media format in the offer that is also
+    listed in the answer, and SHOULD send using the most preferred media
+    format in the offer that is also listed in the answer. In the case of
+    RTP, it MUST use the payload type numbers from the offer, even if they
+    differ from those in the answer.
+
+- id: rfc3264-7-first
+  rfc: 3264
+  section: "7"
+  title: Offerer Processing of the Answer
+  text: >-
+    It MUST send using a media format listed in the answer, and it SHOULD
+    use the first media format listed in the answer when it does send.
+
+- id: rfc3264-8-version
+  rfc: 3264
+  section: "8"
+  title: Modifying the Session
+  text: >-
+    When issuing an offer that modifies the session, the "o=" line of the
+    new SDP MUST be identical to that in the previous SDP, except that the
+    version in the origin field MUST increment by one from the previous SDP.
+
+- id: rfc3264-8-same
+  rfc: 3264
+  section: "8"
+  title: Modifying the Session
+  text: >-
+    If the version in the origin line does not increment, the SDP MUST be
+    identical to the SDP with that version number. The answerer MUST be
+    prepared to receive an offer that contains SDP with a version that has
+    not changed; this is effectively a no-op.
+
+- id: rfc3264-8-mlines
+  rfc: 3264
+  section: "8"
+  title: Modifying the Session
+  text: >-
+    Deleted media streams from a previous SDP MUST NOT be removed in a new
+    SDP; however, attributes for these streams need not be present.
+
+- id: rfc3264-8.3.2-pt-fixed
+  rfc: 3264
+  section: "8.3.2"
+  title: Changing the Set of Media Formats
+  text: >-
+    However, in the case of RTP, the mapping from a particular dynamic
+    payload type number to a particular codec within that media stream MUST
+    NOT change for the duration of a session.
+
+- id: rfc3264-8.4-hold
+  rfc: 3264
+  section: "8.4"
+  title: Putting a Unicast Media Stream on Hold
+  text: >-
+    If the stream to be placed on hold was previously a sendrecv media
+    stream, it is placed on hold by marking it as sendonly. If the stream to
+    be placed on hold was previously a recvonly media stream, it is placed
+    on hold by marking it inactive.
+
+- id: rfc3264-8.4-zero
+  rfc: 3264
+  section: "8.4"
+  title: Putting a Unicast Media Stream on Hold
+  text: >-
+    Its usage for putting a call on hold is no longer recommended, since it
+    doesn't allow for RTCP to be used with held streams, doesn't work with
+    IPv6, and breaks with connection oriented media.
+
+- id: rfc3261-13.2.1-patterns
+  rfc: 3261
+  section: "13.2.1"
+  title: Creating the Initial INVITE
+  text: >-
+    Concretely, the above rules specify two exchanges for UAs compliant to
+    this specification alone - the offer is in the INVITE, and the answer in
+    the 2xx (and possibly in a 1xx as well, with the same value), or the
+    offer is in the 2xx, and the answer is in the ACK.
+
+- id: rfc3261-13.2.1-first-answer
+  rfc: 3261
+  section: "13.2.1"
+  title: Creating the Initial INVITE
+  text: >-
+    The UAC MUST treat the first session description it receives as the
+    answer, and MUST ignore any session descriptions in subsequent responses
+    to the initial INVITE.
+
+- id: rfc3261-13.2.2.4-ack-answer
+  rfc: 3261
+  section: "13.2.2.4"
+  title: 2xx Responses
+  text: >-
+    If the 2xx contains an offer (based on the rules above), the ACK MUST
+    carry an answer in its body. If the offer in the 2xx response is not
+    acceptable, the UAC core MUST generate a valid answer in the ACK and
+    then send a BYE immediately.
+
+- id: rfc3261-13.2.2.4-bye
+  rfc: 3261
+  section: "13.2.2.4"
+  title: 2xx Responses
+  text: >-
+    If, after acknowledging any 2xx response to an INVITE, the UAC does not
+    want to continue with that dialog, then the UAC MUST terminate the
+    dialog by sending a BYE request as described in Section 15.
+
+- id: rfc3262-5-answer-1xx
+  rfc: 3262
+  section: "5"
+  title: The Offer/Answer Model and PRACK
+  text: >-
+    If the INVITE contained an offer, the UAS MAY generate an answer in a
+    reliable provisional response (assuming these are supported by the
+    UAC).
+
+- id: rfc3262-5-prack-answer
+  rfc: 3262
+  section: "5"
+  title: The Offer/Answer Model and PRACK
+  text: >-
+    If the UAC receives a reliable provisional response with an offer (this
+    would occur if the UAC sent an INVITE without an offer, in which case
+    the first reliable provisional response will contain the offer), it MUST
+    generate an answer in the PRACK.
+
+- id: rfc3262-5-session
+  rfc: 3262
+  section: "5"
+  title: The Offer/Answer Model and PRACK
+  text: >-
+    Once an answer has been sent or received, the UA SHOULD establish the
+    session based on the parameters of the offer and answer, even if the
+    original INVITE itself has not been responded to.
+
+- id: rfc3311-3-update
+  rfc: 3311
+  section: "3"
+  title: Overview of Operation
+  text: >-
+    Once a dialog is established, either early or confirmed, the caller can
+    generate an UPDATE method that contains an SDP offer [3] for the
+    purposes of updating the session. The response to the UPDATE method
+    contains the answer.
+
+- id: rfc6337-2.2-one
+  rfc: 6337
+  section: "2.2"
+  title: Offer/Answer Exchange Pairs in SIP Messages
+  text: >-
+    There may be ONLY ONE offer/answer negotiation in progress for a single
+    dialog at any point in time.
+
+- id: rfc6337-5.3-inactive
+  rfc: 6337
+  section: "5.3"
+  title: Hold and Resume of Media
+  text: >-
+    A UA may, if desired, initiate hold by offering "a=inactive" attribute if
+    it does not intend to transmit any media while in hold status.
+
+- id: rfc6337-5.3-stuck
+  rfc: 6337
+  section: "5.3"
+  title: Hold and Resume of Media
+  text: >-
+    If it had not previously initiated "hold", then it should offer
+    "a=sendrecv" attribute, even if it had previously been forced to answer
+    something else. Without this behavior it is possible to get "stuck on
+    hold" in some cases, especially when a 3pcc is involved.
+
+- id: rfc4733-1.2-why
+  rfc: 4733
+  section: "1.2"
+  title: Overview
+  text: >-
+    Separate RTP payload formats for telephony tone signals are desirable
+    since low-rate voice codecs cannot be guaranteed to reproduce these tone
+    signals accurately enough for automatic recognition.
+
+- id: rfc4733-2.5.1.1-negotiate
+  rfc: 4733
+  section: "2.5.1.1"
+  title: Negotiation of Payloads
+  text: >-
+    Negotiation of payloads between sender and receiver is achieved by
+    out-of-band means, using SDP, for example.
+
+- id: rfc4733-2.5.1.1-events
+  rfc: 4733
+  section: "2.5.1.1"
+  title: Negotiation of Payloads
+  text: >-
+    For backward compatibility, if no "events" parameter is received, the
+    sender SHOULD assume support for the DTMF events 0-15 but for no other
+    events.
+
+- id: rfc3605-2.1-rtcp
+  rfc: 3605
+  section: "2.1"
+  title: The RTCP Attribute
+  text: >-
+    The RTCP attribute MAY be used as a media level attribute; it MUST NOT
+    be used as a session level attribute.
+
+- id: rfc5761-5.1.1-offer
+  rfc: 5761
+  section: "5.1.1"
+  title: SDP Signalling
+  text: >-
+    The initial SDP offer MUST include this attribute at the media level to
+    request multiplexing of RTP and RTCP on a single port.
+
+- id: rfc5761-5.1.1-answer
+  rfc: 5761
+  section: "5.1.1"
+  title: SDP Signalling
+  text: >-
+    If the answer does not contain an "a=rtcp-mux" attribute, the offerer
+    MUST NOT multiplex RTP and RTCP packets on a single port.
+
+- id: rfc9143-5-bundle
+  rfc: 9143
+  section: "5"
+  title: SDP Grouping Framework BUNDLE Extension
+  text: >-
+    Within a BUNDLE group, each "m=" section uses a BUNDLE transport for
+    sending and receiving bundled media. Each endpoint uses a single
+    address:port combination for sending and receiving the bundled media.
+
+- id: rfc6314-3-private
+  rfc: 6314
+  section: "3"
+  title: Problem Statement
+  text: >-
+    The problem arises when a client advertises its address to receive
+    media and it exists in a private network that is not accessible from
+    outside the NAT.

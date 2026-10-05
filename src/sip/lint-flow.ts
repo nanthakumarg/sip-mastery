@@ -7,6 +7,8 @@ import { liveDialogFor, trackDialogs, uriList, uriOf } from './dialog.ts';
 import type { PreparedFlow, PreparedStep } from './flow.ts';
 import { inDialogTarget, isLoose, viaList } from './routing.ts';
 import { contactsOf, DEFAULT_POLICY, parseContactHeader, runRegistrar, sameUri } from './registrar.ts';
+import { checkAnswer, checkNewVersion, isPrivateAddress, sdpBody, sdpOf, type Sdp } from './sdp.ts';
+import { classify } from '../net/address.ts';
 import {
   byteLength, cseq, getHeader, getHeaders, headerParam, isRequest, isResponse, tagOf, topVia,
   type SipMessage,
@@ -77,6 +79,7 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   if (flow.registrar) checkRegistrarModel(flow, add);
   if (flow.trust) checkPaiTrust(flow, msgs, add);
   checkUserEnumeration(msgs, add);
+  checkSdp(flow, msgs, add);
   return issues;
 }
 
@@ -439,6 +442,89 @@ function checkUserEnumeration(msgs: MsgStep[], add: Add) {
     if (!challenged.length) continue;
     for (const a of list.filter(x => x.status === 404)) {
       add('user-enumeration', a.step, `404 for ${a.user}, but ${challenged[0]!.status} for ${challenged[0]!.user}: a scanner can tell which users exist`);
+    }
+  }
+}
+
+/**
+ * SDP and offer/answer (RFC 8866; RFC 3264; RFC 3261 §13.2.1; RFC 3262 §5).
+ *  - sdp-syntax: every SDP body is valid (no error from parseSdp).
+ *  - sdp-version (RFC 3264 §8): a changed SDP from the same side has the next o= version.
+ *  - sdp-mlines (RFC 3264 §6, §8): the answer has the m= lines of the offer, in order; m= lines never go away.
+ *  - answer-codec, answer-direction (RFC 3264 §6.1): an accepted stream shares a codec, and its direction fits the offer.
+ *  - sdp-private-address (RFC 6314 §3): a private media address does not reach a user agent on the public Internet.
+ * Offers and answers are tracked on each hop, so a proxy that forwards the SDP
+ * unchanged sees the same exchange as the user agents.
+ */
+function checkSdp(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
+  interface Offer { by: string; seq: number; method: string; inResponse: boolean; sdp: Sdp; answered: Set<string>; revert?: () => void }
+  // Offers waiting for an answer on each hop. Two at once is glare (RFC 3264 §4); the 491 sorts it out.
+  const hops = new Map<string, { offers: Offer[]; last: Map<string, Sdp> }>();
+  const lanes = new Map(flow.lanes.map(l => [l.id, l]));
+  const publicUa = (id: string) => {
+    const l = lanes.get(id);
+    const ip = l?.sub?.split(/[\s:]/)[0] ?? '';
+    return l?.kind === 'ua' && classify(ip).kind !== 'invalid' && !isPrivateAddress(ip);
+  };
+
+  for (const s of msgs) {
+    const m = s.parsed;
+    const c = cseq(m);
+    if (!c) continue;
+    const hop = `${[s.from, s.to].sort().join('|')}|${callId(m)}`;
+    const st = hops.get(hop) ?? { offers: [], last: new Map<string, Sdp>() };
+    hops.set(hop, st);
+    const drop = (o: Offer) => { st.offers = st.offers.filter(x => x !== o); };
+    // The offer that this response answers or rejects: one sent the other way, in the same transaction.
+    const mine = isResponse(m) ? st.offers.find(o => o.by !== s.from && !o.inResponse && o.seq === c.seq && o.method === c.method) : undefined;
+    // A failure response rejects the offer. The session goes back to the state before
+    // the offer (RFC 3264 §4), so the next SDP is compared with the one before it.
+    if (mine && m.status! >= 300) { mine.revert?.(); drop(mine); }
+
+    const sdp = sdpOf(getHeader(m, 'Content-Type'), m.body);
+    // A 2xx ends the transaction, with or without SDP (the answer may have come in a reliable 1xx).
+    if (!sdp) { if (mine && m.status! >= 200) drop(mine); continue; }
+    for (const e of sdp.issues.filter(x => x.severity === 'error')) {
+      add('sdp-syntax', s.index, `SDP${e.line !== undefined ? ` line ${e.line + 1}` : ''}: ${e.message}`);
+    }
+    if (publicUa(s.to)) {
+      const priv = [...new Set([sdp.c, ...sdp.media.map(x => x.c)].filter(x => x && x.address !== '0.0.0.0' && isPrivateAddress(x.address)).map(x => x!.address))];
+      for (const a of priv) add('sdp-private-address', s.index, `The SDP gives ${a}, a private address, to ${lanes.get(s.to)?.label ?? s.to} on the public Internet. Media sent there never arrives`);
+    }
+
+    // Versions: compare with the last SDP of the same origin that this side sent on this hop.
+    let effective = sdp;
+    let revert: (() => void) | undefined;
+    if (sdp.origin) {
+      const key = `${s.from}|${sdp.origin.username} ${sdp.origin.sessId} ${sdp.origin.address}`;
+      const prev = st.last.get(key);
+      revert = () => { if (prev) st.last.set(key, prev); else st.last.delete(key); };
+      if (prev) {
+        for (const e of checkNewVersion(prev, sdp)) add(e.rule, s.index, e.message);
+        // An unchanged version means the old SDP (RFC 3264 §8): the receiver reads it so.
+        if (prev.origin?.version === sdp.origin.version && sdpBody(prev) !== sdpBody(sdp)) effective = prev;
+      }
+      if (effective === sdp) st.last.set(key, sdp);
+    }
+
+    const answer = (offer: Offer) => {
+      for (const e of checkAnswer(offer.sdp, effective)) add(e.rule, s.index, e.message);
+    };
+    const offer = (inResponse: boolean) =>
+      st.offers.push({ by: s.from, seq: c.seq, method: c.method, inResponse, sdp: effective, answered: new Set(), revert });
+    if (m.kind === 'request') {
+      // An offer in a 2xx or reliable 1xx is answered in the ACK or PRACK (RFC 3261 §13.2.1, RFC 3262 §5).
+      const late = m.method === 'ACK' || m.method === 'PRACK' ? st.offers.find(o => o.by !== s.from && o.inResponse) : undefined;
+      if (late) { answer(late); drop(late); }
+      else if (m.method !== 'ACK') offer(false);
+    } else if (mine) {
+      // The first SDP in a response to the offer is the answer; one for each early dialog (RFC 3261 §13.2.1).
+      const toTag = tagOf(m, 'To') ?? '';
+      if (!mine.answered.has(toTag)) { answer(mine); mine.answered.add(toTag); }
+      if (m.status! >= 200) drop(mine);
+    } else if (c.method === 'INVITE' && m.status! < 300 && !st.offers.some(o => o.by === s.from && o.inResponse)) {
+      // An INVITE without an offer: the 2xx or reliable 1xx carries the offer.
+      offer(true);
     }
   }
 }

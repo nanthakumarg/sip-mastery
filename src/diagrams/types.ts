@@ -14,6 +14,7 @@ export interface ClientStep {
   caption: string;
   warn?: string;
   lost?: boolean;
+  oneway?: boolean;
   rfc?: string;
   wire?: string;
   status?: Record<string, string>;

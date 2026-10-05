@@ -37,6 +37,8 @@ export interface FlowStep {
   rfc?: string;
   /** The packet is lost on the way (drawn with a red ✕). */
   lost?: boolean;
+  /** Media in one direction only, from `from` to `to` (one arrowhead). Media steps are two-way by default. */
+  oneway?: boolean;
   /** A coral "⚠" warning shown with this step. */
   warn?: string;
   /** For steps without a SIP message (TCP, DNS…): text shown in the inspector, in a monospace font. */
