@@ -55,6 +55,9 @@ import HoldPlayer from '../../components/HoldPlayer.astro';
 import RtpHeader from '../../components/RtpHeader.astro';
 import JitterBuffer from '../../components/JitterBuffer.astro';
 import BandwidthCalc from '../../components/BandwidthCalc.astro';
+import RtcpExplorer from '../../components/RtcpExplorer.astro';
+import RttTimeline from '../../components/RttTimeline.astro';
+import MosCalc from '../../components/MosCalc.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -88,7 +91,8 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   DnsResolver,
   RegistrarView, ExpiryClock,
   AttackMap, CertCheck, OfferAnswer, SdpLinter, HoldPlayer,
-  RtpHeader, JitterBuffer, BandwidthCalc };
+  RtpHeader, JitterBuffer, BandwidthCalc,
+  RtcpExplorer, RttTimeline, MosCalc };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

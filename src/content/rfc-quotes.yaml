@@ -3741,3 +3741,190 @@
   text: >-
     For these reasons, it is RECOMMENDED that symmetric RTP and symmetric RTCP
     always be used for bidirectional RTP media streams.
+
+# --- Module 17: RTCP -----------------------------------------------------
+
+- id: rfc3550-6-functions
+  rfc: 3550
+  section: "6"
+  title: RTP Control Protocol -- RTCP
+  text: >-
+    The primary function is to provide feedback on the quality of the data
+    distribution.
+
+- id: rfc3550-6-cname
+  rfc: 3550
+  section: "6"
+  title: RTP Control Protocol -- RTCP
+  text: >-
+    RTCP carries a persistent transport-level identifier for an RTP source
+    called the canonical name or CNAME, Section 6.5.1.
+
+- id: rfc3550-6.1-compound
+  rfc: 3550
+  section: "6.1"
+  title: RTCP Packet Format
+  text: >-
+    Thus, all RTCP packets MUST be sent in a compound packet of at least two
+    individual packets, with the following format:
+
+- id: rfc3550-6.1-first
+  rfc: 3550
+  section: "6.1"
+  title: RTCP Packet Format
+  text: >-
+    The first RTCP packet in the compound packet MUST always be a report
+    packet to facilitate header validation as described in Appendix A.2.
+
+- id: rfc3550-6.2-five
+  rfc: 3550
+  section: "6.2"
+  title: RTCP Transmission Interval
+  text: >-
+    It is RECOMMENDED that the fraction of the session bandwidth added for
+    RTCP be fixed at 5%.
+
+- id: rfc3550-6.2-interval
+  rfc: 3550
+  section: "6.2"
+  title: RTCP Transmission Interval
+  text: >-
+    The RECOMMENDED value for a fixed minimum interval is 5 seconds.
+
+- id: rfc3550-6.4-sr-rr
+  rfc: 3550
+  section: "6.4"
+  title: Sender and Receiver Reports
+  text: >-
+    The SR is issued if a site has sent any data packets during the interval
+    since issuing the last report or the previous one, otherwise the RR is
+    issued.
+
+- id: rfc3550-6.4.1-ntp
+  rfc: 3550
+  section: "6.4.1"
+  title: "SR: Sender Report RTCP Packet"
+  text: >-
+    Indicates the wallclock time (see Section 4) when this report was sent so
+    that it may be used in combination with timestamps returned in reception
+    reports from other receivers to measure round-trip propagation to those
+    receivers.
+
+- id: rfc3550-6.4.1-rtpts
+  rfc: 3550
+  section: "6.4.1"
+  title: "SR: Sender Report RTCP Packet"
+  text: >-
+    Corresponds to the same time as the NTP timestamp (above), but in the same
+    units and with the same random offset as the RTP timestamps in data
+    packets.
+
+- id: rfc3550-6.4.1-counts
+  rfc: 3550
+  section: "6.4.1"
+  title: "SR: Sender Report RTCP Packet"
+  text: >-
+    The total number of RTP data packets transmitted by the sender since
+    starting transmission up until the time this SR packet was generated.
+
+- id: rfc3550-6.4.1-fraction
+  rfc: 3550
+  section: "6.4.1"
+  title: "SR: Sender Report RTCP Packet"
+  text: >-
+    The fraction of RTP data packets from source SSRC_n lost since the
+    previous SR or RR packet was sent, expressed as a fixed point number with
+    the binary point at the left edge of the field.
+
+- id: rfc3550-6.4.1-cumulative
+  rfc: 3550
+  section: "6.4.1"
+  title: "SR: Sender Report RTCP Packet"
+  text: >-
+    Thus, packets that arrive late are not counted as lost, and the loss may
+    be negative if there are duplicates.
+
+- id: rfc3550-6.4.1-lsr
+  rfc: 3550
+  section: "6.4.1"
+  title: "SR: Sender Report RTCP Packet"
+  text: >-
+    The middle 32 bits out of 64 in the NTP timestamp (as explained in Section
+    4) received as part of the most recent RTCP sender report (SR) packet from
+    source SSRC_n.
+
+- id: rfc3550-6.4.1-rtt
+  rfc: 3550
+  section: "6.4.1"
+  title: "SR: Sender Report RTCP Packet"
+  text: >-
+    It calculates the total round-trip time A-LSR using the last SR timestamp
+    (LSR) field, and then subtracting this field to leave the round-trip
+    propagation delay as (A - LSR - DLSR).
+
+- id: rfc3550-6.5.1-cname
+  rfc: 3550
+  section: "6.5.1"
+  title: "CNAME: Canonical End-Point Identifier SDES Item"
+  text: >-
+    Because the randomly allocated SSRC identifier may change if a conflict is
+    discovered or if a program is restarted, the CNAME item MUST be included
+    to provide the binding from the SSRC identifier to an identifier for the
+    source (sender or receiver) that remains constant.
+
+- id: rfc3550-6.6-bye
+  rfc: 3550
+  section: "6.6"
+  title: "BYE: Goodbye RTCP Packet"
+  text: >-
+    The BYE packet indicates that one or more sources are no longer active.
+
+- id: rfc4585-6.2.1-nack
+  rfc: 4585
+  section: "6.2.1"
+  title: Generic NACK
+  text: >-
+    The Generic NACK is used to indicate the loss of one or more RTP packets.
+
+- id: rfc4585-6.3.1.1-pli
+  rfc: 4585
+  section: "6.3.1.1"
+  title: Semantics
+  text: >-
+    With the Picture Loss Indication message, a decoder informs the encoder
+    about the loss of an undefined amount of coded video data belonging to one
+    or more pictures.
+
+- id: rfc5104-3.5.1-fir
+  rfc: 5104
+  section: "3.5.1"
+  title: Full Intra Request Command
+  text: >-
+    A Full Intra Request (FIR) Command, when received by the designated media
+    sender, requires that the media sender sends a Decoder Refresh Point (see
+    section 2.2) at the earliest opportunity.
+
+- id: rfc3611-4.7-voip
+  rfc: 3611
+  section: "4.7"
+  title: VoIP Metrics Report Block
+  text: >-
+    The VoIP Metrics Report Block provides metrics for monitoring voice over
+    IP (VoIP) calls.
+
+- id: rfc3611-4.7-discard
+  rfc: 3611
+  section: "4.7"
+  title: VoIP Metrics Report Block
+  text: >-
+    It also reports on the combined effect of losses and discards, as both
+    have equal effect on call quality.
+
+- id: rfc3611-4.7.5-r
+  rfc: 3611
+  section: "4.7.5"
+  title: Call Quality or Transmission Quality Metrics
+  text: >-
+    It is expressed as an integer in the range 0 to 100, with a value of 94
+    corresponding to "toll quality" and values of 50 or less regarded as
+    unusable.

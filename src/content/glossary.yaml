@@ -307,6 +307,13 @@
   definition: The INVITE has no SDP. The offer is in the 200 OK (or a reliable 1xx), and the answer is in the ACK (or PRACK).
 - term: hold
   definition: Stopping the media from the other side with a new offer, usually a=sendonly or a=inactive.
+- term: CNAME
+  definition: The name in RTCP that identifies an endpoint. It does not change when the SSRC does.
+- term: MOS
+  aliases: [Mean Opinion Score]
+  definition: A call quality score from 1 (bad) to 5 (excellent). Tools estimate it from the R-factor.
+- term: R-factor
+  definition: A call quality score from 0 to 100, calculated from delay, loss, and the codec with the ITU-T E-model.
 - term: IVR
   aliases: [interactive voice response]
   definition: An automated phone menu that plays prompts and reads the keys the caller presses.

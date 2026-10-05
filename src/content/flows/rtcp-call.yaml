@@ -1,0 +1,92 @@
+id: rtcp-call
+title: "RTCP during a call, and the two BYEs"
+summary: "Alice and Bob send RTP, and every few seconds an RTCP report about the other stream. At the end, a SIP BYE ends the call and an RTCP BYE ends each stream."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - kind: media
+    from: alice
+    to: bob
+    label: "RTP audio"
+    caption: "Both phones send RTP to the even ports from the SDP: 49170 and 3456."
+
+  - kind: media
+    from: alice
+    to: bob
+    proto: rtcp
+    label: "RTCP SR + SDES"
+    caption: "About every 5 seconds, Alice's phone sends a compound RTCP packet to the next port up. It reports on Bob's stream: 2% lost, 8 ms jitter."
+    rfc: rfc3550-6.1-compound
+    oneway: true
+    detail: |
+      UDP  192.0.2.10:49171 → 203.0.113.20:3457   (RTP port + 1)
+
+      SR    SSRC 0x3a5f12c4 (Alice)
+            NTP 0xb44db705.20000000   RTP ts 2412530560
+            sent 1500 packets, 240000 bytes
+            report on 0x9b0c2d11 (Bob):
+              fraction lost 5/256 (2%)   cumulative 31
+              jitter 64 (8 ms)   LSR 0xb7031000   DLSR 0x00010000 (1 s)
+      SDES  CNAME alice@192.0.2.10
+
+  - kind: media
+    from: bob
+    to: alice
+    proto: rtcp
+    label: "RTCP SR + SDES"
+    caption: "Bob also sends RTP, so he sends an SR too. His report block on Alice carries LSR and DLSR, for her round-trip time."
+    rfc: rfc3550-6.4-sr-rr
+    oneway: true
+    detail: |
+      UDP  203.0.113.20:3457 → 192.0.2.10:49171
+
+      SR    SSRC 0x9b0c2d11 (Bob)
+            NTP 0xb44db707.a0000000   RTP ts 884210400
+            sent 1520 packets, 243200 bytes
+            report on 0x3a5f12c4 (Alice):
+              fraction lost 0   cumulative 0
+              jitter 24 (3 ms)   LSR 0xb7052000   DLSR 0x00028000 (2.5 s)
+      SDES  CNAME bob@203.0.113.20
+
+  - from: alice
+    to: bob
+    label: "BYE"
+    caption: "Alice hangs up. The SIP BYE ends the dialog and the whole call."
+    message: |
+      BYE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKbye7c1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: r7c9a1e2b3@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: 0
+
+  - from: bob
+    to: alice
+    label: "200 OK"
+    caption: "Bob confirms the BYE. Both phones stop their media."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKbye7c1
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: r7c9a1e2b3@192.0.2.10
+      CSeq: 2 BYE
+      Content-Length: 0
+
+  - kind: media
+    from: alice
+    to: bob
+    proto: rtcp
+    label: "RTCP BYE"
+    caption: "Alice's phone also sends an RTCP BYE: her SSRC leaves the RTP session. It is a media packet, not SIP."
+    rfc: rfc3550-6.6-bye
+    oneway: true
+    detail: |
+      UDP  192.0.2.10:49171 → 203.0.113.20:3457
+
+      RR    SSRC 0x3a5f12c4, no report blocks
+      SDES  CNAME alice@192.0.2.10
+      BYE   SSRC 0x3a5f12c4   reason "call ended"

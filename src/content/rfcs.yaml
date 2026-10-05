@@ -74,6 +74,8 @@ rfcs:
   - { n: 4585, area: media, proto: rtcp, short: RTCP feedback, summary: "The AVPF profile for fast RTCP feedback such as NACK.", modules: [17] }
   - { n: 3605, area: media, proto: rtcp, short: RTCP port attribute, summary: "The a=rtcp attribute: an RTCP port that is not the RTP port + 1.", modules: [15, 17] }
   - { n: 5761, area: media, proto: rtcp, short: rtcp-mux, summary: "RTP and RTCP on one port.", modules: [15, 17] }
+  - { n: 5104, area: media, proto: rtcp, short: Codec control messages, summary: "RTCP feedback for video codecs, including FIR (Full Intra Request).", modules: [17] }
+  - { n: 6035, area: media, proto: sip, short: Voice quality reports, summary: "A SIP event package that sends call quality summaries (vq-rtcpxr) with PUBLISH.", modules: [17] }
   - { n: 3711, area: media, proto: rtp, short: SRTP, summary: "Secure RTP encrypts and authenticates media packets.", modules: [18] }
   - { n: 4568, area: media, proto: sdp, short: SDES, summary: "Media keys in SDP (a=crypto).", modules: [18] }
   - { n: 5763, area: media, proto: sdp, short: DTLS-SRTP framework, summary: "SRTP keys set up with DTLS. SDP carries a fingerprint of the certificate.", modules: [18] }

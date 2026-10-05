@@ -1,0 +1,11 @@
+---
+/** <RtcpExplorer /> : SR, RR, SDES, and BYE field by field; paste hex to decode (RFC 3550 §6, Module 17) */
+import Island from '../diagrams/RtcpExplorer.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap([
+  'rfc3550-6.1-compound', 'rfc3550-6.4-sr-rr', 'rfc3550-6.4.1-ntp', 'rfc3550-6.4.1-rtpts', 'rfc3550-6.4.1-counts',
+  'rfc3550-6.4.1-fraction', 'rfc3550-6.4.1-cumulative', 'rfc3550-6.4.1-jitter', 'rfc3550-6.4.1-lsr', 'rfc3550-6.5.1-cname', 'rfc3550-6.6-bye',
+]);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

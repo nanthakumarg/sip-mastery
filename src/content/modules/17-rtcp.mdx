@@ -1,0 +1,221 @@
+---
+module: 17
+title: RTCP
+part: 5
+level: [intermediate, advanced]
+paths: { noc: core, dev: core }
+summary: The control channel beside every RTP stream — what RTCP reports, the SR, RR, SDES, BYE, APP, and XR packets field by field, loss, jitter, and round-trip time from the reports, the RTCP port, feedback for video, and how R-factor and MOS turn delay and loss into one number.
+objectives:
+  - Say what RTCP does, and why a call works without it but cannot be measured.
+  - Read a compound RTCP packet, and say what each field of an SR and an RR means.
+  - Calculate loss, jitter, and round-trip time from the report fields.
+  - Find the RTCP port of a stream from its SDP.
+  - Explain NACK, PLI, and FIR for video.
+  - Explain R-factor and MOS, and estimate them from delay, loss, and codec.
+status: draft
+---
+
+## 17.1 What RTCP does: quality feedback, timing, identification
+
+Next to every RTP stream runs a quiet second stream: the **RTP Control Protocol**, <Term t="RTCP" />. It carries no voice. Every few seconds, each side tells the other how well it receives: how many packets were lost, how much jitter it sees, and enough timing to measure the round trip.
+
+<RfcQuote id="rfc3550-6-functions" />
+
+| Function | How | Who uses it |
+|---|---|---|
+| **Quality feedback** | Loss, jitter, and timing in SR and RR report blocks | Monitoring, troubleshooting, adaptive codecs |
+| **Identification** | A CNAME that does not change when the SSRC does | Lip sync between audio and video; following a source |
+| **Timing** | An NTP timestamp next to the RTP timestamp | Round-trip time; lip sync |
+| **Leaving** | A BYE when a source stops | Ends a stream quickly, without waiting for a timeout |
+
+<RfcQuote id="rfc3550-6-cname" />
+
+<Flow id="rtcp-call" eyebrow="Call flow · RTCP reports and the two BYEs" />
+
+RTCP is small: RFC 3550 recommends 5% of the session bandwidth, and at least 5 seconds between reports. For a voice call, that is one packet of about 100 bytes every 5 seconds in each direction.
+
+<RfcQuote id="rfc3550-6.2-five" />
+
+<RfcQuote id="rfc3550-6.2-interval" />
+
+## 17.2 Packet types: SR, RR, SDES, BYE, APP, and XR
+
+| Type | PT | Name | Contents |
+|---|---|---|---|
+| **SR** | 200 | Sender report | Sender info (NTP time, RTP time, packet and byte counts) and report blocks |
+| **RR** | 201 | Receiver report | Report blocks only: this side receives but does not send |
+| **SDES** | 202 | Source description | The CNAME, and optional items such as a name or tool |
+| **BYE** | 203 | Goodbye | The SSRCs that stop, and an optional reason |
+| **APP** | 204 | Application-defined | Anything an application needs |
+| **RTPFB, PSFB** | 205, 206 | Feedback (RFC 4585) | NACK, PLI, FIR (17.5) |
+| **XR** | 207 | Extended report (RFC 3611) | VoIP metrics, R-factor, MOS (17.6) |
+
+A phone that sends RTP sends an SR; a phone that only receives, for example while on hold, sends an RR.
+
+<RfcQuote id="rfc3550-6.4-sr-rr" />
+
+RTCP packets always travel in a **compound packet**: a report first, then an SDES with the CNAME, then anything else. A BYE goes last.
+
+<RfcQuote id="rfc3550-6.1-compound" />
+
+<RfcQuote id="rfc3550-6.1-first" />
+
+Each SR or RR carries one **report block** for each stream it receives:
+
+| Field | Bits | Meaning |
+|---|---|---|
+| SSRC of source | 32 | The stream this block is about |
+| Fraction lost | 8 | Loss since the last report, in 1/256: 5 means 2% |
+| Cumulative lost | 24 | Packets lost since the start. Late packets count as received; duplicates can make it negative |
+| Extended highest sequence | 32 | The highest sequence number received, with the wrap count on top |
+| Interarrival jitter | 32 | The RFC 3550 jitter estimate, in RTP timestamp units |
+| LSR | 32 | The middle 32 bits of the NTP time in the last SR from that source |
+| DLSR | 32 | How long this side held that SR, in 1/65536 s |
+
+Select any field, or paste the UDP payload of an RTCP packet from a capture:
+
+<RtcpExplorer />
+
+## 17.3 Jitter, loss, and round-trip time from the reports
+
+**Loss.** The receiver knows how many packets it expected (from the sequence numbers) and how many arrived. The fraction lost is the difference, divided by the number expected, times 256.
+
+<RfcQuote id="rfc3550-6.4.1-fraction" />
+
+<RfcQuote id="rfc3550-6.4.1-cumulative" />
+
+**Jitter.** The jitter field is the estimate from Module 16, in timestamp units: divide by 8 for milliseconds at 8000 Hz. A value of 160 means 20 ms of jitter: the size of a whole G.711 packet.
+
+**Round-trip time.** Alice puts her NTP time in her SR. Bob copies its middle 32 bits into LSR, and writes in DLSR how long he held the SR before he answered. When his report arrives at time A, Alice subtracts. The clocks of Alice and Bob never need to agree: Alice compares only her own times.
+
+<RfcQuote id="rfc3550-6.4.1-rtt" />
+
+<RttTimeline />
+
+| From the reports | Typical good value | When to worry |
+|---|---|---|
+| Fraction lost | 0 | Above 1% for G.711, lower for compressed codecs |
+| Jitter | Below 20 ms | When it nears the jitter buffer depth |
+| Round-trip time | Below 150 ms | Above 300 ms: one-way delay is near 150 ms |
+
+## 17.4 Ports: RTP + 1, a=rtcp, and rtcp-mux
+
+Where RTCP goes depends on the SDP:
+
+| SDP | RTP port | RTCP port |
+|---|---|---|
+| `m=audio 49170 RTP/AVP 0` | 49170 | **49171**: the RTP port + 1 |
+| `m=audio 49170 RTP/AVP 0` with `a=rtcp:53020` | 49170 | **53020** |
+| `m=audio 49170 RTP/AVP 0` with `a=rtcp-mux` in the offer **and** the answer | 49170 | **49170**: the same port |
+
+<RfcQuote id="rfc3550-11-even-port" />
+
+`a=rtcp` exists because a NAT router does not keep the pair together: RTP port 49170 may map to 40200, and RTCP port 49171 to 40388. A phone that learned its public RTCP port with STUN tells the other side with `a=rtcp`.
+
+<RfcQuote id="rfc3605-2.1-rtcp" />
+
+`rtcp-mux` puts RTP and RTCP on one port. It halves the NAT mappings and the ICE work, and WebRTC always uses it. A receiver tells them apart by the second byte: RTCP packet types 200–207 would look like RTP payload types 72–79 with the marker bit set, and RTP does not use those numbers (Module 16).
+
+<RfcQuote id="rfc5761-5.1.1-answer" />
+
+## 17.5 Feedback for video: NACK, PLI, FIR
+
+For voice, a lost packet is simply gone: by the time a new copy could arrive, it is too late to play. Video is different. Each frame is built on the frames before it, so one loss damages every frame until the next full picture. Video receivers ask for help with **RTCP feedback** (RFC 4585, profile `RTP/AVPF`):
+
+| Message | Type | Meaning | The sender… |
+|---|---|---|---|
+| **NACK** | RTPFB | "I lost packets 4711 and 4713" | Sends them again, if it still has them |
+| **PLI** | PSFB | "My picture is broken" | Sends a full picture (key frame) soon |
+| **FIR** | PSFB (RFC 5104) | "Send me a full picture now" | Sends a key frame. Used when a new viewer joins |
+
+<RfcQuote id="rfc4585-6.2.1-nack" />
+
+<RfcQuote id="rfc4585-6.3.1.1-pli" />
+
+<RfcQuote id="rfc5104-3.5.1-fir" />
+
+Feedback is negotiated in the SDP, for each payload type:
+
+```
+m=video 51372 RTP/AVPF 96
+a=rtpmap:96 H264/90000
+a=rtcp-fb:96 nack
+a=rtcp-fb:96 nack pli
+a=rtcp-fb:96 ccm fir
+```
+
+Feedback packets may be sent at once, not only at the 5-second report interval: that is the point of the AVPF profile. Older SIP video phones sent a "fast picture update" in a SIP INFO instead; FIR replaces it.
+
+## 17.6 MOS and R-factor
+
+Engineers want one number for "how good was this call". There are two scales:
+
+| Scale | Range | Where it comes from |
+|---|---|---|
+| **MOS** (Mean Opinion Score) | 1 (bad) to 5 (excellent) | People rate calls in a listening test (ITU-T P.800). Monitoring tools **estimate** it |
+| **R-factor** | 0 to 100 | The E-model (ITU-T G.107) calculates it from delay, loss, and the codec |
+
+A tool cannot ask people, so it calculates R from what it measures, then turns R into an estimated MOS. In the simplified E-model, R starts at 93.2 and loses points for **delay** (Id) and for the **codec and loss** (Ie,eff):
+
+```
+R = 93.2 − Id − Ie,eff
+Id     = 0.024 × d + 0.11 × (d − 177.3)    the second term only when d > 177.3 ms
+Ie,eff = Ie + (95 − Ie) × loss% ÷ (loss% ÷ BurstR + Bpl)
+```
+
+Ie and Bpl come from the codec (ITU-T G.113): G.711 has Ie = 0, and with packet loss concealment it hides loss well (Bpl = 25.1). G.729 starts lower (Ie = 11). Bursty loss (BurstR above 1) hurts more than the same loss spread out. With the default values, R cannot go above 93.2, so the estimated MOS of a phone call stops at about 4.4.
+
+<MosCalc />
+
+The phone can report these numbers itself. An RTCP **XR** VoIP metrics block (RFC 3611) carries loss and discard rates, burst metrics, delay, jitter buffer settings, and an R-factor and MOS. Some phones also send a summary to a collector at the end of the call with SIP PUBLISH (RFC 6035).
+
+<RfcQuote id="rfc3611-4.7-discard" />
+
+<RfcQuote id="rfc3611-4.7.5-r" />
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Blocking RTCP in the firewall">
+    A firewall opens a range of UDP ports for RTP, but only even ports, or only the exact ports it saw media on. The odd RTCP ports stay closed. Calls work, because RTP still flows. But the quality reports never arrive: the dashboards show no loss, no jitter, and no round-trip time, exactly when someone needs them to diagnose a complaint. Worse, during hold RTP stops, and some phones and SBCs use RTCP to see that the other side is still alive. With RTCP blocked, their media timeout ends held calls.
+
+    ```
+    allow udp 10000-20000 even only       RTP passes, RTCP (odd ports) is dropped
+    allow udp 10000-20001                 RTP and RTCP pass
+    ```
+
+    <p class="fix"><b>Remember:</b> open the RTCP ports with the RTP ports: the whole range, both even and odd, or follow the SDP (RTP port + 1, <code>a=rtcp</code>, or the same port with <code>rtcp-mux</code>). If a quality dashboard is empty for one site, check that site's firewall first.</p>
+  </Mistake>
+
+  <Mistake title="Thinking RTCP is always on RTP port + 1">
+    A troubleshooter filters a capture on "RTP port + 1" to find the reports, sees nothing, and decides the phone sends no RTCP. But the SDP had `a=rtcp-mux`, so RTCP was on the RTP port all along, mixed with the voice packets. Or the SDP had `a=rtcp:53020`, so RTCP went to a port that is not next to the RTP port at all. The same mistake in a firewall opens a port nobody uses and blocks the one in use.
+
+    <RfcQuote id="rfc3605-2.1-rtcp" />
+
+    <p class="fix"><b>Remember:</b> read the SDP of both sides. RTP port + 1 is only the default. <code>a=rtcp:&lt;port&gt;</code> overrides it. <code>a=rtcp-mux</code> in both the offer and the answer puts RTCP on the RTP port; a receiver tells the two apart by the second byte (RTCP uses 200–207). In Wireshark, "Decode As RTCP" or the RTP stream analysis finds them.</p>
+  </Mistake>
+
+  <Mistake title="Confusing an RTCP BYE with a SIP BYE">
+    A capture shows "BYE" in the middle of a call, and the engineer decides the call was hung up. But it was an RTCP BYE: one RTP source stopped, for example when a transfer moved the media to a new endpoint, or a media server swapped its source. The SIP dialog continued. The reverse also happens: a phone sends a SIP BYE, the call ends, and the RTCP BYE that follows is just the media saying goodbye.
+
+    | | SIP BYE | RTCP BYE |
+    |---|---|---|
+    | **Layer** | Signaling, port 5060 or 5061 | Media control, the RTCP port |
+    | **Ends** | The dialog: the whole call | One RTP source (an SSRC) |
+    | **Answered by** | 200 OK | Nothing |
+    | **After it** | No more requests in the dialog | The call may go on with a new SSRC |
+
+    <RfcQuote id="rfc3550-6.6-bye" />
+
+    <p class="fix"><b>Remember:</b> look at the protocol column, not the word. Only a SIP BYE and its 200 OK end a call. An RTCP BYE in the middle of a call, followed by RTP with a new SSRC, is a media change, usually after a re-INVITE (Module 16). The call flow in 17.1 shows both.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- **RTCP** runs beside each RTP stream and reports on it: loss, jitter, timing, and a **CNAME**. It uses about 5% of the bandwidth, one compound packet every 5 seconds or so.
+- **SR** (200) from a side that sends RTP, **RR** (201) from one that only receives, **SDES** (202) with the CNAME, **BYE** (203) when a source leaves, plus **APP**, **RTPFB/PSFB** feedback, and **XR**. A compound packet starts with an SR or RR and carries an SDES.
+- Each **report block** gives fraction lost (in 1/256), cumulative lost, the highest sequence number, jitter (in timestamp units), and **LSR** and **DLSR**. **Round-trip time = A − LSR − DLSR.**
+- RTCP goes to **RTP port + 1**, unless `a=rtcp` names another port or `a=rtcp-mux` puts it on the RTP port.
+- Video asks for repairs with **NACK**, **PLI**, and **FIR**, negotiated with `a=rtcp-fb`.
+- **R-factor** (0–100) comes from delay, loss, and codec with the E-model; **MOS** (1–5) is estimated from it. RTCP **XR** can carry both.

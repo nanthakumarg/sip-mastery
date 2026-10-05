@@ -1693,3 +1693,46 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
   .jb-chart { overflow-x: auto; overscroll-behavior-x: contain; }
   .jb-chart svg { min-width: 640px; }
 }
+
+/* ---------- RTCP report explorer (Module 17) ---------- */
+.rtcpx .rtph-cell.p-rtcp0 { border-top: 2px solid var(--rtcp); }
+.rtcpx .rtph-cell.p-rtcp1 { border-top: 2px solid var(--rtcp); background: var(--panel-2); }
+.rtcpx .rtph-cell.p-rtcp0b, .rtcpx .rtph-cell.p-rtcp1b { border-top: 2px dashed var(--rtcp); }
+.rtcpx .rtph-cell.is-sel { background: var(--text); }
+.rtcpx-detail { border-left-color: var(--rtcp); }
+.rtcpx-packets { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; font: 400 12.5px var(--mono); color: var(--muted); }
+.rtcpx-packets li { padding: 4px 10px; border: 1px solid var(--line-2); border-left: 3px solid var(--rtcp); border-radius: 0 5px 5px 0; background: var(--panel); }
+.rtcpx-packets li.p-rtcp1 { background: var(--panel-2); }
+.rtcpx-packets b { color: var(--text); font-weight: 600; }
+
+/* ---------- RTT timeline (Module 17) ---------- */
+.rtt { max-width: 1100px; }
+.rtt-steps { margin-top: 14px; }
+.rtt-caption { margin-top: 10px; font-size: 15px; color: var(--text); min-height: 2.6em; }
+.rtt-chart { margin-top: 6px; }
+.rtt-chart svg { width: 100%; display: block; }
+.rtt-who { font: 600 14px var(--display); fill: var(--text); }
+.rtt-axis { stroke: var(--line); stroke-width: 2; }
+.rtt-msg line { stroke: var(--rtcp); stroke-width: 2.4; }
+.rtt-msg text, .rtt-a text { font: 500 12px var(--mono); fill: var(--rtcp); }
+.rtt-hold line { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 4; }
+.rtt-hold text { font: 400 12px var(--mono); fill: var(--muted); }
+.rtt-dot { fill: var(--rtcp); }
+.rtt-calc { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 16px; align-items: center; margin-top: 10px; }
+.rtt-calc pre { margin: 0; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--line-2); border-left: 3px solid var(--rtcp); border-radius: 0 6px 6px 0; font: 400 12.5px/1.65 var(--mono); color: var(--dim); overflow-x: auto; }
+.rtt-calc.is-done pre { color: var(--text); }
+.rtt-calc p { font-size: 15px; color: var(--dim); }
+.rtt-calc b { color: var(--text); }
+@media (max-width: 800px) { .rtt-calc { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) { .rtt-chart { overflow-x: auto; overscroll-behavior-x: contain; } .rtt-chart svg { min-width: 600px; } }
+
+/* ---------- MOS calculator (Module 17) ---------- */
+.mos { max-width: 1100px; }
+.mos-codec { margin-top: 14px; }
+.mos-scale { position: relative; height: 54px; margin-top: 18px; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.mos-band { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 0 4px; text-align: center; font: 400 11px/1.2 var(--mono); color: var(--muted); border-right: 1px solid var(--line-2); }
+.mos-band.is-on { color: var(--text); background: rgba(123, 216, 143, .12); }
+.mos-marker { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--text); }
+.mos-formula { margin-top: 12px; font: 400 13px var(--mono); color: var(--dim); overflow-wrap: anywhere; }
+.mos-formula b { color: var(--text); }
+@media (max-width: 600px) { .mos-scale { height: 26px; } .mos-band { font-size: 0; } }
