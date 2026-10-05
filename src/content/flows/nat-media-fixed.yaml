@@ -1,0 +1,256 @@
+id: nat-media-fixed
+title: "Fixed: the SBC fixes the signaling and the media"
+summary: "The SBC replaces both SDP addresses with its own ports and latches to the source of each media stream. Audio flows both ways."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: sbc, label: SBC, kind: sbc, sub: 203.0.113.5 }
+  - { id: nat, label: NAT router, kind: nat, sub: 198.51.100.200 }
+  - { id: bob, label: Bob, kind: ua, sub: 10.0.0.30 }
+steps:
+  - from: alice
+    to: sbc
+    label: "INVITE (offer)"
+    caption: "Alice calls Bob. Her phone is on a public address."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmd20a1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=md20a
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: md20c4@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: sbc
+    to: nat
+    label: "INVITE (offer)"
+    caption: "The SBC anchors the media: it offers its own address, 203.0.113.5:30002, to Bob."
+    rfc: rfc7362-3-rewrite
+    message: |
+      INVITE sip:bob@10.0.0.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKmd20s1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmd20a1
+      Max-Forwards: 69
+      Record-Route: <sip:203.0.113.5;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=md20a
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: md20c4@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 203.0.113.5
+      s=-
+      c=IN IP4 203.0.113.5
+      t=0 0
+      m=audio 30002 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: nat
+    to: bob
+    label: "INVITE (offer)"
+    caption: "The NAT mapping is open, so Bob's phone rings."
+    message: |
+      INVITE sip:bob@10.0.0.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKmd20s1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmd20a1
+      Max-Forwards: 69
+      Record-Route: <sip:203.0.113.5;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=md20a
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: md20c4@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 203.0.113.5
+      s=-
+      c=IN IP4 203.0.113.5
+      t=0 0
+      m=audio 30002 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: bob
+    to: nat
+    label: "200 OK (answer)"
+    caption: "Bob answers. His SDP has his private address, 10.0.0.30:3456."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKmd20s1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmd20a1
+      Record-Route: <sip:203.0.113.5;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=md20a
+      To: Bob <sip:bob@biloxi.example>;tag=md20b
+      Call-ID: md20c4@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.30:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 10.0.0.30
+      s=-
+      c=IN IP4 10.0.0.30
+      t=0 0
+      m=audio 3456 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: nat
+    to: sbc
+    label: "200 OK (answer)"
+    caption: "The NAT router does not change the SDP."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKmd20s1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmd20a1
+      Record-Route: <sip:203.0.113.5;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=md20a
+      To: Bob <sip:bob@biloxi.example>;tag=md20b
+      Call-ID: md20c4@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.30:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 10.0.0.30
+      s=-
+      c=IN IP4 10.0.0.30
+      t=0 0
+      m=audio 3456 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: sbc
+    to: alice
+    label: "200 OK (answer)"
+    caption: "The SBC replaces Bob's address with 203.0.113.5:30000. Alice will send her media there."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmd20a1
+      Record-Route: <sip:203.0.113.5;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=md20a
+      To: Bob <sip:bob@biloxi.example>;tag=md20b
+      Call-ID: md20c4@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.30:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.5
+      s=-
+      c=IN IP4 203.0.113.5
+      t=0 0
+      m=audio 30000 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: alice
+    to: sbc
+    label: "ACK"
+    caption: "Alice confirms the call."
+    message: |
+      ACK sip:bob@10.0.0.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmd20a2
+      Route: <sip:203.0.113.5;lr>
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=md20a
+      To: Bob <sip:bob@biloxi.example>;tag=md20b
+      Call-ID: md20c4@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - from: sbc
+    to: nat
+    label: "ACK"
+    caption: "The SBC sends the ACK through the NAT mapping."
+    message: |
+      ACK sip:bob@10.0.0.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKmd20s2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmd20a2
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=md20a
+      To: Bob <sip:bob@biloxi.example>;tag=md20b
+      Call-ID: md20c4@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - from: nat
+    to: bob
+    label: "ACK"
+    caption: "The call is up."
+    message: |
+      ACK sip:bob@10.0.0.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKmd20s2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKmd20a2
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=md20a
+      To: Bob <sip:bob@biloxi.example>;tag=md20b
+      Call-ID: md20c4@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - kind: media
+    from: bob
+    to: sbc
+    label: "RTP to port 30002"
+    caption: "Bob sends RTP to the SBC. The SBC latches to the source, 198.51.100.200:52012."
+    rfc: rfc7362-4-latch
+    oneway: true
+    detail: |
+      UDP  10.0.0.30:3456 → 203.0.113.5:30002
+        after the NAT router: 198.51.100.200:52012 → 203.0.113.5:30002
+        SBC: latch to 198.51.100.200:52012
+
+  - kind: media
+    from: alice
+    to: sbc
+    label: "RTP to port 30000"
+    caption: "Alice sends RTP to the SBC, which latches to 192.0.2.10:49170."
+    oneway: true
+    detail: |
+      UDP  192.0.2.10:49170 → 203.0.113.5:30000
+
+  - kind: media
+    from: sbc
+    to: bob
+    label: "RTP to port 52012"
+    caption: "The SBC relays Alice's audio from port 30002 to Bob's latched address. His NAT router lets it in."
+    oneway: true
+    detail: |
+      UDP  203.0.113.5:30002 → 198.51.100.200:52012
+        after the NAT router: → 10.0.0.30:3456
+
+  - kind: media
+    from: sbc
+    to: alice
+    label: "RTP to 192.0.2.10"
+    caption: "The SBC relays Bob's audio to Alice. Audio flows both ways."
+    oneway: true
+    detail: |
+      UDP  203.0.113.5:30000 → 192.0.2.10:49170

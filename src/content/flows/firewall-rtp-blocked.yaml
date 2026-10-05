@@ -1,0 +1,159 @@
+id: firewall-rtp-blocked
+title: "Broken: the firewall forwards port 5060 but not RTP"
+summary: "A PBX behind a firewall receives a call from its SIP trunk. Port 5060 is forwarded, the RTP ports are not. The caller hears the PBX; the PBX hears nothing."
+lanes:
+  - { id: gw, label: Carrier gateway, kind: ua, sub: 203.0.113.30 }
+  - { id: fw, label: Firewall, kind: nat, sub: 198.51.100.40 }
+  - { id: pbx, label: PBX, kind: ua, sub: 192.168.10.5 }
+steps:
+  - from: gw
+    to: fw
+    label: "INVITE (offer)"
+    caption: "The carrier sends a call to the firewall's public address, port 5060."
+    message: |
+      INVITE sip:+15551230100@198.51.100.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.30:5060;branch=z9hG4bKfw20g1
+      Max-Forwards: 70
+      From: <sip:+15559870001@carrier.example>;tag=fw20g
+      To: <sip:+15551230100@198.51.100.40>
+      Call-ID: fw20c1@203.0.113.30
+      CSeq: 1 INVITE
+      Contact: <sip:+15559870001@203.0.113.30:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=gw 4402 4402 IN IP4 203.0.113.30
+      s=-
+      c=IN IP4 203.0.113.30
+      t=0 0
+      m=audio 16384 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: fw
+    to: pbx
+    label: "INVITE (offer)"
+    caption: "A port forward sends UDP 5060 to the PBX. The SIP text does not change."
+    message: |
+      INVITE sip:+15551230100@198.51.100.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.30:5060;branch=z9hG4bKfw20g1
+      Max-Forwards: 70
+      From: <sip:+15559870001@carrier.example>;tag=fw20g
+      To: <sip:+15551230100@198.51.100.40>
+      Call-ID: fw20c1@203.0.113.30
+      CSeq: 1 INVITE
+      Contact: <sip:+15559870001@203.0.113.30:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=gw 4402 4402 IN IP4 203.0.113.30
+      s=-
+      c=IN IP4 203.0.113.30
+      t=0 0
+      m=audio 16384 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: pbx
+    to: fw
+    label: "200 OK (answer)"
+    caption: "The PBX knows its public address, so its SDP says 198.51.100.40:10000."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.30:5060;branch=z9hG4bKfw20g1
+      From: <sip:+15559870001@carrier.example>;tag=fw20g
+      To: <sip:+15551230100@198.51.100.40>;tag=pbx20t
+      Call-ID: fw20c1@203.0.113.30
+      CSeq: 1 INVITE
+      Contact: <sip:+15551230100@198.51.100.40:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=pbx 7781 7781 IN IP4 198.51.100.40
+      s=-
+      c=IN IP4 198.51.100.40
+      t=0 0
+      m=audio 10000 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: fw
+    to: gw
+    label: "200 OK (answer)"
+    caption: "The signaling is correct in both directions."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.30:5060;branch=z9hG4bKfw20g1
+      From: <sip:+15559870001@carrier.example>;tag=fw20g
+      To: <sip:+15551230100@198.51.100.40>;tag=pbx20t
+      Call-ID: fw20c1@203.0.113.30
+      CSeq: 1 INVITE
+      Contact: <sip:+15551230100@198.51.100.40:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=pbx 7781 7781 IN IP4 198.51.100.40
+      s=-
+      c=IN IP4 198.51.100.40
+      t=0 0
+      m=audio 10000 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: gw
+    to: fw
+    label: "ACK"
+    caption: "The carrier confirms the call."
+    message: |
+      ACK sip:+15551230100@198.51.100.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.30:5060;branch=z9hG4bKfw20g2
+      Max-Forwards: 70
+      From: <sip:+15559870001@carrier.example>;tag=fw20g
+      To: <sip:+15551230100@198.51.100.40>;tag=pbx20t
+      Call-ID: fw20c1@203.0.113.30
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - from: fw
+    to: pbx
+    label: "ACK"
+    caption: "The call is up."
+    message: |
+      ACK sip:+15551230100@198.51.100.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.30:5060;branch=z9hG4bKfw20g2
+      Max-Forwards: 70
+      From: <sip:+15559870001@carrier.example>;tag=fw20g
+      To: <sip:+15551230100@198.51.100.40>;tag=pbx20t
+      Call-ID: fw20c1@203.0.113.30
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - kind: media
+    from: pbx
+    to: gw
+    label: "RTP from port 10000"
+    caption: "The PBX sends RTP out. The firewall lets it through, from a new public port."
+    oneway: true
+    detail: |
+      UDP  192.168.10.5:10000 → 203.0.113.30:16384
+        after the firewall: 198.51.100.40:61002 → 203.0.113.30:16384
+
+  - kind: media
+    from: gw
+    to: fw
+    label: "RTP to port 10000"
+    caption: "The carrier sends to the SDP address, 198.51.100.40:10000. No rule forwards UDP 10000."
+    lost: true
+    oneway: true
+    warn: "One-way audio: the caller hears the PBX, the PBX hears nothing."
+    detail: |
+      UDP  203.0.113.30:16384 → 198.51.100.40:10000
+        firewall: no forward and no mapping for UDP 10000 — dropped

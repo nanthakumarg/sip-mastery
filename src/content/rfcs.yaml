@@ -42,7 +42,7 @@ rfcs:
   - { n: 3323, area: ext, proto: sip, short: Privacy, summary: "The Privacy header and how to hide the identity of a caller.", modules: [7, 14, 24] }
   - { n: 3325, area: ext, proto: sip, short: P-Asserted-Identity, summary: "P-Asserted-Identity carries an identity that the network has checked, inside a trust domain.", modules: [7, 14, 24] }
   - { n: 3326, area: ext, proto: sip, short: Reason header, summary: "The Reason header says why a request was sent, for example with a Q.850 cause value.", modules: [6, 24] }
-  - { n: 3327, area: ext, proto: sip, short: Path, summary: "Proxies on the REGISTER path stay in the path of incoming requests.", modules: [12] }
+  - { n: 3327, area: ext, proto: sip, short: Path, summary: "Proxies on the REGISTER path stay in the path of incoming requests.", modules: [12, 20] }
   - { n: 3428, area: ext, proto: sip, short: MESSAGE, summary: "The MESSAGE method for instant messages.", modules: [5, 23] }
   - { n: 3515, area: ext, proto: sip, short: REFER, summary: "The REFER method asks another user agent to contact a third party. Call transfer uses it.", modules: [5, 22] }
   - { n: 3608, area: ext, proto: sip, short: Service-Route, summary: "The registrar tells the user agent which proxies to use for its requests.", modules: [12, 27] }
@@ -74,8 +74,8 @@ rfcs:
   - { n: 6337, area: media, proto: sdp, short: Offer/answer in SIP, summary: "How SIP uses offer/answer in practice: which messages carry SDP, glare, and hold.", modules: [15] }
   - { n: 3611, area: media, proto: rtcp, short: RTCP XR, summary: "Extended RTCP reports, including VoIP quality metrics.", modules: [17] }
   - { n: 4585, area: media, proto: rtcp, short: RTCP feedback, summary: "The AVPF profile for fast RTCP feedback such as NACK.", modules: [17] }
-  - { n: 3605, area: media, proto: rtcp, short: RTCP port attribute, summary: "The a=rtcp attribute: an RTCP port that is not the RTP port + 1.", modules: [15, 17] }
-  - { n: 5761, area: media, proto: rtcp, short: rtcp-mux, summary: "RTP and RTCP on one port.", modules: [15, 17] }
+  - { n: 3605, area: media, proto: rtcp, short: RTCP port attribute, summary: "The a=rtcp attribute: an RTCP port that is not the RTP port + 1.", modules: [15, 17, 20] }
+  - { n: 5761, area: media, proto: rtcp, short: rtcp-mux, summary: "RTP and RTCP on one port.", modules: [15, 17, 20] }
   - { n: 5104, area: media, proto: rtcp, short: Codec control messages, summary: "RTCP feedback for video codecs, including FIR (Full Intra Request).", modules: [17] }
   - { n: 6035, area: media, proto: sip, short: Voice quality reports, summary: "A SIP event package that sends call quality summaries (vq-rtcpxr) with PUBLISH.", modules: [17] }
   - { n: 3711, area: media, proto: rtp, short: SRTP, summary: "Secure RTP encrypts and authenticates media packets.", modules: [18] }
@@ -97,6 +97,8 @@ rfcs:
   - { n: 5245, area: nat, proto: dns, short: ICE (first version), summary: "The first ICE specification. RFC 8445 replaced it.", modules: [20] }
   - { n: 8445, area: nat, proto: dns, short: ICE, summary: "Finds the best working path between two endpoints with STUN and TURN.", modules: [20, 26] }
   - { n: 6314, area: nat, proto: sip, short: NAT practices for SIP, summary: "Describes good practices for SIP and media through NAT.", modules: [15, 20] }
+  - { n: 7362, area: nat, proto: rtp, short: Latching, summary: "How SBCs fix NAT for signaling and media: they rewrite the SDP to a media relay and latch to the source of each stream.", modules: [16, 20] }
+  - { n: 8839, area: nat, proto: sdp, short: ICE in SDP, summary: "The a=candidate, a=ice-ufrag, and a=ice-pwd attributes, and ICE in the offer/answer exchange.", modules: [20, 26] }
 
   # --- Security and identity --------------------------------------------------------
   - { n: 2617, area: sec, short: HTTP Digest (old), summary: "The HTTP Digest authentication that RFC 3261 first referenced.", modules: [13] }

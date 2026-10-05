@@ -1,0 +1,129 @@
+id: stun-symmetric-nat
+title: "Broken: STUN alone behind a symmetric NAT"
+summary: "Alice's NAT router makes a new mapping for each destination. The address that STUN gives her works only for the STUN server. No audio arrives in either direction."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.168.1.20 }
+  - { id: natA, label: NAT A, kind: nat, sub: 198.51.100.7 }
+  - { id: turn, label: TURN server, kind: server, sub: 203.0.113.50 }
+  - { id: natB, label: NAT B, kind: nat, sub: 198.51.100.200 }
+  - { id: bob, label: Bob, kind: ua, sub: 10.0.0.30 }
+steps:
+  - kind: media
+    from: alice
+    to: turn
+    proto: dns
+    label: "STUN Binding"
+    caption: "Alice asks the STUN server for her public address. NAT A maps port 49170 to 40112."
+    rfc: rfc8489-1-stun
+    detail: |
+      Binding request   192.168.1.20:49170 → 203.0.113.50:3478
+        after the NAT router: 198.51.100.7:40112 → 203.0.113.50:3478
+
+      Binding success response
+        XOR-MAPPED-ADDRESS  0020 0008 0001 bda2 e721 c045
+        = 198.51.100.7:40112  (the address the server saw)
+
+  - kind: media
+    from: bob
+    to: turn
+    proto: dns
+    label: "STUN Binding"
+    caption: "Bob does the same. NAT B maps port 3456 to 52010."
+    detail: |
+      Binding request   10.0.0.30:3456 → 203.0.113.50:3478
+        after the NAT router: 198.51.100.200:52010 → 203.0.113.50:3478
+
+      Binding success response
+        XOR-MAPPED-ADDRESS  0020 0008 0001 ea38 e721 c08a
+        = 198.51.100.200:52010  (the address the server saw)
+
+  - from: alice
+    to: bob
+    label: "INVITE (offer)"
+    caption: "Alice offers 198.51.100.7:40112 in c= and m=. The INVITE crosses both NATs and a proxy, not drawn."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKst20a1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=st20a
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: st20@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.168.1.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 198.51.100.7
+      s=-
+      c=IN IP4 198.51.100.7
+      t=0 0
+      m=audio 40112 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: bob
+    to: alice
+    label: "200 OK (answer)"
+    caption: "Bob answers with 198.51.100.200:52010, his STUN address."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40114;received=198.51.100.7;branch=z9hG4bKst20a1
+      From: Alice <sip:alice@atlanta.example>;tag=st20a
+      To: Bob <sip:bob@biloxi.example>;tag=st20b
+      Call-ID: st20@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.30:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 198.51.100.200
+      s=-
+      c=IN IP4 198.51.100.200
+      t=0 0
+      m=audio 52010 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: alice
+    to: bob
+    label: "ACK"
+    caption: "The call is up."
+    message: |
+      ACK sip:bob@10.0.0.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKst20a2
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=st20a
+      To: Bob <sip:bob@biloxi.example>;tag=st20b
+      Call-ID: st20@192.168.1.20
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - kind: media
+    from: alice
+    to: natB
+    label: "RTP to port 52010"
+    caption: "NAT A is symmetric: it makes a new mapping, 40116, for Bob. NAT B drops the packet, because Bob never sent to 40116."
+    rfc: rfc6314-4.2.3.1-stun
+    lost: true
+    oneway: true
+    detail: |
+      UDP  192.168.1.20:49170 → 198.51.100.200:52010
+        after NAT A: 198.51.100.7:40116 (a new mapping)
+        NAT B: filtered — Bob sent only to 198.51.100.7:40112
+
+  - kind: media
+    from: bob
+    to: natA
+    label: "RTP to port 40112"
+    caption: "Bob sends to 40112. NAT A drops it: that mapping is for the STUN server only."
+    lost: true
+    oneway: true
+    warn: "No audio in either direction."
+    detail: |
+      UDP  10.0.0.30:3456 → 198.51.100.7:40112
+        after NAT B: 198.51.100.200:52010
+        NAT A: filtered — mapping 40112 is for 203.0.113.50:3478 only

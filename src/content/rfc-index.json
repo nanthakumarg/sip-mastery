@@ -1029,6 +1029,16 @@
    9878
   ]
  },
+ "7362": {
+  "title": "Latching: Hosted NAT Traversal (HNT) for Media in Real-Time Communication",
+  "month": "September",
+  "year": 2014,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
  "7587": {
   "title": "RTP Payload Format for the Opus Speech and Audio Codec",
   "month": "June",
@@ -1203,6 +1213,19 @@
   "updatedBy": [
    8863
   ]
+ },
+ "8839": {
+  "title": "Session Description Protocol (SDP) Offer/Answer Procedures for Interactive Connectivity Establishment (ICE)",
+  "month": "January",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   5245,
+   6336
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
  },
  "8842": {
   "title": "Session Description Protocol (SDP) Offer/Answer Considerations for Datagram Transport Layer Security (DTLS) and Transport Layer Security (TLS)",

@@ -4324,3 +4324,224 @@
   text: >-
     The transport=tls parameter has never been defined in an RFC, but only in
     some of the Internet drafts between [RFC2543] and [RFC3261].
+
+- id: rfc3581-3-rport-flag
+  rfc: 3581
+  section: "3"
+  title: Client Behavior
+  text: >-
+    A client, compliant to this specification (clients include UACs and
+    proxies), MAY include an "rport" parameter in the top Via header field value
+    of requests it generates. This parameter MUST have no value; it serves as a
+    flag to indicate to the server that this extension is supported and
+    requested for the transaction.
+
+- id: rfc3581-3-invite-20s
+  rfc: 3581
+  section: "3"
+  title: Client Behavior
+  text: >-
+    INVITE transactions can take an arbitrarily long amount of time to complete.
+    As a result, the binding may expire before a final response is received. To
+    keep the binding fresh, the client SHOULD retransmit its INVITE every 20
+    seconds or so.
+
+- id: rfc6314-4.1.2-same-socket
+  rfc: 6314
+  section: "4.1.2"
+  title: Client-Initiated Connections
+  text: >-
+    Even if the SIP Outbound mechanism is not used, clients generating SIP
+    requests SHOULD use the same IP address and port (i.e., socket) for both
+    transmission and receipt of SIP messages.
+
+- id: rfc4787-3-cone
+  rfc: 4787
+  section: "3"
+  title: Terminology
+  text: >-
+    STUN [RFC3489] used the terms "Full Cone", "Restricted Cone", "Port
+    Restricted Cone", and "Symmetric" to refer to different variations of NATs
+    applicable to UDP only. Unfortunately, this terminology has been the source
+    of much confusion, as it has proven inadequate at describing real-life NAT
+    behavior.
+
+- id: rfc4787-4.1-eim
+  rfc: 4787
+  section: "4.1"
+  title: Address and Port Mapping
+  text: >-
+    Endpoint-Independent Mapping: The NAT reuses the port mapping for subsequent
+    packets sent from the same internal IP address and port (X:x) to any
+    external IP address and port.
+
+- id: rfc4787-4.1-apdm
+  rfc: 4787
+  section: "4.1"
+  title: Address and Port Mapping
+  text: >-
+    Address and Port-Dependent Mapping: The NAT reuses the port mapping for
+    subsequent packets sent from the same internal IP address and port (X:x) to
+    the same external IP address and port while the mapping is still active.
+
+- id: rfc4787-4.1-req1
+  rfc: 4787
+  section: "4.1"
+  title: Address and Port Mapping
+  text: >-
+    REQ-1: A NAT MUST have an "Endpoint-Independent Mapping" behavior.
+
+- id: rfc4787-5-apdf
+  rfc: 4787
+  section: "5"
+  title: Filtering Behavior
+  text: >-
+    In other words, for receiving packets from a specific external endpoint, it
+    is necessary for the internal endpoint to send packets first to that
+    external endpoint's IP address and port.
+
+- id: rfc4787-7-alg-off
+  rfc: 4787
+  section: "7"
+  title: Application Level Gateways
+  text: >-
+    REQ-10: To eliminate interference with UNSAF NAT traversal mechanisms and
+    allow integrity protection of UDP communications, NAT ALGs for UDP-based
+    protocols SHOULD be turned off.
+
+- id: rfc6314-3-alg
+  rfc: 6314
+  section: "3"
+  title: Problem Statement
+  text: >-
+    ALGs have limitations (as per RFC 4787 [RFC4787] Section 7, RFC 3424
+    [RFC3424], and [RFC5245] Section 18.6), and experience shows they can have
+    an adverse impact on the functionality of SIP. This includes problems such
+    as requiring the media and signaling to traverse the same device and not
+    working with encrypted signaling and/or payload.
+
+- id: rfc8489-14.2-alg
+  rfc: 8489
+  section: "14.2"
+  title: XOR-MAPPED-ADDRESS
+  text: >-
+    However, deployment experience found that some NATs rewrite the 32-bit
+    binary payloads containing the NAT's public IP address, such as STUN's
+    MAPPED-ADDRESS attribute, in the well-meaning but misguided attempt to
+    provide a generic Application Layer Gateway (ALG) function.
+
+- id: rfc7362-3-rewrite
+  rfc: 7362
+  section: "3"
+  title: Impact on Signaling
+  text: >-
+    Signaling intermediaries would hence modify such information so that peer
+    UAs are given the (public) addressing information of a media relay
+    controlled by the intermediary.
+
+- id: rfc7362-4-latch
+  rfc: 7362
+  section: "4"
+  title: Media Behavior and Latching
+  text: >-
+    The media relay receives the media packets on the allocated ports and uses
+    their respective source address:ports as a destination for all media bound
+    in the opposite direction. In other words, it "latches" or locks on these
+    source address:port tuples.
+
+- id: rfc6314-4.2.1-symmetric
+  rfc: 6314
+  section: "4.2.1"
+  title: Symmetric RTP/RTCP
+  text: >-
+    When operating behind a NAT and using the 'latching' technique described in
+    [MIDDLEBOXES], SIP User Agents MUST implement Symmetric RTP/RTCP.
+
+- id: rfc8489-1-stun
+  rfc: 8489
+  section: "1"
+  title: Introduction
+  text: >-
+    It provides a means for an endpoint to determine the IP address and port
+    allocated by a NAT that corresponds to its private IP address and port. It
+    also provides a way for an endpoint to keep a NAT binding alive.
+
+- id: rfc6314-4.2.3.1-stun
+  rfc: 6314
+  section: "4.2.3.1"
+  title: STUN
+  text: >-
+    Using terminology defined in "NAT Behavioral Requirements for Unicast UDP"
+    [RFC4787], STUN does work with Endpoint-Independent Mapping but does not
+    work with either Address-Dependent Mapping or Address and Port-Dependent
+    Mapping type NATs.
+
+- id: rfc8656-1-relay
+  rfc: 8656
+  section: "1"
+  title: Introduction
+  text: >-
+    When a direct communication path cannot be found, it is necessary to use the
+    services of an intermediate host that acts as a relay for the packets.
+
+- id: rfc6314-4.2.3.2-last-resort
+  rfc: 6314
+  section: "4.2.3.2"
+  title: TURN
+  text: >-
+    A TURN service will almost always provide media traffic to a SIP entity, but
+    it is RECOMMENDED that this method would only be used as a last resort and
+    not as a general mechanism for NAT traversal.
+
+- id: rfc8445-2-signaling
+  rfc: 8445
+  section: "2"
+  title: Overview of ICE
+  text: >-
+    Note that ICE is not intended for NAT traversal for the signaling protocol,
+    which is assumed to be provided via another mechanism.
+
+- id: rfc8445-2-candidates
+  rfc: 8445
+  section: "2"
+  title: Overview of ICE
+  text: >-
+    The purpose of ICE is to discover which pairs of addresses will work. The
+    way that ICE does this is to systematically try all possible pairs (in a
+    carefully sorted order) until it finds one or more that work.
+
+- id: rfc8445-2.2-checks
+  rfc: 8445
+  section: "2.2"
+  title: Connectivity Checks
+  text: >-
+    It is important to note that STUN requests are sent to and from the exact
+    same IP addresses and ports that will be used for data (e.g., RTP, RTCP, or
+    other protocols).
+
+- id: rfc8445-2.2-prflx
+  rfc: 8445
+  section: "2.2"
+  title: Connectivity Checks
+  text: >-
+    If this transport address is different from that of other candidates the
+    agent already learned, it represents a new candidate (peer-reflexive
+    candidate), which then gets tested by ICE just the same as any other
+    candidate.
+
+- id: rfc8445-5.1.2.1-priority
+  rfc: 8445
+  section: "5.1.2.1"
+  title: Recommended Formula
+  text: >-
+    priority = (2^24)*(type preference) + (2^8)*(local preference) + (2^0)*(256
+    - component ID)
+
+- id: rfc8445-5.1.2.2-prefs
+  rfc: 8445
+  section: "5.1.2.2"
+  title: Guidelines for Choosing Type and Local Preferences
+  text: >-
+    The RECOMMENDED values for type preferences are 126 for host candidates, 110
+    for peer-reflexive candidates, 100 for server-reflexive candidates, and 0
+    for relayed candidates.

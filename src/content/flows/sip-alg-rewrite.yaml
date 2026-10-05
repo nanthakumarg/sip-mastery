@@ -1,0 +1,171 @@
+id: sip-alg-rewrite
+title: "Broken: the SIP ALG rewrites the INVITE"
+summary: "The router's SIP ALG writes its public address into Via, Contact, and the SDP, but keeps the private port. Alice hears nothing."
+broken: true
+breaks: [sip-alg]
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.168.1.20 }
+  - { id: nat, label: NAT router, kind: nat, sub: 198.51.100.7 }
+  - { id: sbc, label: SBC, kind: sbc, sub: 203.0.113.5 }
+steps:
+  - from: alice
+    to: nat
+    label: "INVITE (offer)"
+    caption: "Alice's phone sends its private address. It uses rport, and the SBC handles NAT."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKalg20a
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=alg20t
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: alg20c9@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.168.1.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.168.1.20
+      s=-
+      c=IN IP4 192.168.1.20
+      t=0 0
+      m=audio 49170 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: nat
+    to: sbc
+    label: "INVITE (offer)"
+    caption: "The SIP ALG rewrites Via, Contact, o=, and c= to 198.51.100.7. It keeps port 49170 in m=."
+    rfc: rfc4787-7-alg-off
+    warn: "The NAT router changed the SIP message."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.7:5060;rport;branch=z9hG4bKalg20a
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=alg20t
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: alg20c9@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@198.51.100.7:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 198.51.100.7
+      s=-
+      c=IN IP4 198.51.100.7
+      t=0 0
+      m=audio 49170 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: sbc
+    to: nat
+    label: "200 OK (answer)"
+    caption: "The SDP now shows a public address, so the SBC trusts it and does not latch."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 198.51.100.7:5060;rport=40112;branch=z9hG4bKalg20a
+      From: Alice <sip:alice@atlanta.example>;tag=alg20t
+      To: Bob <sip:bob@biloxi.example>;tag=sbc20x
+      Call-ID: alg20c9@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.5:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=sbc 1170 1170 IN IP4 203.0.113.5
+      s=-
+      c=IN IP4 203.0.113.5
+      t=0 0
+      m=audio 30000 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: nat
+    to: alice
+    label: "200 OK (answer)"
+    caption: "The ALG changes the Via back to the private address, so Alice's phone accepts the response."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport=40112;branch=z9hG4bKalg20a
+      From: Alice <sip:alice@atlanta.example>;tag=alg20t
+      To: Bob <sip:bob@biloxi.example>;tag=sbc20x
+      Call-ID: alg20c9@192.168.1.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.5:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=sbc 1170 1170 IN IP4 203.0.113.5
+      s=-
+      c=IN IP4 203.0.113.5
+      t=0 0
+      m=audio 30000 RTP/AVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+
+  - from: alice
+    to: nat
+    label: "ACK"
+    caption: "Alice confirms the call."
+    message: |
+      ACK sip:bob@203.0.113.5:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.168.1.20:5060;rport;branch=z9hG4bKalg20b
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=alg20t
+      To: Bob <sip:bob@biloxi.example>;tag=sbc20x
+      Call-ID: alg20c9@192.168.1.20
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - from: nat
+    to: sbc
+    label: "ACK"
+    caption: "The ALG rewrites the ACK too."
+    message: |
+      ACK sip:bob@203.0.113.5:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.7:5060;rport;branch=z9hG4bKalg20b
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=alg20t
+      To: Bob <sip:bob@biloxi.example>;tag=sbc20x
+      Call-ID: alg20c9@192.168.1.20
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - kind: media
+    from: alice
+    to: nat
+    label: "RTP from port 49170"
+    caption: "Alice sends RTP from 49170. The NAT router maps it to 198.51.100.7:40210."
+    oneway: true
+    detail: |
+      UDP  192.168.1.20:49170 → 203.0.113.5:30000
+
+  - kind: media
+    from: nat
+    to: sbc
+    label: "RTP from port 40210"
+    caption: "The SBC receives Alice's audio from 198.51.100.7:40210, not from port 49170."
+    oneway: true
+    detail: |
+      UDP  198.51.100.7:40210 → 203.0.113.5:30000
+
+  - kind: media
+    from: sbc
+    to: nat
+    label: "RTP to port 49170"
+    caption: "The SBC sends to the SDP address, 198.51.100.7:49170. The router has no mapping for port 49170."
+    lost: true
+    oneway: true
+    warn: "One-way audio: Bob hears Alice, Alice hears nothing."
+    detail: |
+      UDP  203.0.113.5:30000 → 198.51.100.7:49170
+        NAT router: no mapping for port 49170 — dropped

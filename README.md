@@ -23,7 +23,7 @@ npm run dev        # http://localhost:4321
 | `npm run check:content` | Protocol checks and diagram language checks on every flow |
 | `npm run verify:rfc` | Checks every RFC quote word for word against rfc-editor.org |
 | `npm run sync:rfc-index` | Refreshes `rfc-index.json` (titles, dates, status, obsoletes/updates) from the official RFC index, for the RFCs in `rfcs.yaml` |
-| `npm test` | Unit tests (parser, checks, digest maths, transaction timers, dialog state, routing, DNS, registrar, security, SDP and offer/answer, RTP, RTCP, SRTP, transports) |
+| `npm test` | Unit tests (parser, checks, digest maths, transaction timers, dialog state, routing, DNS, registrar, security, SDP and offer/answer, RTP, RTCP, SRTP, transports, NAT, STUN, and ICE) |
 | `npm run verify` | `check:content`, `verify:rfc`, and `test` together |
 | `npm run check` | TypeScript and Astro type check |
 
@@ -73,6 +73,7 @@ All course content lives in `src/content/`.
 <RtcpExplorer />  <RttTimeline />  <MosCalc />                               RTCP reports, round-trip time, R-factor and MOS (src/net/rtcp.ts)
 <SrtpPacket />  <KeyExchange />                                               SRTP with real AES/HMAC; where the keys travel (src/net/srtp.ts)
 <TransportRace />                                                              one message over UDP (fragments) and TCP (src/net/transport.ts)
+<NatSimulator />  <IceChecker />                                              a call through two NAT routers; ICE candidates and checks (src/net/nat.ts, nat-call.ts, ice.ts)
 ```
 
 ### Flow file rules

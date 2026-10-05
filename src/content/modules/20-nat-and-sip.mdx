@@ -1,0 +1,301 @@
+---
+module: 20
+title: NAT and SIP
+part: 7
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: "Why NAT breaks SIP, and every fix: the mapping and filtering behaviours of NAT routers, rport and received, Contact rewriting, Path and SIP Outbound, keepalives, symmetric RTP and latching, media relays and SBCs, STUN, TURN, and ICE, why a router's SIP ALG often makes things worse, and a step-by-step diagnosis of one-way audio."
+objectives:
+  - Find every private address in a SIP message and its SDP, and say what each one breaks.
+  - "Describe a NAT router by its mapping and filtering behaviour (RFC 4787), and explain what \"symmetric NAT\" means."
+  - Explain the signaling fixes (rport, Contact rewriting, Path, SIP Outbound) and the media fixes (symmetric RTP, latching, media relays).
+  - Explain how STUN, TURN, and ICE find a media path, and predict which candidate pair ICE selects.
+  - Recognise a SIP ALG in a trace, and explain why to turn it off.
+  - Diagnose one-way audio step by step.
+status: draft
+---
+
+## 20.1 Why NAT breaks SIP: private addresses in Via, Contact, and SDP
+
+Module 2 showed what a <Term t="NAT router" /> does: it rewrites the IP source address and the UDP or TCP source port of each outgoing packet, and remembers the change in a <Term t="NAT mapping" />, so that replies can come back. It does not change the text inside the packet.
+
+SIP writes addresses inside the text. A phone behind NAT knows only its own private address, so it writes that address in three places, and each one breaks something different:
+
+| Where | Example from Alice's phone | What breaks |
+|---|---|---|
+| **Via** (sent-by) | `Via: SIP/2.0/UDP 192.168.1.20:5060` | Responses: the server sends them to port 5060, not to the port the NAT router opened |
+| **Contact** | `Contact: <sip:alice@192.168.1.20:5060>` | Incoming requests: calls to Alice, and in-dialog requests such as BYE |
+| **SDP c= and m=** | `c=IN IP4 192.168.1.20` · `m=audio 49170` | The media: the other side sends RTP to a private address |
+
+<RfcQuote id="rfc6314-3-private" />
+
+A second problem sits in the NAT router itself: it lets packets **in** only through a mapping that an outgoing packet created, and only for as long as traffic keeps the mapping alive. So a fix needs two things: the right address, and an open mapping when the packet arrives.
+
+Signaling and media are separate problems with separate fixes. A call can ring and connect, and still have no audio, or audio in one direction only. Keep both in mind for the rest of this module.
+
+## 20.2 NAT behaviour: mapping and filtering
+
+NAT routers differ in two choices. RFC 4787 names them. The older STUN names ("full cone", "symmetric") are still common, but they mix the two choices together:
+
+<RfcQuote id="rfc4787-3-cone" />
+
+**Mapping**: when the phone sends from the same private address and port to a new destination, does the router reuse the same public port?
+
+<RfcQuote id="rfc4787-4.1-eim" />
+
+<RfcQuote id="rfc4787-4.1-apdm" />
+
+**Filtering**: which outside senders may send packets in through a mapping?
+
+<RfcQuote id="rfc4787-5-apdf" />
+
+| Old name | Mapping | Filtering | Who can send in through the mapping |
+|---|---|---|---|
+| Full cone | Endpoint-independent (EIM) | Endpoint-independent (EIF) | Anyone |
+| Restricted cone | EIM | Address-dependent (ADF) | Any port of an IP address the phone has sent to |
+| Port-restricted cone | EIM | Address and port-dependent (APDF) | Only the exact address and port the phone has sent to |
+| <Term t="symmetric NAT">Symmetric</Term> | Address and port-dependent (APDM) | APDF | Only the exact address and port, and each destination gets a **new** public port |
+
+The mapping behaviour decides whether an address that a phone learns from one server is any use to another host. With endpoint-independent mapping, the public port is the same for every destination. With a symmetric NAT, the port that the STUN server saw is valid only for the STUN server. RFC 4787 therefore requires endpoint-independent mapping, but many routers, firewalls, and carrier-grade NATs (CGNAT, with addresses from 100.64.0.0/10) still do not have it:
+
+<RfcQuote id="rfc4787-4.1-req1" />
+
+The filtering behaviour decides who may send first. With address and port-dependent filtering, a packet gets in only if the phone has already sent to that exact address and port. Most fixes in this module work because the phone sends first, and the other side replies to the address it saw.
+
+## 20.3 Signaling fixes: rport, received, Contact rewriting, Path, SIP Outbound
+
+**rport and received** fix the responses (Module 10). The phone adds `rport` with no value; the server fills in the source port, and sends the response there, through the mapping that the request opened:
+
+<RfcQuote id="rfc3581-3-rport-flag" />
+
+<RfcQuote id="rfc3581-4-response" />
+
+**Contact rewriting** fixes the incoming requests. The phone's Contact is private, so the edge proxy or SBC stores the address that the REGISTER came from, with the binding. When a call arrives, the Request-URI stays the Contact, but the proxy sends the packet to the stored address. This is the usual hosted NAT traversal of SBCs. It works with every NAT type, because the proxy replies only to the address and port it heard from:
+
+<Flow id="nat-register-rewrite" eyebrow="Call flow · the SBC sends Bob's call through his NAT mapping" />
+
+It works only if the phone sends and receives SIP on the same port, so the mapping that its requests open is the one that its incoming requests use:
+
+<RfcQuote id="rfc6314-4.1.2-same-socket" />
+
+**Path** (RFC 3327, Module 12) makes calls for Bob pass the edge proxy that holds his NAT mapping, when the registrar sits deeper in the network. **SIP Outbound** (RFC 5626, Modules 12 and 19) is the standard version of all this: the phone registers each flow with an instance ID and a reg-id, keeps it alive, and the proxy sends incoming requests back over the same flow.
+
+| Fix | Where | What it fixes |
+|---|---|---|
+| `rport` and `received` (RFC 3581) | Phone adds `rport`, server fills it in | Responses reach the phone through its mapping |
+| Contact rewriting | Edge proxy or SBC | Incoming requests reach the phone through its mapping |
+| Path (RFC 3327) | Edge proxy adds it to REGISTER | Incoming requests go through the edge proxy that holds the mapping |
+| SIP Outbound (RFC 5626) | Phone, edge proxy, and registrar | All of the above, plus keepalives and failover, as a standard |
+
+None of these fix the media. The SDP still says `c=IN IP4 192.168.1.20`.
+
+## 20.4 Keep the binding open: keepalives and short registration intervals
+
+Every fix in 20.3 uses the phone's NAT mapping, and the mapping lasts only while packets go out. RFC 4787 asks for at least two minutes for UDP, but many routers close a mapping after 30 to 60 seconds:
+
+<RfcQuote id="rfc4787-4.3-mapping-timer" />
+
+<RfcQuote id="rfc5626-4.4.2-nat-30" />
+
+| Way to keep the mapping open | Cost | Notes |
+|---|---|---|
+| **Keepalives** from the phone: CRLF, STUN, or OPTIONS (Module 19) | A few bytes every 25–29 s | The standard way. STUN and CRLF pongs also show that the path still works |
+| **Short registration interval**, such as 60 s | A full REGISTER, often with a digest challenge, every minute | Works, but loads the registrar. Check its Min-Expires |
+| **OPTIONS from the proxy** to the phone | One request per phone per interval | Used by SBCs ("NAT ping"); also detects dead phones |
+| **INVITE retransmissions** during a long ring | — | RFC 3581 asks the phone to keep sending the INVITE every 20 s |
+
+<RfcQuote id="rfc3581-3-invite-20s" />
+
+The interval must be shorter than the **shortest** NAT timeout on the path. A registration that lasts an hour with no keepalives breaks after the first minute. Module 12 has the expiry clock; the common mistakes below show it again.
+
+## 20.5 Media fixes: symmetric RTP, latching, media relays, SBC anchoring
+
+The media has the same problem as the Contact, with no proxy in the middle to fix it. Three methods work together:
+
+- **Symmetric RTP** (RFC 4961, Module 16): the phone sends RTP from the same port where it receives. Then the NAT mapping that its outgoing RTP opens is the path for the incoming RTP.
+- **Latching**: the far side ignores the address in the SDP and sends to the address and port that the media really came from.
+- **A media relay**, usually inside an SBC: the SBC replaces the SDP address of each side with one of its own ports. Each phone sends to the SBC, and the SBC latches to each source. This is **media anchoring**.
+
+<RfcQuote id="rfc7362-3-rewrite" />
+
+<RfcQuote id="rfc7362-4-latch" />
+
+<RfcQuote id="rfc6314-4.2.1-symmetric" />
+
+Latching needs the phone to send first: until Bob's first packet arrives, the SBC has no address for him, and drops the media for him. It also needs symmetric RTP: a phone that receives on 49170 but sends from 49172 makes the SBC latch to the wrong port (Module 16). An SBC latches once per offer and answer; a new source port in the middle of a call can be an attack.
+
+RTCP adds one more port. Classic RTCP uses the RTP port + 1, but a NAT router does not keep the ports next to each other. `a=rtcp:` (RFC 3605) names the RTCP port, and `a=rtcp-mux` (RFC 5761) puts RTP and RTCP on one port; with mux, there is only one mapping to keep open.
+
+Now try every combination. Put Alice and Bob behind different NAT types, and turn the fixes on and off. Each packet shows its addresses before and after each NAT router:
+
+<NatSimulator />
+
+Things to try:
+
+- Turn **rport** off: Bob's phone never sees the 200 OK to its REGISTER, and Alice never sees the answer to her INVITE.
+- Turn **Contact rewriting** off: the INVITE goes to 10.0.0.30, which no router on the Internet can deliver.
+- With both on and media **None**, the call connects with no audio. With one side on a public address, the audio goes one way.
+- **STUN only** works for most NAT types, but not when Bob is behind a **symmetric** NAT.
+- **Media relay** and **ICE** work for every combination.
+
+## 20.6 STUN, TURN, and ICE: candidates and connectivity checks
+
+The SBC fixes media from the network side. The phone can also fix it from its own side, with three protocols.
+
+**STUN** (RFC 8489) tells a device its public address and port. The phone sends a Binding request from its media port to a STUN server, which answers with the source address it saw:
+
+<RfcQuote id="rfc8489-1-stun" />
+
+The answer is in **XOR-MAPPED-ADDRESS**: the address XOR the magic cookie 0x2112A442. The XOR exists because some routers found the public address inside the packet and "fixed" it:
+
+<RfcQuote id="rfc8489-14.2-alg" />
+
+The phone writes its STUN address in the SDP. That works with endpoint-independent mapping. With a symmetric NAT, the address is valid only for the STUN server:
+
+<RfcQuote id="rfc6314-4.2.3.1-stun" />
+
+**TURN** (RFC 8656) is the fallback that always works: a server on the Internet gives the phone a **relayed address**, and relays media between that address and the phone. It costs a server, bandwidth, and some delay, so it is the last resort:
+
+<RfcQuote id="rfc8656-1-relay" />
+
+<RfcQuote id="rfc6314-4.2.3.2-last-resort" />
+
+**ICE** (RFC 8445) uses both. Each side gathers its <Term t="candidate">candidates</Term>, offers all of them in the SDP, and tests every pair with STUN requests. The controlling side then selects the highest-priority pair that works in both directions, and the media flows on it. ICE is for the media only; the signaling still needs the fixes in 20.3:
+
+<RfcQuote id="rfc8445-2-candidates" />
+
+<RfcQuote id="rfc8445-2-signaling" />
+
+| Candidate | Where it comes from | Type preference | Priority (component 1) |
+|---|---|---|---|
+| **host** | The device's own interface | 126 | 2130706431 |
+| **peer-reflexive** (prflx) | Learned during the checks: the address the peer saw | 110 | 1862270975 |
+| **server-reflexive** (srflx) | STUN, or TURN: the NAT router's public address | 100 | 1694498815 |
+| **relayed** | TURN: an address on the TURN server | 0 | 16777215 |
+
+<RfcQuote id="rfc8445-5.1.2.1-priority" />
+
+<RfcQuote id="rfc8445-5.1.2.2-prefs" />
+
+In the SDP, each candidate is one `a=candidate` line: foundation, component, transport, priority, address, port, type, and for reflexive and relayed candidates the related address. `a=ice-ufrag` and `a=ice-pwd` give the short-term credentials that authenticate the checks.
+
+```
+a=ice-ufrag:aL3x
+a=ice-pwd:asd88fgpdd777uzjYhagZg
+a=candidate:1 1 UDP 2130706431 192.168.1.20 49170 typ host
+a=candidate:2 1 UDP 1694498815 198.51.100.7 40112 typ srflx raddr 192.168.1.20 rport 49170
+a=candidate:3 1 UDP 16777215 203.0.113.50 50000 typ relay raddr 198.51.100.7 rport 40112
+```
+
+The **connectivity checks** are STUN Binding requests sent from the media port to each remote candidate, so they open the same NAT mappings that the media will use:
+
+<RfcQuote id="rfc8445-2.2-checks" />
+
+A check that fails still helps: Alice's check opens her own NAT for Bob's address, so Bob's check, a moment later, gets in. Each side then sends a triggered check back on the pair that worked. This is how ICE gets through two port-restricted NATs with no relay:
+
+<Flow id="ice-direct" eyebrow="Call flow · ICE through two NAT routers" />
+
+Behind a symmetric NAT, the checks come from a new public port. The peer learns it as a peer-reflexive candidate:
+
+<RfcQuote id="rfc8445-2.2-prflx" />
+
+Pick the NAT types and servers, and see which candidates each side gathers, which pairs work, and which one ICE selects:
+
+<IceChecker />
+
+Many SBCs and gateways run **ICE lite**: they are on a public address, offer only host candidates, and only answer checks. In WebRTC, ICE is mandatory, and the candidates often arrive one by one after the offer ("trickle ICE"); Module 26 covers it.
+
+## 20.7 SIP ALG: why router "helpers" often break calls
+
+Many routers have a <Term t="SIP ALG" />: an application layer gateway that reads SIP on port 5060 and rewrites the private addresses inside it. It sounds like a fix. In practice, it is one of the most common causes of SIP faults behind NAT, and the standards ask for it to be off:
+
+<RfcQuote id="rfc4787-7-alg-off" />
+
+<RfcQuote id="rfc6314-3-alg" />
+
+| What the ALG does | What breaks |
+|---|---|
+| Rewrites Contact and c= to the public address, but keeps the private port | Media goes to a port with no mapping: one-way audio |
+| Rewrites the SDP, so the SBC trusts it and does not latch | The fix that would have worked is now skipped |
+| Changes the message length but not Content-Length | The message is malformed; the server drops it or returns 400 |
+| Rewrites Via, then rewrites the response back | Breaks rport handling, or the phone rejects the response |
+| Opens its own mappings, and closes them on its own timers | Calls fail after a few minutes, or incoming calls stop |
+| Cannot read TLS | Has no effect, which is one reason to use TLS |
+
+How to recognise it: capture on both sides of the router. Without an ALG, the SIP text is the same on both sides; only the IP and UDP headers differ. With an ALG, the Via, Contact, or SDP changes. A Via with the router's public address, from a phone that has a private one, is the usual sign. Common menu names are "SIP ALG", "SIP helper", "SIP passthrough", and "SIP fixup".
+
+## 20.8 One-way audio: a step-by-step diagnosis
+
+One-way audio is the classic NAT symptom: the call connects, and one side hears nothing. Work through it in order. Each step uses a trace from the SBC or proxy, and if possible from both phones.
+
+1. **Which direction is missing?** "Bob hears Alice, Alice hears nothing" means the RTP towards Alice is lost or ignored. Start from the side that hears nothing.
+2. **Does RTP leave the sender?** Capture at the sender, or at the SBC for the leg towards it. No RTP at all is not NAT: check hold and direction attributes (`a=sendonly`, `a=inactive`, Module 15), or a muted device.
+3. **Where is the sender sending?** Compare the destination of the RTP with the c= and m= in the SDP it received. A private address there means the media was never fixed (20.5).
+4. **Where does the receiver's media really come from?** Compare the source address and port of its RTP with its own SDP. A different public port is normal behind NAT; it means the far side must latch. A different port on the phone itself is asymmetric RTP.
+5. **Does a firewall or NAT router let the RTP in?** Look for the packets on the outside of the router and not on the inside. A port forward for 5060 alone, with no rule for the RTP port range, gives exactly this.
+6. **Is there an ALG?** Compare the SIP inside and outside the router (20.7).
+7. **Does the audio arrive but stay silent?** Then it is not NAT: check the payload type and codec (Module 15), and SRTP keys and the crypto suite (Module 18).
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| One-way audio, SDP shows a private address | Signaling fixed, media not | Media relay with latching, or ICE |
+| One-way audio, SDP shows the public IP with the private port | SIP ALG | Turn the ALG off |
+| One-way audio, only on incoming trunk calls to a PBX | RTP ports not forwarded | Open or forward the RTP range, or let the provider latch |
+| No audio either way, STUN in use | Symmetric NAT | TURN, ICE, or a media relay |
+| Audio for the first minute, then calls stop arriving | NAT mapping expired | Keepalives shorter than the NAT timeout |
+| Audio both ways, but the call drops after 32 s | ACK lost (Module 8), often the Contact behind NAT | Contact rewriting, Record-Route on the SBC |
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="SIP ALG left on in the router">
+    An office has phones that use rport, and an SBC that latches. It works, until a new router arrives with its SIP ALG turned on. The ALG writes the public address into Contact and c=, but keeps the phone's private port 49170. The SBC sees a public address in the SDP, so it trusts it and stops latching. It sends the media to port 49170 of the router, where there is no mapping. Calls connect; the office hears nothing.
+
+    <BrokenFixedFlow broken="sip-alg-rewrite" fixed="sip-alg-off" />
+
+    <p class="fix"><b>Remember:</b> turn the SIP ALG off. A NAT router changes the IP and UDP headers only; if the SIP text differs on the two sides of the router, something is rewriting it. Moving SIP to TLS, or to a port other than 5060, also hides it from most ALGs.</p>
+  </Mistake>
+
+  <Mistake title="Fixing the signaling but not the media">
+    A provider sets its SBC to rewrite Contacts. Incoming calls now reach phones behind NAT, and the team closes the ticket. But the SBC still passes the SDP unchanged: Bob's answer tells Alice to send to 10.0.0.30. Bob's audio reaches Alice, Alice's audio goes nowhere. The reverse also happens: an SBC that relays media for a phone whose Contact it never fixed has perfect audio on outgoing calls, and no incoming calls at all.
+
+    <BrokenFixedFlow broken="nat-media-not-fixed" fixed="nat-media-fixed" />
+
+    <p class="fix"><b>Remember:</b> NAT breaks signaling and media separately. Check both: the Contact and Via for the signaling, and c= and m= for the media. An SBC that handles NAT must anchor the media too, or the phones must use ICE.</p>
+  </Mistake>
+
+  <Mistake title="Opening port 5060 but not the RTP port range">
+    A PBX sits behind an office firewall. The installer forwards UDP 5060 to it, and calls from the SIP trunk arrive and connect. The PBX knows its public address and writes it in the SDP. But no rule forwards the RTP ports, so the carrier's media stops at the firewall. The caller hears the PBX; the PBX hears nothing.
+
+    <Flow id="firewall-rtp-blocked" eyebrow="Call flow · port 5060 forwarded, RTP blocked" />
+
+    <p class="fix"><b>Remember:</b> forward the PBX's RTP port range too (for example 10000–20000 UDP), and make it match the range set in the PBX. Or let the provider latch, if it supports symmetric RTP. Never forward a range to a phone or PBX without a firewall rule that limits the sources.</p>
+  </Mistake>
+
+  <Mistake title="A registration interval of 3600 s behind a NAT that times out after 30–60 s">
+    A phone registers for an hour and sends no keepalives. The NAT router closes the mapping after 30 seconds of silence. For half a minute after each REGISTER, calls arrive; then the SBC sends each INVITE to a public port that no longer leads anywhere. The phone shows "Registered", outgoing calls work, and incoming calls fail. Try a keepalive of 25 s:
+
+    <ExpiryClock initial={{ asked: 3600, maxExpires: 3600, natTimeout: 30, keepalive: 0, probe: 600 }} title="Broken: a 1-hour registration behind a 30-second NAT timeout" />
+
+    <p class="fix"><b>Remember:</b> keepalives every 25–29 seconds (RFC 5626), shorter than the shortest NAT timeout on the path. Or let the SBC send OPTIONS to the phone. A short registration interval also works, at a cost to the registrar.</p>
+  </Mistake>
+
+  <Mistake title="STUN alone behind a symmetric NAT">
+    A softphone uses STUN and writes its server-reflexive address in the SDP. It works at home. In an office behind a symmetric firewall, the address that STUN returns is valid only for the STUN server: the media to Bob leaves from a new port that Bob's NAT never saw, and Bob's media to the STUN address is filtered. There is no audio in either direction, and STUN reports no error.
+
+    <CompareFlows a="stun-symmetric-nat" b="ice-turn-relay" labels={['Broken: STUN alone', 'Fixed: ICE with TURN']} />
+
+    <p class="fix"><b>Remember:</b> STUN works only with endpoint-independent mapping. Behind a symmetric NAT you need a relay: TURN with ICE, or a media relay in an SBC. ICE uses TURN only when no direct pair works, so it costs little to configure it.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A phone behind NAT writes its **private address** in Via, Contact, and SDP. Each breaks something different: responses, incoming requests, and media.
+- A NAT router has a **mapping** behaviour and a **filtering** behaviour (RFC 4787). "Symmetric" NAT makes a new mapping for each destination, so an address learned from one server is useless to everyone else.
+- **rport** fixes responses; **Contact rewriting**, **Path**, and **SIP Outbound** fix incoming requests. All need the phone to use one socket, and the mapping to stay open.
+- **Keepalives** every 25–29 s keep the mapping open; a long registration interval alone does not.
+- For the media: **symmetric RTP** from the phone, **latching** and a **media relay** in the SBC.
+- **STUN** finds the public address, **TURN** relays when nothing else works, and **ICE** tests every candidate pair and selects the best one that works.
+- A **SIP ALG** rewrites SIP badly and disables the fixes that work: turn it off.
+- Diagnose **one-way audio** in order: which direction, does RTP leave, where does it go, where does it come from, does the firewall let it in, is there an ALG.

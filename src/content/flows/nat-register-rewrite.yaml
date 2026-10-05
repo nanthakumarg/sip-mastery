@@ -1,0 +1,148 @@
+id: nat-register-rewrite
+title: "The SBC reaches Bob through his NAT mapping"
+summary: "Bob registers from behind a NAT router. The SBC stores the address his REGISTER came from, and sends his calls there."
+lanes:
+  - { id: bob, label: Bob, kind: ua, sub: 10.0.0.30 }
+  - { id: nat, label: NAT router, kind: nat, sub: 198.51.100.200 }
+  - { id: sbc, label: SBC, kind: sbc, sub: 203.0.113.5 }
+steps:
+  - from: bob
+    to: nat
+    label: "REGISTER"
+    caption: "Bob writes his private address in Via and Contact. The rport flag asks for the response at the source port."
+    rfc: rfc3581-3-rport-flag
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 10.0.0.30:5060;rport;branch=z9hG4bKnr20a1
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=b20r1
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: r20k7d1x@10.0.0.30
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@10.0.0.30:5060>
+      Expires: 600
+      Content-Length: 0
+
+  - from: nat
+    to: sbc
+    label: "REGISTER"
+    caption: "The NAT router maps 10.0.0.30:5060 to 198.51.100.200:52010. The SIP text does not change."
+    message: |
+      REGISTER sip:biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 10.0.0.30:5060;rport;branch=z9hG4bKnr20a1
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=b20r1
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: r20k7d1x@10.0.0.30
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@10.0.0.30:5060>
+      Expires: 600
+      Content-Length: 0
+
+  - from: sbc
+    to: nat
+    label: "200 OK"
+    caption: "The SBC adds received and rport, and sends the response to 198.51.100.200:52010. The NAT mapping is open."
+    rfc: rfc3581-4-response
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 10.0.0.30:5060;rport=52010;received=198.51.100.200;branch=z9hG4bKnr20a1
+      From: Bob <sip:bob@biloxi.example>;tag=b20r1
+      To: Bob <sip:bob@biloxi.example>;tag=s20r9
+      Call-ID: r20k7d1x@10.0.0.30
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@10.0.0.30:5060>;expires=600
+      Content-Length: 0
+
+  - from: nat
+    to: bob
+    label: "200 OK"
+    caption: "The NAT router delivers it. The SBC also stores 198.51.100.200:52010 with the binding."
+    rfc: rfc6314-4.1.2-same-socket
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 10.0.0.30:5060;rport=52010;received=198.51.100.200;branch=z9hG4bKnr20a1
+      From: Bob <sip:bob@biloxi.example>;tag=b20r1
+      To: Bob <sip:bob@biloxi.example>;tag=s20r9
+      Call-ID: r20k7d1x@10.0.0.30
+      CSeq: 1 REGISTER
+      Contact: <sip:bob@10.0.0.30:5060>;expires=600
+      Content-Length: 0
+
+  - kind: media
+    from: bob
+    to: sbc
+    proto: net
+    label: "keepalive every 25 s"
+    caption: "Bob sends a keepalive, shorter than the NAT timeout. The NAT mapping stays open."
+    detail: |
+      UDP  10.0.0.30:5060 → 203.0.113.5:5060
+        seen by the SBC as 198.51.100.200:52010
+
+      CRLF CRLF (or a STUN Binding request, or OPTIONS)
+
+  - from: sbc
+    to: nat
+    label: "INVITE"
+    caption: "A call arrives. The Request-URI is Bob's Contact, but the SBC sends the packet to 198.51.100.200:52010."
+    message: |
+      INVITE sip:bob@10.0.0.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKsbc20i1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;received=192.0.2.10;branch=z9hG4bKa20i1
+      Max-Forwards: 69
+      Record-Route: <sip:203.0.113.5;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=a20i1
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: i20q5w2@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0
+
+  - from: nat
+    to: bob
+    label: "INVITE"
+    caption: "The NAT router has a mapping for port 52010, and the SBC sent from 5060. Bob receives the INVITE."
+    message: |
+      INVITE sip:bob@10.0.0.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKsbc20i1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;received=192.0.2.10;branch=z9hG4bKa20i1
+      Max-Forwards: 69
+      Record-Route: <sip:203.0.113.5;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=a20i1
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: i20q5w2@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Length: 0
+
+  - from: bob
+    to: nat
+    label: "180 Ringing"
+    caption: "Bob's phone rings. The response goes back the same way."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKsbc20i1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;received=192.0.2.10;branch=z9hG4bKa20i1
+      Record-Route: <sip:203.0.113.5;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=a20i1
+      To: Bob <sip:bob@biloxi.example>;tag=b20i9
+      Call-ID: i20q5w2@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.30:5060>
+      Content-Length: 0
+
+  - from: nat
+    to: sbc
+    label: "180 Ringing"
+    caption: "Contact rewriting works with every NAT type: the SBC only replies to the address and port it heard from."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKsbc20i1
+      Via: SIP/2.0/UDP 192.0.2.10:5060;received=192.0.2.10;branch=z9hG4bKa20i1
+      Record-Route: <sip:203.0.113.5;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=a20i1
+      To: Bob <sip:bob@biloxi.example>;tag=b20i9
+      Call-ID: i20q5w2@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@10.0.0.30:5060>
+      Content-Length: 0

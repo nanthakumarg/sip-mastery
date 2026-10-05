@@ -1824,3 +1824,76 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 .trace-lane.is-bad .trace-result { color: var(--err); }
 @media (max-width: 800px) { .trace-lanes { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 420px) { .trace-sends li { grid-template-columns: 104px auto minmax(0, 1fr); gap: 6px; font-size: 11.5px; } .trace-frags i { width: 18px; } }
+
+/* ---------- NAT simulator and ICE checker (Module 20) ---------- */
+.natsim, .ice { max-width: 1240px; }
+.natsim-lg-nat { background: var(--text); }
+.natsim-picks { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 14px; }
+.natsim-pick { min-width: 0; display: grid; gap: 6px; }
+.natsim-who { font: 500 11.5px var(--mono); color: var(--muted); }
+.natsim-seg { display: flex; flex-wrap: wrap; gap: 4px; border: 0; border-radius: 0; overflow: visible; }
+.natsim-seg button { height: auto; min-height: 44px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 5px; display: inline-flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; text-align: left; font: 500 12.5px var(--display); }
+.natsim-seg button span { font: 400 10.5px var(--mono); color: var(--muted); }
+.natsim-seg button[aria-pressed=true] span { color: var(--bg); opacity: .8; }
+.natsim-fixes { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin-top: 12px; }
+.natsim-media { flex-wrap: wrap; align-items: center; border: 0; overflow: visible; gap: 4px; }
+.natsim-media .natsim-who { margin-right: 6px; }
+.natsim-media button { border: 1px solid var(--line); border-radius: 5px; }
+.natsim-verdict { margin-top: 14px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line-2); border-left: 3px solid var(--err); border-radius: 0 8px 8px 0; display: grid; gap: 8px; }
+.natsim-verdict.is-ok { border-left-color: var(--rtcp); }
+.natsim-verdict p { font: 600 16px var(--display); color: var(--text); }
+.natsim-verdict p code { font-size: 13px; }
+.natsim-verdict ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font: 400 12.5px var(--mono); color: var(--dim); }
+.natsim-verdict li { display: inline-flex; gap: 6px; align-items: center; }
+.natsim-verdict li.is-ok span { color: var(--rtcp); }
+.natsim-verdict li.is-bad span { color: var(--err); }
+.natsim-verdict li.is-na { color: var(--muted); }
+.natsim-packets { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+.natsim-p { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 8px 12px 8px 8px; background: var(--panel); border: 1px solid var(--line-2); border-left: 3px solid var(--sip); border-radius: 0 6px 6px 0; }
+.natsim-p.p-rtp { border-left-color: var(--rtp); }
+.natsim-p.p-stun { border-left-color: var(--dns); }
+.natsim-p.is-lost { border-left-color: var(--down); background: var(--bg-deep); }
+.natsim-n { font: 400 12px var(--mono); color: var(--muted); padding-top: 2px; text-align: right; }
+.natsim-body { min-width: 0; display: grid; gap: 4px; }
+.natsim-what { font-size: 14.5px; color: var(--dim); }
+.natsim-what b { color: var(--text); font-weight: 600; }
+.natsim-what span { margin-left: 6px; font: 400 12px var(--mono); color: var(--muted); }
+.natsim-legs { display: grid; gap: 2px; }
+.natsim-leg { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font: 400 12px var(--mono); color: var(--muted); }
+.natsim-leg code { background: none; border: 0; padding: 0; font-size: 12px; color: var(--dim); }
+.natsim-leg code.is-nat { color: var(--text); font-weight: 600; }
+.natsim-leg i { font-style: normal; }
+.natsim-nat { padding: 0 5px; border: 1px solid var(--line); border-radius: 3px; font-size: 10px; letter-spacing: .05em; color: var(--muted); }
+.natsim-x { color: var(--down); }
+.natsim-note { font-size: 14px; color: var(--dim); }
+.natsim-p.is-lost .natsim-note { color: var(--err); }
+.natsim-foot { margin-top: 10px; font: 400 12px/1.5 var(--mono); color: var(--muted); }
+.ice-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 14px; }
+.ice-side { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.ice-who { font: 600 14px var(--display); color: var(--text); }
+.ice-cands { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ice-cands li { padding: 8px 10px; background: var(--panel); border: 1px solid var(--line-2); border-left: 3px solid var(--dns); border-radius: 0 6px 6px 0; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; min-width: 0; }
+.ice-cands li.c-relay { border-left-color: var(--sip); }
+.ice-cands li.c-host { border-left-color: var(--line); }
+.ice-type { font: 500 12px var(--mono); color: var(--muted); }
+.ice-cands code { background: none; border: 0; padding: 0; font-size: 12.5px; color: var(--text); }
+.ice-prio { font: 400 11.5px var(--mono); color: var(--muted); }
+.ice-cands code.ice-line { flex-basis: 100%; font-size: 11.5px; color: var(--dim); overflow-wrap: anywhere; white-space: normal; }
+.ice-xor { font-size: 13.5px; color: var(--dim); }
+.ice-xor code { font-size: 12px; white-space: nowrap; }
+.ice-list { margin-top: 16px; display: grid; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; }
+.ice-list table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 640px; }
+.ice-list th, .ice-list td { padding: 6px 8px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: top; color: var(--dim); text-transform: none; letter-spacing: 0; }
+.ice-list thead th { font: 500 11px var(--mono); color: var(--muted); }
+.ice-list td code { background: none; border: 0; padding: 0; font-size: 12px; color: var(--text); }
+.ice-list code.ice-pp { color: var(--muted); }
+.ice-list tr.s-failed td:last-child { color: var(--err); }
+.ice-list tr.s-succeeded td:last-child { color: var(--rtcp); }
+.ice-list tr.is-sel td { background: rgba(123, 216, 143, .1); }
+.ice-list tr.is-sel td:last-child { font-weight: 600; }
+.ice-events li { font-size: 14px; }
+.ice-events li.is-ok { color: var(--text); }
+.ice-events code { font-size: 12px; }
+.ice-trig { margin: 0 6px; padding: 0 5px; border: 1px solid var(--line); border-radius: 3px; font: 400 10.5px var(--mono); color: var(--muted); }
+@media (max-width: 800px) { .ice-cols { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 420px) { .natsim-seg button { padding: 4px 8px; font-size: 12px; } .natsim-p { grid-template-columns: 18px minmax(0, 1fr); padding-right: 8px; } }

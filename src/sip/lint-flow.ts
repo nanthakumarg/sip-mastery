@@ -81,6 +81,7 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   checkUserEnumeration(msgs, add);
   checkSdp(flow, msgs, add);
   checkUdpSize(msgs, add);
+  checkNatUnchanged(flow, msgs, add);
   return issues;
 }
 
@@ -551,4 +552,23 @@ function checkUdpSize(msgs: MsgStep[], add: Add) {
       add('udp-size', s.index, `${s.parsed.method} is ${size} bytes over UDP. Above 1300 bytes, a request must go over TCP (or another congestion-controlled transport)`);
     }
   }
+}
+
+/**
+ * sip-alg (RFC 4787 §7, RFC 6314 §3): a NAT router rewrites the IP and UDP
+ * headers, not the SIP message. A message that leaves a NAT lane must be the
+ * message that entered it; a router that changes it is a SIP ALG.
+ */
+function checkNatUnchanged(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
+  const nats = new Set(flow.lanes.filter(l => l.kind === 'nat').map(l => l.id));
+  const key = (m: SipMessage) => `${callId(m)}|${getHeader(m, 'CSeq')}|${m.kind === 'request' ? m.method : m.status}`;
+  msgs.forEach((s, i) => {
+    if (!nats.has(s.from)) return;
+    const before = msgs.slice(0, i).reverse().find(x => x.to === s.from && key(x.parsed) === key(s.parsed));
+    if (!before || before.wire === s.wire) return;
+    const a = before.wire!.split('\r\n'), b = s.wire!.split('\r\n');
+    const changed = b.filter((l, k) => l !== a[k]).length + Math.max(0, a.length - b.length);
+    const k = b.findIndex((l, j) => l !== a[j]);
+    add('sip-alg', s.index, `The NAT router changed ${changed} line${changed === 1 ? '' : 's'} of the SIP message, first "${a[k] ?? ''}" to "${b[k] ?? ''}". A NAT rewrites IP and UDP headers; a router that rewrites SIP is a SIP ALG`);
+  });
 }

@@ -67,6 +67,10 @@ sip-course/
 │  │  ├─ rtcp.ts                 # RTCP SR/RR/SDES/BYE, round-trip time, E-model (Module 17)
 │  │  ├─ srtp.ts                 # SRTP key derivation, AES-CM, HMAC-SHA1 (WebCrypto); a=crypto, a=setup (Module 18)
 │  │  ├─ transport.ts            # IP fragments, TCP segments, the 1300-byte rule, UDP vs TCP race (Module 19)
+│  │  ├─ nat.ts                  # NAT routers with RFC 4787 mapping and filtering, hosts, TURN relays (Module 20)
+│  │  ├─ nat-call.ts             # the NAT simulator: a call with rport, Contact rewriting, and media fixes (Module 20)
+│  │  ├─ ice.ts                  # ICE candidates, priorities, pairs, connectivity checks (Module 20)
+│  │  ├─ stun.ts                 # STUN messages: XOR-MAPPED-ADDRESS, MESSAGE-INTEGRITY, FINGERPRINT (Module 20)
 │  │  └─ bits.ts                 # field type for the bit-map diagrams (src/diagrams/BitMap.tsx)
 │  ├─ diagrams/                  # React islands
 │  │  ├─ Ladder.tsx              # call-flow ladder, step player
@@ -237,6 +241,7 @@ Rendering choices:
 | `sdp-private-address` | A private `c=` address does not reach a user agent with a public address (RFC 6314 §3) |
 | `sdes-over-tls` | An SDP with an SDES key (`a=crypto` with `inline:`) travels only on a TLS (or WSS) hop, from the top Via (RFC 4568 §8.3) |
 | `udp-size` | A request over 1300 bytes is not sent over UDP (top Via), at any hop (RFC 3261 §18.1.1) |
+| `sip-alg` | A message that leaves a NAT lane is the message that entered it: a NAT router rewrites IP and UDP headers, not SIP (RFC 4787 §7, RFC 6314 §3) |
 | `dtls-setup` | A DTLS-SRTP offer says `a=setup:actpass`; the answer says `active` or `passive`, the opposite of a fixed role in the offer (RFC 8842 §5.2, RFC 4145 §4.1) |
 
 ### 6.2 Diagram language checks (`lint-diagram.ts`)

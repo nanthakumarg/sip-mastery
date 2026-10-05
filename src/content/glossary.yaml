@@ -30,7 +30,10 @@
 - term: SBC
   definition: Session Border Controller. A B2BUA at the edge of a network that protects and normalises SIP.
 - term: NAT router
-  definition: The home router that translates private addresses to a public address.
+  aliases: [NAT A, NAT B]
+  definition: The home router that translates private addresses to a public address. Where Alice and Bob each have one, they are NAT A and NAT B.
+- term: Firewall
+  definition: In Module 20, the office firewall in front of a PBX. It forwards some ports to the PBX and blocks the rest.
 - term: Carrier gateway
   definition: The gateway between SIP and the public telephone network.
 
@@ -343,7 +346,26 @@
 - term: latching
   definition: An SBC sends media back to the address and port that the media came from, not to the address in the SDP.
 - term: STUN
+  aliases: [STUN server]
   definition: A protocol that tells a device its public address and port, as a NAT router maps them.
+- term: TURN
+  aliases: [TURN server]
+  definition: A STUN extension (RFC 8656). A server on the Internet gives a device a relayed address and relays media to and from it.
+- term: ICE
+  aliases: [Interactive Connectivity Establishment]
+  definition: A method (RFC 8445) in which both sides exchange their candidates in SDP, test the candidate pairs with STUN, and send media on a pair that works.
+- term: candidate
+  aliases: [ICE candidate, host candidate, server-reflexive candidate, relayed candidate, peer-reflexive candidate, srflx, prflx]
+  definition: An address where a device might receive media. Host candidates are its own addresses, server-reflexive ones come from STUN, relayed ones from TURN.
+- term: connectivity check
+  aliases: [ICE check]
+  definition: A STUN request that one ICE agent sends from one of its candidates to one of the other side's, to test whether that pair works.
+- term: symmetric NAT
+  aliases: [address and port-dependent mapping]
+  definition: A NAT router that makes a new mapping for each destination. The address that STUN reports works only for the STUN server.
+- term: SIP ALG
+  aliases: [ALG, SIP helper, application layer gateway]
+  definition: A router feature that rewrites the addresses inside SIP and SDP. It is often buggy, and it breaks NAT fixes that already work.
 
 # --- Networking (Module 2) ------------------------------------------------
 - term: IP address
