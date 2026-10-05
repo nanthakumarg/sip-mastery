@@ -1,0 +1,210 @@
+---
+module: 18
+title: SRTP and media security
+part: 5
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: How the voice itself is protected — SRTP and SRTCP encryption and authentication, worked through with real cryptography; the three ways to agree on keys (SDES in a=crypto, DTLS-SRTP with a=fingerprint and a=setup, and ZRTP) and who can read each; the SRTP profiles and best-effort SRTP; new keys on re-INVITE; and SRTP to RTP at an SBC.
+objectives:
+  - Explain what SRTP encrypts, what it authenticates, and what stays readable.
+  - Follow an RTP packet through SRTP key derivation, encryption, and authentication.
+  - Compare SDES, DTLS-SRTP, and ZRTP, and say who on the path can read the keys in each.
+  - Read a=crypto, a=fingerprint, and a=setup, and predict the DTLS roles.
+  - Choose between RTP/SAVP, UDP/TLS/RTP/SAVP, and best-effort SRTP for a peer.
+  - Explain what changes on a re-INVITE, and what an SBC does when one leg uses SRTP and the other RTP.
+status: draft
+---
+
+## 18.1 SRTP and SRTCP: encryption and authentication
+
+TLS protects SIP (Module 14). It does not protect the voice: RTP is a separate stream, and plain RTP can be recorded by anyone on the path. **SRTP** (Secure RTP) encrypts the payload of each RTP packet and adds an authentication tag. **SRTCP** does the same for RTCP.
+
+<RfcQuote id="rfc3711-3-profile" />
+
+| Part of the packet | SRTP | Why |
+|---|---|---|
+| RTP header: sequence number, timestamp, SSRC, payload type | **Readable**, but authenticated | Routers, SBCs, and the receiver need it before decryption |
+| Payload: the audio | **Encrypted** (AES in counter mode) | The secret part |
+| Authentication tag | **Added** at the end: 10 bytes (or 4) | Detects any change to the header or payload |
+
+<RfcQuote id="rfc3711-3.1-encrypted" />
+
+The two sides never use the 30-byte master key directly. Each derives **session keys** from it: one to encrypt, one to authenticate, and a salt. Each packet gets its own IV from the salt, the SSRC, and the packet index, so the same audio never encrypts to the same bytes twice. The tool below does the real calculation, with the AES and HMAC of your browser:
+
+<SrtpPacket />
+
+<RfcQuote id="rfc3711-4.2-tag" />
+
+| Crypto-suite | Encryption | Tag | Overhead per packet |
+|---|---|---|---|
+| `AES_CM_128_HMAC_SHA1_80` | AES-128 in counter mode | HMAC-SHA1, 80 bits | 10 bytes |
+| `AES_CM_128_HMAC_SHA1_32` | AES-128 in counter mode | HMAC-SHA1, 32 bits | 4 bytes: saves bandwidth on voice |
+| `AEAD_AES_128_GCM` | AES-GCM: encryption and tag in one | 16 bytes | Newer; common in WebRTC |
+
+SRTP does not hide who talks to whom, when, or how much: the IP addresses, the ports, and the RTP header stay visible, and so does the timing of each packet.
+
+<RfcQuote id="rfc3711-3-srtcp" />
+
+## 18.2 Key exchange: SDES, DTLS-SRTP, ZRTP
+
+SRTP needs both sides to know the keys. There are three common ways to agree on them, and they differ in **who else can read the keys**.
+
+### SDES: the key in the SDP
+
+<Term t="SDES" /> puts the master key and salt in the SDP, base64 encoded, in an `a=crypto` line. Each side sends its own key, for the media it sends.
+
+```
+m=audio 49170 RTP/SAVP 0 101
+a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:WVNfX19zZW1jdGwgKCkgewkyMjA7fQp9CnVubGVz|2^31
+a=crypto:2 AES_CM_128_HMAC_SHA1_32 inline:NzB4d1BINUAvLEw6UzF3WSJ+PSdFcGdUJShpX1Zj|2^31
+        │   │                          │                                        └─ lifetime: packets
+        │   │                          └─ master key (16 bytes) + salt (14 bytes)
+        │   └─ crypto-suite
+        └─ tag: the answer picks one tag
+```
+
+<RfcQuote id="rfc4568-7.1.2-one" />
+
+<RfcQuote id="rfc4568-7.1.2-own-key" />
+
+<Flow id="srtp-sdes-tls" eyebrow="Call flow · SDES over TLS" />
+
+SDES is simple, and most SIP phones and trunks use it. Its weakness: the key is in the SIP message. Anyone who can read the SIP can decrypt the call, so the SIP must travel over TLS. And TLS only protects each hop: every proxy and SBC on the path decrypts the SIP, and can read the key.
+
+<RfcQuote id="rfc4568-8.3-tls" />
+
+<RfcQuote id="rfc4568-8.3-intermediaries" />
+
+### DTLS-SRTP: the keys from a handshake on the media path
+
+<Term t="DTLS" />-SRTP moves the key exchange out of SIP. The SDP carries only a **fingerprint**: the hash of each side's certificate. Then the two phones run a DTLS handshake on the media ports, check each other's certificate against the fingerprint, and derive the SRTP keys from the handshake. WebRTC always uses DTLS-SRTP (Module 26).
+
+<RfcQuote id="rfc5763-5-media-path" />
+
+```
+m=audio 49170 UDP/TLS/RTP/SAVP 0 101
+a=setup:actpass
+a=fingerprint:sha-256 4A:AD:B9:B1:3F:82:18:3B:54:02:12:DF:3E:5D:49:6B:19:E5:7C:AB:3E:4B:65:7D:D1:93:A0:72:CF:1B:9C:0D
+```
+
+`a=setup` decides who starts the handshake, the DTLS **client**. The offer says `actpass`: "either". The answer chooses: `active` (I start; recommended, because the handshake can begin while the answer is still on its way) or `passive` (you start).
+
+<RfcQuote id="rfc8842-5.2-actpass" />
+
+<RfcQuote id="rfc5763-5-active" />
+
+| Offer | Allowed answers (RFC 4145) | Who sends the ClientHello |
+|---|---|---|
+| `actpass` | `active` or `passive` | The side that is `active` |
+| `active` | `passive` | The offerer |
+| `passive` | `active` | The answerer |
+
+<Flow id="srtp-dtls" eyebrow="Call flow · DTLS-SRTP" />
+
+<RfcQuote id="rfc5763-5-fingerprint" />
+
+A proxy cannot read DTLS-SRTP keys. But an attacker who can **change** the SDP can replace both fingerprints and sit in the middle of the handshake. The defence is to sign the SDP: an Identity header (STIR, Module 28) covers the fingerprint.
+
+### ZRTP: the keys from the media stream, checked by the users
+
+<Term t="ZRTP" /> needs nothing in the SIP or the SDP. The two phones run a Diffie-Hellman exchange inside the media stream. Then each phone shows a short code, such as "alpha bravo", and the two people read it to each other. A man in the middle would produce two different codes.
+
+<RfcQuote id="rfc6189-1-sas" />
+
+<RfcQuote id="rfc6189-1-no-sip" />
+
+ZRTP needs no server and no certificate, but it needs a ZRTP phone at each end, and users who actually compare the code. It is rare outside secure-phone apps.
+
+Compare where the keys travel, and what three kinds of attacker can read:
+
+<KeyExchange />
+
+| | SDES | DTLS-SRTP | ZRTP |
+|---|---|---|---|
+| **Keys in** | The SDP (`a=crypto`) | A DTLS handshake on the media ports | A Diffie-Hellman exchange in the media |
+| **SDP carries** | The keys | Fingerprints and `a=setup` | Nothing (optionally a hash) |
+| **Needs** | SIP over TLS | Certificates (self-signed is fine) | ZRTP at both ends; users compare a code |
+| **Proxies can read the keys** | Yes | No | No |
+| **Used by** | Most SIP phones and trunks | WebRTC, newer SIP phones and SBCs | Secure-phone apps |
+
+## 18.3 Profiles: RTP/SAVP, RTP/SAVPF, and best-effort SRTP
+
+The `m=` line says whether the stream is encrypted:
+
+| Profile on the m= line | Meaning |
+|---|---|
+| `RTP/AVP` | Plain RTP |
+| `RTP/SAVP` | SRTP. Keys usually from SDES |
+| `RTP/AVPF`, `RTP/SAVPF` | The same, with RTCP feedback (Module 17) |
+| `UDP/TLS/RTP/SAVP`, `UDP/TLS/RTP/SAVPF` | SRTP with keys from DTLS |
+
+<RfcQuote id="rfc5764-8-proto" />
+
+An offer of `RTP/SAVP` **requires** SRTP: a phone that supports only RTP/AVP has nothing it can accept, and rejects the call with 488 Not Acceptable Here. To encrypt when possible and still reach older phones, many devices send **best-effort SRTP**: `RTP/AVP` with `a=crypto`. A phone that knows SRTP answers with its own `a=crypto` and both encrypt; a phone that does not ignores the attribute and answers plain RTP.
+
+<CompareFlows a="srtp-savp-488" b="srtp-best-effort" labels={['RTP/SAVP only: 488', 'Best effort: RTP/AVP with a=crypto']} />
+
+<RfcQuote id="rfc4568-6-savp" />
+
+Best-effort SRTP is not in RFC 4568, but it is common. The standard way to offer both is SDP capability negotiation (RFC 5939), which few devices support. Whatever the method, the user should see whether the call is encrypted, because best effort can quietly fall back to plain RTP.
+
+## 18.4 New keys on re-INVITE; SRTP to RTP at an SBC
+
+**re-INVITE with SDES.** Each new offer can keep the keys or send new ones; many phones send new keys in every offer. For a moment, the receiver must accept packets with both the old and the new key: SRTP authentication tells it which key a packet uses.
+
+<RfcQuote id="rfc4568-7.1.4-rekey" />
+
+**re-INVITE with DTLS-SRTP.** A new offer keeps the same DTLS association, and the same keys, unless something changes it: a new `a=tls-id`, a new fingerprint, or new addresses (RFC 8842). Then the phones run a new handshake.
+
+**SRTP to RTP at an SBC.** Many carrier trunks accept only plain RTP. The SBC at the edge then terminates SRTP: it decrypts the media from the phone, and sends plain RTP to the carrier. The SBC is a B2BUA (Module 25), so it can also translate SDES on one side to DTLS-SRTP on the other.
+
+```
+Alice ── SIP/TLS + SRTP (SDES) ──► SBC ── SIP/UDP + RTP ──► Carrier
+                                    │
+                         decrypts and re-encrypts here
+```
+
+| Leg | Signaling | Media | Who can listen |
+|---|---|---|---|
+| Phone to SBC | SIP over TLS, SDES keys | SRTP | Only the phone and the SBC |
+| SBC to carrier | SIP over UDP or TLS | RTP or SRTP | Anyone on that path, if it is RTP |
+
+Media security is hop by hop as soon as an SBC is in the middle: the call is only as private as its least protected leg.
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="SDES over SIP without TLS, so the keys are visible on the network">
+    A phone is set to "SRTP: required" but its SIP transport is still UDP. The media is SRTP, the call shows a lock icon, and a capture of RTP shows only encrypted payloads. But the INVITE and the 200 OK carry both keys in `a=crypto`, in plain text. Anyone who captures the signaling can decrypt every packet with free tools.
+
+    <BrokenFixedFlow broken="srtp-sdes-udp" fixed="srtp-sdes-tls" />
+
+    <p class="fix"><b>Remember:</b> SDES keys are only as secret as the SIP that carries them. Use SIP over TLS (or WSS) on every hop that carries <code>a=crypto</code>, or use DTLS-SRTP, which puts no key in the SDP. Turn on <b>Attacker with the key</b> in the SRTP tool above to see what a captured key gives away.</p>
+  </Mistake>
+
+  <Mistake title="Offering RTP/SAVP to a peer that supports only RTP/AVP, which gives 488">
+    A company turns on SRTP on its phones, and calls to one supplier start to fail with 488 Not Acceptable Here. The phones offer only `m=audio … RTP/SAVP`; the supplier's PBX knows only RTP/AVP, so no stream can be accepted. Internal calls work, which hides the problem until someone calls out.
+
+    <CompareFlows a="srtp-savp-488" b="srtp-best-effort" labels={['RTP/SAVP: 488', 'Best effort: call works']} />
+
+    <p class="fix"><b>Remember:</b> require RTP/SAVP only towards peers that support it. Towards others, offer best-effort SRTP (RTP/AVP with <code>a=crypto</code>) or let the SBC terminate SRTP. A 488 with a Warning header that names the transport is the clue.</p>
+  </Mistake>
+
+  <Mistake title="Both sides use the same DTLS a=setup role">
+    A phone offers `a=setup:active` instead of `actpass`, and the other side, which prefers to be active, also answers `active`. Both send a DTLS ClientHello; neither answers as a server; the handshake never finishes. The SIP call is connected, but there are no SRTP keys, so there is no audio. The same happens with `passive` on both sides: each waits for the other.
+
+    <BrokenFixedFlow broken="srtp-dtls-both-active" fixed="srtp-dtls" />
+
+    <RfcQuote id="rfc4145-4.1-roles" />
+
+    <p class="fix"><b>Remember:</b> an offer for DTLS-SRTP says <code>a=setup:actpass</code>; the answer says <code>active</code> (recommended) or <code>passive</code>, never <code>actpass</code>, and never the same fixed role as the offer. In a capture, two ClientHellos and no ServerHello mean a role clash.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- **SRTP** encrypts the RTP payload with AES and adds an authentication tag (usually 10 bytes). The header stays readable but cannot be changed. **SRTCP** protects RTCP the same way.
+- Session keys come from a **master key and salt**; each packet has its own IV, from the salt, the SSRC, and the packet index.
+- **SDES** sends the keys in `a=crypto`: simple, but every proxy can read them, and without TLS anyone can. **DTLS-SRTP** sends only fingerprints and makes the keys in a handshake on the media path; `a=setup` (`actpass` in the offer, `active` or `passive` in the answer) picks the DTLS client. **ZRTP** makes the keys in the media and lets the users compare a code.
+- `RTP/SAVP` requires SRTP and gets 488 from a peer that cannot do it; **best-effort SRTP** offers `RTP/AVP` with `a=crypto`. DTLS-SRTP uses `UDP/TLS/RTP/SAVP`.
+- A re-INVITE may bring new SDES keys, or a new DTLS handshake. An **SBC** that terminates SRTP decrypts the media: privacy is only as strong as the weakest leg.

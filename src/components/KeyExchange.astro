@@ -1,0 +1,8 @@
+---
+/** <KeyExchange /> : SDES over UDP and TLS, DTLS-SRTP, and ZRTP, and what an attacker can read (Module 18) */
+import Island from '../diagrams/KeyExchange.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap(['rfc4568-8.3-tls', 'rfc4568-8.3-intermediaries', 'rfc5763-5-media-path', 'rfc6189-1-sas']);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

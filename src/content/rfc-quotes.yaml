@@ -3928,3 +3928,212 @@
     It is expressed as an integer in the range 0 to 100, with a value of 94
     corresponding to "toll quality" and values of 50 or less regarded as
     unusable.
+
+# --- Module 18: SRTP and media security ------------------------------------
+
+- id: rfc3711-3-profile
+  rfc: 3711
+  section: "3"
+  title: SRTP Framework
+  text: >-
+    We define SRTP as a profile of RTP.
+
+- id: rfc3711-3-srtcp
+  rfc: 3711
+  section: "3"
+  title: SRTP Framework
+  text: >-
+    Secure RTCP (SRTCP) provides the same security services to RTCP as SRTP
+    does to RTP.
+
+- id: rfc3711-3.1-encrypted
+  rfc: 3711
+  section: "3.1"
+  title: Secure RTP
+  text: >-
+    The "Encrypted Portion" of an SRTP packet consists of the encryption of
+    the RTP payload (including RTP padding when present) of the equivalent RTP
+    packet.
+
+- id: rfc3711-4.1.1-iv
+  rfc: 3711
+  section: "4.1.1"
+  title: AES in Counter Mode
+  text: >-
+    IV = (k_s * 2^16) XOR (SSRC * 2^64) XOR (i * 2^16)
+
+- id: rfc3711-4.2-tag
+  rfc: 3711
+  section: "4.2"
+  title: Message Authentication and Integrity
+  text: >-
+    If the two tags are equal, then the message/tag pair is valid; otherwise,
+    it is invalid and the error audit message "AUTHENTICATION FAILURE" MUST be
+    returned.
+
+- id: rfc3711-4.3.1-labels
+  rfc: 3711
+  section: "4.3.1"
+  title: Key Derivation Algorithm
+  text: >-
+    The master key and master salt MUST be random, but the master salt MAY be
+    public.
+
+- id: rfc4568-3-protect
+  rfc: 4568
+  section: "3"
+  title: Applicability
+  text: >-
+    Implementations MUST employ security mechanisms that provide
+    confidentiality and integrity for the keying material.
+
+- id: rfc4568-4-media
+  rfc: 4568
+  section: "4"
+  title: 'SDP "Crypto" Attribute and Parameters'
+  text: >-
+    The "crypto" attribute MUST only appear at the SDP media level (not at the
+    session level).
+
+- id: rfc4568-6-savp
+  rfc: 4568
+  section: "6"
+  title: SRTP Security Descriptions
+  text: >-
+    SRTP security descriptions MUST only be used with the SRTP transport
+    (e.g., "RTP/SAVP" or "RTP/SAVPF").
+
+- id: rfc4568-6.1-inline
+  rfc: 4568
+  section: "6.1"
+  title: SRTP Key Parameter
+  text: >-
+    The "inline" type of key contains the keying material (master key and
+    salt) and all policy related to that master key, including how long it can
+    be used (lifetime) and whether it uses a master key identifier (MKI) to
+    associate an incoming SRTP packet with a particular master key.
+
+- id: rfc4568-7.1.2-one
+  rfc: 4568
+  section: "7.1.2"
+  title: Generating the Initial Answer - Unicast Streams
+  text: >-
+    For each unicast media line that uses the secure RTP transport and
+    contains one or more "a=crypto" lines in the offer, the answerer MUST
+    either accept one (and only one) of the crypto lines for that media
+    stream, or it MUST reject the media stream.
+
+- id: rfc4568-7.1.2-own-key
+  rfc: 4568
+  section: "7.1.2"
+  title: Generating the Initial Answer - Unicast Streams
+  text: >-
+    When the answerer accepts an SRTP unicast media stream with a crypto line,
+    the answerer MUST include one or more master keys appropriate for the
+    selected crypto algorithm; the master key(s) included in the answer MUST
+    be different from those in the offer.
+
+- id: rfc4568-7.1.4-rekey
+  rfc: 4568
+  section: "7.1.4"
+  title: Modifying the Session
+  text: >-
+    When modifying the session, all negotiated aspects of the SRTP media
+    stream can be modified. For example, a new crypto suite can be used or a
+    new master key can be established.
+
+- id: rfc4568-8.3-tls
+  rfc: 4568
+  section: "8.3"
+  title: Signaling Authentication and Signaling Encryption
+  text: >-
+    Failure to encrypt the SDP message containing an inline SRTP master key
+    renders the SRTP authentication or encryption service useless in
+    practically all circumstances.
+
+- id: rfc4568-8.3-intermediaries
+  rfc: 4568
+  section: "8.3"
+  title: Signaling Authentication and Signaling Encryption
+  text: >-
+    Network or transport security protocols that terminate at each
+    intermediate system, therefore, SHOULD NOT be used for protecting SDP
+    security descriptions.
+
+- id: rfc5763-5-fingerprint
+  rfc: 5763
+  section: "5"
+  title: Establishing a Secure Channel
+  text: >-
+    The certificate presented during the DTLS handshake MUST match the
+    fingerprint exchanged via the signaling path in the SDP.
+
+- id: rfc5763-5-active
+  rfc: 5763
+  section: "5"
+  title: Establishing a Secure Channel
+  text: >-
+    setup:active allows the answer and the DTLS handshake to occur in
+    parallel. Thus, setup:active is RECOMMENDED.
+
+- id: rfc5763-5-media-path
+  rfc: 5763
+  section: "5"
+  title: Establishing a Secure Channel
+  text: >-
+    Note that the entire authentication and key exchange for securing the
+    media traffic is handled in the media path through DTLS. The signaling
+    path is only used to verify the peers' certificate fingerprints.
+
+- id: rfc5764-3-overview
+  rfc: 5764
+  section: "3"
+  title: Overview of DTLS-SRTP Operation
+  text: >-
+    The keying material from that handshake is fed into the SRTP stack.
+
+- id: rfc5764-8-proto
+  rfc: 5764
+  section: "8"
+  title: Session Description for RTP/SAVP over DTLS
+  text: >-
+    When a RTP/SAVP or RTP/SAVPF stream is transported over DTLS with UDP, the
+    token SHALL be UDP/TLS/RTP/SAVP or UDP/TLS/RTP/SAVPF respectively.
+
+- id: rfc8842-5.2-actpass
+  rfc: 8842
+  section: "5.2"
+  title: Generating the Initial SDP Offer
+  text: >-
+    When an offerer sends the initial offer, the offerer MUST insert an SDP
+    "setup" attribute [RFC4145] with an "actpass" attribute value, as well as
+    one or more SDP "fingerprint" attributes according to the procedures in
+    [RFC8122].
+
+- id: rfc4145-4.1-roles
+  rfc: 4145
+  section: "4.1"
+  title: The Setup Attribute in the Offer/Answer Model
+  text: >-
+    The offerer states which role or roles it is willing to perform; and the
+    answerer, taking the offerer's willingness into consideration, chooses
+    which roles both endpoints will actually perform during connection
+    establishment.
+
+- id: rfc6189-1-sas
+  rfc: 6189
+  section: "1"
+  title: Introduction
+  text: >-
+    It uses ephemeral Diffie-Hellman (DH) with hash commitment and allows the
+    detection of man-in-the-middle (MiTM) attacks by displaying a short
+    authentication string (SAS) for the users to read and verbally compare
+    over the phone.
+
+- id: rfc6189-1-no-sip
+  rfc: 6189
+  section: "1"
+  title: Introduction
+  text: >-
+    It also does not rely on SIP signaling for the key management, and in
+    fact, it does not rely on any servers at all.

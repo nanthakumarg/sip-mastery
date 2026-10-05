@@ -285,6 +285,15 @@
   definition: Secure RTP. It encrypts and authenticates media packets.
 - term: TLS
   definition: Transport Layer Security. It encrypts SIP between two hops.
+- term: DTLS
+  definition: TLS for UDP. DTLS-SRTP runs a DTLS handshake on the media ports to create the SRTP keys.
+- term: SDES
+  aliases: [security descriptions]
+  definition: SRTP keys sent in the SDP, in a=crypto lines (RFC 4568). Safe only when the SIP travels over TLS.
+- term: ZRTP
+  definition: A key exchange inside the media stream. The callers compare a short code to detect a man in the middle.
+- term: fingerprint
+  definition: The hash of a certificate, sent in the SDP (a=fingerprint), so the other side can check the certificate in a DTLS handshake.
 - term: offer
   aliases: [SDP offer]
   definition: The SDP that one side sends first, listing the media it wants and the codecs it can use.

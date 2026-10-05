@@ -1736,3 +1736,65 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 .mos-formula { margin-top: 12px; font: 400 13px var(--mono); color: var(--dim); overflow-wrap: anywhere; }
 .mos-formula b { color: var(--text); }
 @media (max-width: 600px) { .mos-scale { height: 26px; } .mos-band { font-size: 0; } }
+
+/* ---------- SRTP packet (Module 18) ---------- */
+.srtpx { max-width: 1200px; }
+.srtpx-lg-enc { background: var(--muted); }
+.srtpx-lg-tag { background: var(--rtcp); }
+.srtpx-input { margin-top: 14px; }
+.srtpx-input input { font-size: 13.5px; }
+.srtpx-seq { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 10px; font: 400 13px var(--mono); color: var(--muted); }
+.srtpx-seq b { color: var(--text); font-weight: 500; }
+.srtpx-steps { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+.srtpx-steps li { padding: 10px 12px; background: var(--panel); border: 1px solid var(--line-2); border-left: 3px solid var(--rtp); border-radius: 0 6px 6px 0; display: grid; gap: 4px; min-width: 0; }
+.srtpx-h { font: 600 14px var(--display); color: var(--text); }
+.srtpx-h span { margin-left: 8px; font: 400 11.5px var(--mono); color: var(--muted); }
+.srtpx-steps code { display: block; background: none; border: 0; padding: 0; font: 400 12.5px/1.6 var(--mono); color: var(--dim); white-space: normal; overflow-wrap: anywhere; }
+.srtpx-dim { color: var(--muted); }
+.srtpx-bytes { font: 400 12.5px/1.7 var(--mono); overflow-wrap: anywhere; }
+.srtpx-bytes .b-hdr { color: var(--rtp); }
+.srtpx-bytes .b-enc { color: var(--muted); }
+.srtpx-bytes .b-tag { color: var(--rtcp); font-weight: 600; }
+.srtpx-note { font-size: 14px; color: var(--dim); }
+.srtpx-note code { display: inline; }
+.srtpx-views { margin-top: 14px; flex-wrap: wrap; }
+.srtpx-attack { margin-top: 10px; padding: 12px; background: var(--panel); border: 1px solid var(--line-2); border-left: 3px solid var(--text); border-radius: 0 8px 8px 0; display: grid; gap: 8px; font-size: 15px; color: var(--dim); min-height: 90px; }
+.srtpx-attack.is-bad { border-left-color: var(--err); }
+.srtpx-attack b { color: var(--text); }
+
+/* ---------- Key exchange comparison (Module 18) ---------- */
+.kex { max-width: 1300px; }
+.kex-tabs { margin-top: 14px; flex-wrap: wrap; }
+.kex-where { margin-top: 10px; font-size: 15px; color: var(--dim); }
+.kex-where b { color: var(--text); }
+.kex-main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; align-items: start; }
+.kex-ladder { min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+.kex-ladder svg { width: 100%; min-width: 460px; display: block; }
+.kex-lane { font: 600 14px var(--display); fill: var(--text); }
+.kex-life { stroke: var(--line); stroke-width: 1.5; }
+.kex-msg line { stroke-width: 2; }
+.kex-msg text { font: 400 11.5px var(--mono); fill: var(--dim); }
+.kex-msg.k-sip line { stroke: var(--sip); } .kex-msg.k-sip path { fill: var(--sip); }
+.kex-msg.k-sipkey line { stroke: var(--sip); } .kex-msg.k-sipkey path { fill: var(--sip); }
+.kex-msg.k-sipkey:not(.is-tls) text { fill: var(--err); }
+.kex-msg .kex-tls { stroke: var(--sip); stroke-width: 1.2; }
+.kex-msg.k-dtls line, .kex-msg.k-zrtp line { stroke: var(--dns); } .kex-msg.k-dtls path, .kex-msg.k-zrtp path { fill: var(--dns); }
+.kex-msg.k-srtp line { stroke: var(--rtp); stroke-dasharray: 6 4; } .kex-msg.k-srtp path { fill: var(--rtp); }
+.kex-capture { min-width: 0; padding: 12px; background: var(--bg-deep); border: 1px solid var(--line-2); border-radius: 8px; display: grid; gap: 8px; align-content: start; }
+.kex-capture ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.kex-capture li { display: grid; gap: 2px; padding-left: 10px; border-left: 3px solid var(--line); }
+.kex-capture li.v-exposed { border-left-color: var(--err); }
+.kex-capture li.v-safe { border-left-color: var(--rtcp); }
+.kex-what { font: 500 12px var(--mono); color: var(--muted); }
+.kex-capture code { background: none; border: 0; padding: 0; font: 400 12.5px var(--mono); color: var(--text); white-space: normal; overflow-wrap: anywhere; }
+.kex-capture li.v-exposed code { color: var(--err); }
+.kex .kex-table { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: 14.5px; }
+.kex .kex-table th, .kex .kex-table td { padding: 7px 10px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: top; letter-spacing: 0; text-transform: none; font-size: 14.5px; }
+.kex .kex-table thead th { font: 500 11px var(--mono); color: var(--muted); }
+.kex .kex-table th[scope=row] { font-weight: 500; color: var(--text); }
+.kex .kex-table td { color: var(--dim); }
+.kex-table tr.v-exposed b { color: var(--err); }
+.kex-table tr.v-safe b { color: var(--rtcp); }
+.kex-table tr.v-partly b { color: var(--sip); }
+.kex .ud-q { margin-top: 10px; }
+@media (max-width: 900px) { .kex-main { grid-template-columns: minmax(0, 1fr); } }

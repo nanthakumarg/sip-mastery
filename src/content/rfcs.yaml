@@ -80,6 +80,10 @@ rfcs:
   - { n: 4568, area: media, proto: sdp, short: SDES, summary: "Media keys in SDP (a=crypto).", modules: [18] }
   - { n: 5763, area: media, proto: sdp, short: DTLS-SRTP framework, summary: "SRTP keys set up with DTLS. SDP carries a fingerprint of the certificate.", modules: [18] }
   - { n: 5764, area: media, proto: rtp, short: DTLS-SRTP, summary: "The DTLS extension that sets up SRTP keys.", modules: [18] }
+  - { n: 8842, area: media, proto: sdp, short: DTLS in SDP offer/answer, summary: "How offers and answers set up and reuse DTLS associations: a=setup, a=fingerprint, a=tls-id.", modules: [18] }
+  - { n: 4145, area: media, proto: sdp, short: The setup attribute, summary: "The a=setup roles (active, passive, actpass) for connection-oriented media, which DTLS-SRTP reuses.", modules: [18] }
+  - { n: 7714, area: media, proto: rtp, short: AES-GCM for SRTP, summary: "The AEAD_AES_128_GCM and AEAD_AES_256_GCM SRTP crypto-suites.", modules: [18] }
+  - { n: 5939, area: media, proto: sdp, short: SDP capability negotiation, summary: "A way to offer SRTP and RTP at the same time, as alternatives.", modules: [18] }
   - { n: 6189, area: media, proto: rtp, short: ZRTP, summary: "Key agreement inside the media path.", modules: [18] }
 
   # --- NAT traversal --------------------------------------------------------------

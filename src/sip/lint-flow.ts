@@ -7,7 +7,7 @@ import { liveDialogFor, trackDialogs, uriList, uriOf } from './dialog.ts';
 import type { PreparedFlow, PreparedStep } from './flow.ts';
 import { inDialogTarget, isLoose, viaList } from './routing.ts';
 import { contactsOf, DEFAULT_POLICY, parseContactHeader, runRegistrar, sameUri } from './registrar.ts';
-import { checkAnswer, checkNewVersion, isPrivateAddress, sdpBody, sdpOf, type Sdp } from './sdp.ts';
+import { checkAnswer, checkDtlsAnswer, checkDtlsOffer, checkNewVersion, hasSdesKey, isPrivateAddress, sdpBody, sdpOf, type Sdp } from './sdp.ts';
 import { classify } from '../net/address.ts';
 import {
   byteLength, cseq, getHeader, getHeaders, headerParam, isRequest, isResponse, tagOf, topVia,
@@ -453,6 +453,8 @@ function checkUserEnumeration(msgs: MsgStep[], add: Add) {
  *  - sdp-mlines (RFC 3264 §6, §8): the answer has the m= lines of the offer, in order; m= lines never go away.
  *  - answer-codec, answer-direction (RFC 3264 §6.1): an accepted stream shares a codec, and its direction fits the offer.
  *  - sdp-private-address (RFC 6314 §3): a private media address does not reach a user agent on the public Internet.
+ *  - sdes-over-tls (RFC 4568 §8.3): an SDP with an SDES key (a=crypto inline) travels only over TLS.
+ *  - dtls-setup (RFC 8842 §5.2, RFC 4145 §4.1): a DTLS-SRTP offer says actpass; the answer says active or passive.
  * Offers and answers are tracked on each hop, so a proxy that forwards the SDP
  * unchanged sees the same exchange as the user agents.
  */
@@ -487,6 +489,10 @@ function checkSdp(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
     for (const e of sdp.issues.filter(x => x.severity === 'error')) {
       add('sdp-syntax', s.index, `SDP${e.line !== undefined ? ` line ${e.line + 1}` : ''}: ${e.message}`);
     }
+    if (hasSdesKey(sdp)) {
+      const t = viaList(m)[0]?.transport.toUpperCase();
+      if (t !== 'TLS' && t !== 'WSS') add('sdes-over-tls', s.index, `The SDP carries an SRTP key in a=crypto, but this hop is ${t ?? 'unknown'}, not TLS: anyone on the path can read the key and decrypt the media`);
+    }
     if (publicUa(s.to)) {
       const priv = [...new Set([sdp.c, ...sdp.media.map(x => x.c)].filter(x => x && x.address !== '0.0.0.0' && isPrivateAddress(x.address)).map(x => x!.address))];
       for (const a of priv) add('sdp-private-address', s.index, `The SDP gives ${a}, a private address, to ${lanes.get(s.to)?.label ?? s.to} on the public Internet. Media sent there never arrives`);
@@ -508,10 +514,12 @@ function checkSdp(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
     }
 
     const answer = (offer: Offer) => {
-      for (const e of checkAnswer(offer.sdp, effective)) add(e.rule, s.index, e.message);
+      for (const e of [...checkAnswer(offer.sdp, effective), ...checkDtlsAnswer(offer.sdp, effective)]) add(e.rule, s.index, e.message);
     };
-    const offer = (inResponse: boolean) =>
+    const offer = (inResponse: boolean) => {
+      for (const e of checkDtlsOffer(effective)) add(e.rule, s.index, e.message);
       st.offers.push({ by: s.from, seq: c.seq, method: c.method, inResponse, sdp: effective, answered: new Set(), revert });
+    };
     if (m.kind === 'request') {
       // An offer in a 2xx or reliable 1xx is answered in the ACK or PRACK (RFC 3261 §13.2.1, RFC 3262 §5).
       const late = m.method === 'ACK' || m.method === 'PRACK' ? st.offers.find(o => o.by !== s.from && o.inResponse) : undefined;

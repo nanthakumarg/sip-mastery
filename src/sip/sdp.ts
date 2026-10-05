@@ -8,6 +8,7 @@
  * The diagrams are src/diagrams/OfferAnswer.tsx, SdpLinter.tsx, and HoldPlayer.tsx.
  */
 import { classify } from '../net/address.ts';
+import { parseCrypto, SETUP_ANSWERS, type SetupRole } from '../net/srtp.ts';
 
 export type Direction = 'sendrecv' | 'sendonly' | 'recvonly' | 'inactive';
 export const DIRECTIONS: Direction[] = ['sendrecv', 'sendonly', 'recvonly', 'inactive'];
@@ -384,7 +385,15 @@ function parseAttribute(
     case 'mid':
       if (sec) sec.mid = value;
       break;
-    case 'crypto':
+    case 'crypto': {
+      if (level < 0) { issue('rfc4568-4-media', 'error', 'a=crypto is a media-level attribute; it must not be at the session level.', line.n); break; }
+      const c = parseCrypto(value ?? '');
+      for (const e of c.issues) issue('rfc4568-6.1-inline', 'error', `a=crypto: ${e}`, line.n);
+      if (sec && !/SAVP/.test(sec.proto)) issue('rfc4568-6-savp', 'warn', `a=crypto on ${sec.proto}: "best-effort SRTP". RFC 4568 defines a=crypto only for RTP/SAVP and RTP/SAVPF.`, line.n);
+      break;
+    }
+    case 'setup':
+      if (!['actpass', 'active', 'passive', 'holdconn'].includes(value ?? '')) issue('rfc8842-5.2-actpass', 'error', `a=setup:${value} is not a role. Use actpass, active, passive, or holdconn.`, line.n);
       break;
   }
 }
@@ -426,8 +435,19 @@ function explainAttribute(l: SdpLine, sdp: Sdp): string {
     case 'group': l.rule = 'rfc9143-5-bundle'; return value.startsWith('BUNDLE')
       ? `BUNDLE: the streams ${value.split(' ').slice(1).join(' and ')} share one address and port (RFC 9143).`
       : `A group of streams: ${value}.`;
-    case 'crypto': return 'An SRTP key (SDES, RFC 4568). Anyone who reads this SDP can decrypt the media, so send it only over TLS (Module 18).';
-    case 'fingerprint': return 'The hash of the DTLS certificate, for DTLS-SRTP (Module 18).';
+    case 'crypto': {
+      l.rule = 'rfc4568-8.3-tls';
+      const c = parseCrypto(value);
+      return `SDES key ${c.tag}: suite ${c.suiteName}, and the master key and salt in base64. Anyone who reads this SDP can decrypt the media, so it must travel only over TLS (Module 18).`;
+    }
+    case 'fingerprint': l.rule = 'rfc5763-5-fingerprint'; return `The ${value.split(' ')[0]} hash of this side's DTLS certificate. The DTLS handshake on the media path must show the same certificate (DTLS-SRTP, Module 18).`;
+    case 'setup': l.rule = 'rfc8842-5.2-actpass'; return {
+      actpass: 'DTLS role: either. The answerer chooses; an offer for DTLS-SRTP always says actpass.',
+      active: 'DTLS role: active. This side starts the DTLS handshake (it is the DTLS client).',
+      passive: 'DTLS role: passive. This side waits for the other side to start the DTLS handshake.',
+      holdconn: 'DTLS role: none for now. No connection yet.',
+    }[value] ?? 'A DTLS (or TCP) setup role.';
+    case 'tls-id': return 'An ID for the DTLS association. A new value means a new DTLS handshake (RFC 8842).';
     case 'ice-ufrag': case 'ice-pwd': return 'ICE credentials (Module 20).';
     case 'candidate': return 'An ICE candidate: an address where this side might receive media (Module 20).';
     case 'silenceSupp': return 'Silence suppression settings, an old attribute from RFC 3108.';
@@ -729,3 +749,46 @@ export function sdpOf(contentType: string | undefined, body: string): Sdp | unde
   if (!ct && !/^v=/.test(body)) return undefined;
   return parseSdp(body);
 }
+
+// ---------------------------------------------------------------------------
+// Media security in offers and answers (Module 18)
+
+/** The a=setup role of a stream: media level, else session level. */
+export function setupOf(sdp: Sdp, i: number): SetupRole | undefined {
+  const a = sdp.media[i]?.attrs.find(x => x.name === 'setup') ?? sdp.attrs.find(x => x.name === 'setup');
+  return a?.value as SetupRole | undefined;
+}
+
+const usesDtls = (sdp: Sdp, i: number) =>
+  /^(UDP|TCP|DCCP)\/TLS\//.test(sdp.media[i]?.proto ?? '') || !!(sdp.media[i]?.attrs.some(a => a.name === 'fingerprint') || sdp.attrs.some(a => a.name === 'fingerprint'));
+
+/** RFC 8842 §5.2: an offer for DTLS-SRTP says a=setup:actpass. */
+export function checkDtlsOffer(offer: Sdp): ExchangeIssue[] {
+  const out: ExchangeIssue[] = [];
+  offer.media.forEach((m, i) => {
+    if (m.port === 0 || !usesDtls(offer, i)) return;
+    const role = setupOf(offer, i);
+    if (role !== 'actpass') out.push({ rule: 'dtls-setup', message: `The offer for ${m.media} has a=setup:${role ?? '(none)'}; an offerer must say actpass and let the answerer choose` });
+  });
+  return out;
+}
+
+/** RFC 4145 §4.1, RFC 5763 §5: the answer picks active or passive, the opposite of a fixed role in the offer. */
+export function checkDtlsAnswer(offer: Sdp, answer: Sdp): ExchangeIssue[] {
+  const out: ExchangeIssue[] = [];
+  answer.media.forEach((m, i) => {
+    if (m.port === 0 || !usesDtls(answer, i)) return;
+    const o = setupOf(offer, i) ?? 'active', a = setupOf(answer, i) ?? 'passive';
+    if (!SETUP_ANSWERS[o]?.includes(a) || a === 'actpass') {
+      const why = a === 'actpass' ? 'the answerer must choose active or passive'
+        : a === 'active' ? 'both sides start a DTLS handshake as the client, and neither answers as the server'
+        : a === 'passive' ? 'both sides wait for the other to start the DTLS handshake'
+        : `${a} is not an answer to ${o}`;
+      out.push({ rule: 'dtls-setup', message: `The offer has a=setup:${o} and the answer a=setup:${a}: ${why}` });
+    }
+  });
+  return out;
+}
+
+/** True when any stream carries an SDES key in the SDP. */
+export const hasSdesKey = (sdp: Sdp) => sdp.media.some(m => m.attrs.some(a => a.name === 'crypto' && /inline:/.test(a.value ?? '')));

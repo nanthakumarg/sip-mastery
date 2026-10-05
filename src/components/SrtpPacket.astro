@@ -1,0 +1,8 @@
+---
+/** <SrtpPacket /> : an RTP packet and an a=crypto key to SRTP, with real AES and HMAC (RFC 3711, Module 18) */
+import Island from '../diagrams/SrtpPacket.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap(['rfc3711-4.1.1-iv', 'rfc3711-3.1-encrypted', 'rfc4568-8.3-tls', 'rfc3711-4.2-tag']);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

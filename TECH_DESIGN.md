@@ -65,6 +65,7 @@ sip-course/
 │  │  ├─ packet.ts               # Ethernet / IPv4 / UDP frame builder (Module 2)
 │  │  ├─ rtp.ts                  # RTP header, telephone-event, bandwidth, jitter buffer (Module 16)
 │  │  ├─ rtcp.ts                 # RTCP SR/RR/SDES/BYE, round-trip time, E-model (Module 17)
+│  │  ├─ srtp.ts                 # SRTP key derivation, AES-CM, HMAC-SHA1 (WebCrypto); a=crypto, a=setup (Module 18)
 │  │  └─ bits.ts                 # field type for the bit-map diagrams (src/diagrams/BitMap.tsx)
 │  ├─ diagrams/                  # React islands
 │  │  ├─ Ladder.tsx              # call-flow ladder, step player
@@ -233,6 +234,8 @@ Rendering choices:
 | `answer-codec` | An accepted stream in the answer has at least one codec from the offer (RFC 3264 §6.1) |
 | `answer-direction` | The direction in the answer is one that the offered direction allows: sendonly → recvonly or inactive, and so on (RFC 3264 §6.1) |
 | `sdp-private-address` | A private `c=` address does not reach a user agent with a public address (RFC 6314 §3) |
+| `sdes-over-tls` | An SDP with an SDES key (`a=crypto` with `inline:`) travels only on a TLS (or WSS) hop, from the top Via (RFC 4568 §8.3) |
+| `dtls-setup` | A DTLS-SRTP offer says `a=setup:actpass`; the answer says `active` or `passive`, the opposite of a fixed role in the offer (RFC 8842 §5.2, RFC 4145 §4.1) |
 
 ### 6.2 Diagram language checks (`lint-diagram.ts`)
 | Rule ID | Check |

@@ -1,0 +1,126 @@
+id: srtp-dtls
+title: "DTLS-SRTP: keys from a handshake on the media path"
+summary: "The SDP carries only certificate fingerprints. A DTLS handshake on the media ports creates the SRTP keys."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: alice
+    to: bob
+    label: "INVITE (UDP/TLS/RTP/SAVP)"
+    caption: "The offer has no key. It has the fingerprint of Alice's certificate, and a=setup:actpass: Bob chooses the DTLS role."
+    rfc: rfc8842-5.2-actpass
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKd7c1e9i
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: d7c1e9a4f2@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 UDP/TLS/RTP/SAVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+      a=setup:actpass
+      a=fingerprint:sha-256 4A:AD:B9:B1:3F:82:18:3B:54:02:12:DF:3E:5D:49:6B:19:E5:7C:AB:3E:4B:65:7D:D1:93:A0:72:CF:1B:9C:0D
+
+  - from: bob
+    to: alice
+    label: "200 OK (setup:active)"
+    caption: "Bob answers a=setup:active: he will start the DTLS handshake. His fingerprint is in the answer."
+    rfc: rfc5763-5-active
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKd7c1e9i
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: d7c1e9a4f2@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 UDP/TLS/RTP/SAVP 0 101
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+      a=setup:active
+      a=fingerprint:sha-256 D1:2C:6E:94:05:7A:B3:31:88:FE:4C:19:6D:A2:5B:E7:30:09:7F:CC:41:2E:A8:5D:93:6B:F0:17:22:C4:8E:51
+
+  - from: alice
+    to: bob
+    label: "ACK"
+    caption: "The call is up. The media is not yet secure."
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKd7c1e9ia
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: d7c1e9a4f2@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: 0
+
+  - kind: media
+    from: bob
+    to: alice
+    proto: net
+    label: "DTLS ClientHello"
+    caption: "Bob starts the handshake on the media ports, 3456 to 49170. DTLS, not SIP, carries the key exchange."
+    oneway: true
+    detail: |
+      UDP  203.0.113.20:3456 → 192.0.2.10:49170
+      DTLS 1.2  ClientHello
+        use_srtp extension: SRTP_AES128_CM_HMAC_SHA1_80
+
+  - kind: media
+    from: alice
+    to: bob
+    proto: net
+    label: "DTLS ServerHello, Certificate"
+    caption: "Alice answers with her certificate. Bob checks that its hash matches the fingerprint in her SDP."
+    rfc: rfc5763-5-fingerprint
+    oneway: true
+    detail: |
+      UDP  192.0.2.10:49170 → 203.0.113.20:3456
+      DTLS 1.2  ServerHello, Certificate, CertificateRequest, ServerHelloDone
+        sha-256 of the certificate = 4A:AD:B9:B1:... (the a=fingerprint in the offer)
+
+  - kind: media
+    from: bob
+    to: alice
+    proto: net
+    label: "DTLS Certificate, Finished"
+    caption: "Bob sends his certificate; Alice checks it against his fingerprint. Both derive the SRTP keys from the handshake."
+    oneway: true
+    detail: |
+      UDP  203.0.113.20:3456 → 192.0.2.10:49170
+      DTLS 1.2  Certificate, ClientKeyExchange, CertificateVerify, Finished
+        SRTP keys: exported from the DTLS master secret (RFC 5764)
+
+  - kind: media
+    from: alice
+    to: bob
+    label: "SRTP audio"
+    caption: "The media is SRTP. The keys never appeared in SIP, so a proxy that reads the SDP still cannot decrypt."
+    detail: |
+      UDP  192.0.2.10:49170 → 203.0.113.20:3456
+
+      RTP header (readable)   V=2  PT=0 (PCMU)  seq=26232  ts=2412530560  SSRC=0x3a5f12c4
+      Payload (encrypted)     9f 3c e1 07 5a d2 81 4b c6 ... 160 bytes, AES-CM
+      Auth tag                10 bytes, HMAC-SHA1
