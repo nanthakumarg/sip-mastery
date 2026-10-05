@@ -1798,3 +1798,29 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 .kex-table tr.v-partly b { color: var(--sip); }
 .kex .ud-q { margin-top: 10px; }
 @media (max-width: 900px) { .kex-main { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Transport race (Module 19) ---------- */
+.trace { max-width: 1200px; }
+.trace-lg-ok { background: var(--rtcp); }
+.trace-row { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin-top: 12px; }
+.trace-mtu { flex-wrap: wrap; }
+.trace-rule { margin-top: 12px; padding: 8px 12px; border-left: 3px solid var(--rtcp); background: var(--panel); border-radius: 0 6px 6px 0; font-size: 14.5px; color: var(--dim); }
+.trace-rule.is-bad { border-left-color: var(--err); }
+.trace-rule b { color: var(--text); }
+.trace-lanes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 14px; }
+.trace-lane { min-width: 0; padding: 12px; background: var(--panel); border: 1px solid var(--line-2); border-left: 3px solid var(--rtcp); border-radius: 0 8px 8px 0; display: grid; gap: 8px; align-content: start; }
+.trace-lane.is-bad { border-left-color: var(--err); }
+.trace-name { font: 700 16px var(--display); color: var(--text); }
+.trace-name span { margin-left: 8px; font: 400 11.5px var(--mono); color: var(--muted); }
+.trace-sends { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.trace-sends li { display: grid; grid-template-columns: 118px auto minmax(0, 1fr); gap: 10px; align-items: center; font: 400 12.5px var(--mono); color: var(--muted); }
+.trace-t { white-space: nowrap; }
+.trace-frags { display: inline-flex; gap: 3px; }
+.trace-frags i { width: 22px; height: 16px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font: 700 10px var(--mono); font-style: normal; }
+.trace-frags i.is-ok { background: var(--rtcp); }
+.trace-frags i.is-lost { background: transparent; border: 1.5px solid var(--down); color: var(--down); }
+.trace-v { color: var(--dim); }
+.trace-result { font-size: 14.5px; color: var(--text); }
+.trace-lane.is-bad .trace-result { color: var(--err); }
+@media (max-width: 800px) { .trace-lanes { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 420px) { .trace-sends li { grid-template-columns: 104px auto minmax(0, 1fr); gap: 6px; font-size: 11.5px; } .trace-frags i { width: 18px; } }

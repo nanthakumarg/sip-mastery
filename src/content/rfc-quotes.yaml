@@ -4137,3 +4137,190 @@
   text: >-
     It also does not rely on SIP signaling for the key management, and in
     fact, it does not rely on any servers at all.
+
+# --- Module 19: Transports ------------------------------------------------
+
+- id: rfc3261-18-mandatory
+  rfc: 3261
+  section: "18"
+  title: Transport
+  text: >-
+    All SIP elements MUST implement UDP and TCP. SIP elements MAY implement
+    other protocols.
+
+- id: rfc3261-18-keep-open
+  rfc: 3261
+  section: "18"
+  title: Transport
+  text: >-
+    It is RECOMMENDED that connections be kept open for some implementation-defined
+    duration after the last message was sent or received over that
+    connection.
+
+- id: rfc3261-18.1.1-via-change
+  rfc: 3261
+  section: "18.1.1"
+  title: Sending Requests
+  text: >-
+    If this causes a change in the transport protocol from the one indicated
+    in the top Via, the value in the top Via MUST be changed. This prevents
+    fragmentation of messages over UDP and provides congestion control for
+    larger messages.
+
+- id: rfc3261-18.1.1-reuse
+  rfc: 3261
+  section: "18.1.1"
+  title: Sending Requests
+  text: >-
+    If a request is destined to an IP address, port, and transport to which an
+    existing connection is open, it is RECOMMENDED that this connection be
+    used to send the request, but another connection MAY be opened and used.
+
+- id: rfc3261-18.1.1-ports
+  rfc: 3261
+  section: "18.1.1"
+  title: Sending Requests
+  text: >-
+    If the port is absent, the default value depends on the transport. It is
+    5060 for UDP, TCP and SCTP, 5061 for TLS.
+
+- id: rfc3261-18.2.1-listen-tcp
+  rfc: 3261
+  section: "18.2.1"
+  title: Receiving Requests
+  text: >-
+    For any port and interface that a server listens on for UDP, it MUST
+    listen on that same port and interface for TCP.
+
+- id: rfc3261-18.3-stream
+  rfc: 3261
+  section: "18.3"
+  title: Framing
+  text: >-
+    The Content-Length header field MUST be used with stream oriented
+    transports.
+
+- id: rfc5923-1-two
+  rfc: 5923
+  section: "1"
+  title: Introduction
+  text: >-
+    This frequently causes a pair of SIP entities to use one connection for
+    requests sent in each direction, as shown below.
+
+- id: rfc5923-3-tls
+  rfc: 5923
+  section: "3"
+  title: Applicability Statement
+  text: >-
+    This memo documents that it is good practice to only reuse those
+    connections where the identity of the sender can be verified by the
+    receiver.
+
+- id: rfc5923-3-nat
+  rfc: 5923
+  section: "3"
+  title: Applicability Statement
+  text: >-
+    SIP entities that can only open a connection in a specific direction --
+    perhaps because of Network Address Translation (NAT) and firewalls --
+    reuse their connections using the mechanism described in the outbound
+    document [RFC5626].
+
+- id: rfc5923-8.1-alias
+  rfc: 5923
+  section: "8.1"
+  title: Client Behavior
+  text: >-
+    The "alias" header field parameter is included in a Via header field value
+    to indicate that the client wants to create a transport layer alias.
+
+- id: rfc5922-7.8-sni
+  rfc: 5922
+  section: "7.8"
+  title: Virtual SIP Servers and Certificate Content
+  text: >-
+    Alternatively, if the TLS client hello "server_name" extension as defined
+    in RFC 4366 [4] is supported, the client SHOULD use that extension to
+    request a certificate corresponding to the specific domain (from the SIP
+    AUS) with which the client is seeking to establish a connection.
+
+- id: rfc7118-4.1-handshake
+  rfc: 7118
+  section: "4.1"
+  title: Handshake
+  text: >-
+    The client MUST include the value "sip" in the Sec-WebSocket-Protocol
+    header in its handshake request.
+
+- id: rfc7118-5-one-message
+  rfc: 7118
+  section: "5"
+  title: SIP WebSocket Transport
+  text: >-
+    Each SIP message MUST be carried within a single WebSocket message, and a
+    WebSocket message MUST NOT contain more than one SIP message.
+
+- id: rfc7118-5.1-via
+  rfc: 7118
+  section: "5.1"
+  title: Via Transport Parameter
+  text: >-
+    This document defines the value "WS" to be used for requests over plain
+    WebSocket connections and "WSS" for requests over secure WebSocket
+    connections (in which the WebSocket connection is established using TLS
+    [RFC5246] with TCP transport).
+
+- id: rfc7118-6-keepalive
+  rfc: 7118
+  section: "6"
+  title: Connection Keep-Alive
+  text: >-
+    SIP WebSocket Clients and Servers may keep their WebSocket connections
+    open by sending periodic WebSocket "Ping" frames as described in
+    [RFC6455], Section 5.5.2.
+
+- id: rfc5626-3.5-ping-pong
+  rfc: 5626
+  section: "3.5"
+  title: Keep-Alive Technique
+  text: >-
+    Each of these mechanisms uses a client-to-server "ping" keep-alive and a
+    corresponding server-to-client "pong" message.
+
+- id: rfc5626-3.5.2-stun
+  rfc: 5626
+  section: "3.5.2"
+  title: STUN Keep-Alive Technique
+  text: >-
+    To detect this, STUN requests are sent over the same flow that is being
+    used for the SIP traffic.
+
+- id: rfc5626-7-same-flow
+  rfc: 5626
+  section: "7"
+  title: 'Authoritative Proxy Procedures: Forwarding Requests'
+  text: >-
+    If the proxy is co-located with the registrar and stored information about
+    the flow to the UA that created the binding, then the proxy MUST send the
+    request over the same 'logical flow' saved with the binding, since that
+    flow is known to deliver data to the specific target UA instance's network
+    flow that was saved with the binding.
+
+- id: rfc6223-1-keep
+  rfc: 6223
+  section: "1"
+  title: Introduction
+  text: >-
+    This specification defines a new Session Initiation Protocol (SIP)
+    [RFC3261] Via header field parameter, "keep", which allows adjacent SIP
+    entities to explicitly negotiate usage of the NAT keep-alive mechanisms
+    defined in SIP Outbound.
+
+- id: rfc5630-3.1.4-tls
+  rfc: 5630
+  section: "3.1.4"
+  title: Usage of the transport=tls URI Parameter and the TLS Via Parameter
+  text: >-
+    The transport=tls parameter has never been defined in an RFC, but only in
+    some of the Internet drafts between [RFC2543] and [RFC3261].

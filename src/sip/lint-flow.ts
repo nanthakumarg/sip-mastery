@@ -80,6 +80,7 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   if (flow.trust) checkPaiTrust(flow, msgs, add);
   checkUserEnumeration(msgs, add);
   checkSdp(flow, msgs, add);
+  checkUdpSize(msgs, add);
   return issues;
 }
 
@@ -533,6 +534,21 @@ function checkSdp(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
     } else if (c.method === 'INVITE' && m.status! < 300 && !st.offers.some(o => o.by === s.from && o.inResponse)) {
       // An INVITE without an offer: the 2xx or reliable 1xx carries the offer.
       offer(true);
+    }
+  }
+}
+
+/**
+ * udp-size (RFC 3261 §18.1.1): a request larger than 1300 bytes (path MTU
+ * unknown) is not sent over UDP; it would be fragmented.
+ */
+function checkUdpSize(msgs: MsgStep[], add: Add) {
+  for (const s of msgs) {
+    if (s.parsed.kind !== 'request' || !s.wire) continue;
+    const t = viaList(s.parsed)[0]?.transport.toUpperCase();
+    const size = byteLength(s.wire);
+    if (t === 'UDP' && size > 1300) {
+      add('udp-size', s.index, `${s.parsed.method} is ${size} bytes over UDP. Above 1300 bytes, a request must go over TCP (or another congestion-controlled transport)`);
     }
   }
 }

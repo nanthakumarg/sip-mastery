@@ -1,0 +1,51 @@
+id: keepalive-crlf
+title: "Keepalives over TCP and UDP"
+summary: "Alice's phone keeps its NAT mapping open: CRLF pings over TCP, and STUN over UDP. Each ping gets a pong from the proxy."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.168.1.20 }
+  - { id: nat, label: NAT router, kind: nat, sub: 198.51.100.7 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+steps:
+  - kind: media
+    from: alice
+    to: proxyB
+    proto: rtcp
+    label: "keepalive ping (CRLF CRLF)"
+    caption: "Every 120 seconds or so, the phone sends a double CRLF on its TCP connection. It keeps the NAT mapping and the connection open."
+    rfc: rfc5626-3.5.1-crlf
+    oneway: true
+    detail: |
+      TCP data: 0d 0a 0d 0a   (CR LF CR LF)
+
+  - kind: media
+    from: proxyB
+    to: alice
+    proto: rtcp
+    label: "keepalive pong (CRLF)"
+    caption: "The proxy answers with a single CRLF. No pong means the connection is dead, and the phone registers again."
+    oneway: true
+    detail: |
+      TCP data: 0d 0a   (CR LF)
+
+  - kind: media
+    from: alice
+    to: proxyB
+    proto: dns
+    label: "keepalive (STUN request)"
+    caption: "Over UDP, CRLF is not answered. The phone sends a STUN Binding request on its SIP port instead."
+    rfc: rfc5626-3.5.2-stun
+    oneway: true
+    detail: |
+      UDP  192.168.1.20:5060 → 203.0.113.10:5060
+      STUN Binding Request
+
+  - kind: media
+    from: proxyB
+    to: alice
+    proto: dns
+    label: "keepalive (STUN response)"
+    caption: "The response says which public address and port the proxy sees. If they change, the NAT mapping changed: register again."
+    oneway: true
+    detail: |
+      STUN Binding Success Response
+        XOR-MAPPED-ADDRESS: 198.51.100.7:40112

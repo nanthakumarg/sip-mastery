@@ -60,6 +60,7 @@ import RttTimeline from '../../components/RttTimeline.astro';
 import MosCalc from '../../components/MosCalc.astro';
 import SrtpPacket from '../../components/SrtpPacket.astro';
 import KeyExchange from '../../components/KeyExchange.astro';
+import TransportRace from '../../components/TransportRace.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -95,7 +96,7 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   AttackMap, CertCheck, OfferAnswer, SdpLinter, HoldPlayer,
   RtpHeader, JitterBuffer, BandwidthCalc,
   RtcpExplorer, RttTimeline, MosCalc,
-  SrtpPacket, KeyExchange };
+  SrtpPacket, KeyExchange, TransportRace };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

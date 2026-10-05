@@ -1,0 +1,225 @@
+---
+module: 19
+title: SIP over UDP, TCP, TLS, and WebSocket
+part: 6
+level: [intermediate, advanced]
+paths: { noc: core, dev: core }
+summary: How SIP messages travel — UDP with its retransmission timers and fragmentation, the 1300-byte rule, TCP connections, framing, and reuse, TLS with SNI and certificate checks, WebSocket in the browser, the transport in Via and in URIs, keepalives, and why a server behind NAT must reuse the client's connection.
+objectives:
+  - Explain what SIP does differently over UDP and over a connection.
+  - Apply the 1300-byte rule, and predict when a proxy changes the transport.
+  - Explain IP fragmentation, and why one lost fragment loses a whole SIP message.
+  - Follow a TLS connection to a SIP server, including SNI and the certificate check.
+  - Read SIP over WebSocket, with its WSS Via and .invalid addresses.
+  - Choose a keepalive for each transport, and explain why a server must reuse a client's connection behind NAT.
+status: draft
+---
+
+## 19.1 UDP: simple, needs retransmission timers, can fragment
+
+Module 2 introduced UDP and TCP. Every SIP element must support both:
+
+<RfcQuote id="rfc3261-18-mandatory" />
+
+| | UDP | TCP | TLS | WebSocket (WSS) |
+|---|---|---|---|---|
+| **Default port** | 5060 | 5060 | 5061 | 443 (HTTPS) |
+| **Via** | `SIP/2.0/UDP` | `SIP/2.0/TCP` | `SIP/2.0/TLS` | `SIP/2.0/WSS` |
+| **Lost packets** | SIP resends: Timers A and E | TCP resends | TCP resends | TCP resends |
+| **Message boundaries** | One message per datagram | Content-Length | Content-Length | One message per WebSocket message |
+| **Large messages** | Fragmented: risky | Fine | Fine | Fine |
+| **Encrypted** | No | No | Yes | Yes |
+| **Typical use** | Many phones and trunks | Large messages, some trunks | Phones to providers, trunks | Browsers (WebRTC) |
+
+Over UDP, SIP itself resends lost messages: Timer A doubles the gap from 500 ms, up to seven sends in 32 seconds (Module 8). Over TCP, TLS, and WebSocket, the transport resends lost data, and SIP does not.
+
+<RfcQuote id="rfc3261-17.1.1.2-timer-b" />
+
+UDP has a size problem. An IP packet can be at most as large as the **MTU** of every link on the path: 1500 bytes on Ethernet, less in a VPN tunnel or over PPPoE. A larger UDP datagram is cut into **IP fragments**. The receiver can rebuild the datagram only when every fragment arrives; if one is lost, the whole SIP message is lost, and SIP must resend all of it. Many firewalls and NAT routers drop fragments after the first, because they carry no port numbers. Then a large message over UDP never arrives at all.
+
+Try different sizes, paths, and losses:
+
+<TransportRace />
+
+## 19.2 The 1300-byte rule
+
+RFC 3261 avoids fragmentation with a simple rule: a large request goes over TCP.
+
+<RfcQuote id="rfc3261-18.1.1-1300" />
+
+| Request size | Path MTU known? | Transport |
+|---|---|---|
+| Up to 1300 bytes | No | UDP is allowed |
+| Over 1300 bytes | No | **TCP** (or another congestion-controlled transport) |
+| Within 200 bytes of the MTU | Yes | **TCP** |
+
+The 200 bytes leave room for the response, which can be larger than the request: a 200 OK carries Record-Route values and an SDP answer. The rule applies to **each hop**. A request that leaves Alice at 1296 bytes can grow over 1300 at Proxy A, which adds its Via and Record-Route. Then Proxy A must send it over TCP, and write TCP in its own Via:
+
+<RfcQuote id="rfc3261-18.1.1-via-change" />
+
+<Flow id="tcp-big-invite" eyebrow="Call flow · the proxy switches to TCP" />
+
+So a server that listens on UDP must also listen on TCP, at the same address and port:
+
+<RfcQuote id="rfc3261-18.2.1-listen-tcp" />
+
+Messages grow quickly: video, many codecs, SRTP keys, ICE candidates, and long Via and Record-Route lists from several proxies. Compact header names (Module 4) help a little; TCP or TLS removes the problem.
+
+## 19.3 TCP: connections, framing, and connection reuse
+
+Over TCP, SIP is a **stream** of bytes. Several messages can arrive in one TCP segment, and one message can be split over several. The receiver finds where each message ends from Content-Length, which is therefore required (Module 4 has a framing lab):
+
+<RfcQuote id="rfc3261-18.3-stream" />
+
+A **connection** costs a handshake (and a TLS handshake, for TLS), so SIP keeps connections open and reuses them:
+
+<RfcQuote id="rfc3261-18-keep-open" />
+
+<RfcQuote id="rfc3261-18.1.1-reuse" />
+
+Responses always go back on the connection the request arrived on:
+
+<RfcQuote id="rfc3261-18.2.2-reliable" />
+
+New requests in the other direction are different. Proxy A opens a connection to Proxy B from a random port, so when Proxy B has a request for Proxy A, it opens a second connection, to Proxy A's port 5060:
+
+<RfcQuote id="rfc5923-1-two" />
+
+RFC 5923 lets the two share one connection. The client adds `;alias` to its Via; the server may then send its own requests back over that connection. It is safe only with TLS, where the server knows who is at the other end:
+
+<RfcQuote id="rfc5923-8.1-alias" />
+
+<RfcQuote id="rfc5923-3-tls" />
+
+## 19.4 TLS: handshake, SNI, certificate checks, port 5061
+
+SIP over TLS is SIP over TCP, with a TLS handshake first. The default port is 5061:
+
+<RfcQuote id="rfc3261-18.1.1-ports" />
+
+| Step | What happens | What can go wrong |
+|---|---|---|
+| **TCP handshake** | Port 5061 | Firewall blocks 5061 |
+| **ClientHello** | Versions, ciphers, and **SNI**: the SIP domain the client wants | No SNI: the server may send the certificate for another domain |
+| **ServerHello, Certificate** | The server proves who it is | Expired, untrusted CA, or **wrong name** |
+| **Certificate check** | The client looks for the SIP domain in the certificate (RFC 5922, Module 14) | A certificate for `www.` or the host name only |
+| **Finished** | Keys agreed; SIP flows encrypted | — |
+
+A server that hosts many SIP domains picks the right certificate from the SNI in the ClientHello:
+
+<RfcQuote id="rfc5922-7.8-sni" />
+
+<Flow id="tls-connect" eyebrow="Call flow · TLS to the proxy, then REGISTER" />
+
+The certificate check is the one Module 14 explains: the domain of the URI, not the host name from DNS, must be a SIP identity in the certificate. If it is not, the client closes the connection before any SIP is sent.
+
+<RfcQuote id="rfc5922-7.3-close" />
+
+## 19.5 WebSocket: SIP in the browser
+
+A web page cannot open raw UDP or TCP sockets. It can open a **WebSocket**: a two-way connection that starts as an HTTP request and then "upgrades". RFC 7118 runs SIP over it, with the subprotocol `sip`. In practice, it is always secure WebSocket (WSS) on port 443.
+
+<RfcQuote id="rfc7118-4.1-handshake" />
+
+<RfcQuote id="rfc7118-5-one-message" />
+
+<Flow id="websocket-register" eyebrow="Call flow · a browser registers over WSS" />
+
+| | Over WebSocket |
+|---|---|
+| **Via** | `SIP/2.0/WSS` (or `WS` without TLS) |
+| **URI parameter** | `;transport=ws` |
+| **Host in Via and Contact** | A random `.invalid` name: JavaScript cannot learn its own IP address |
+| **Content-Length** | Not needed: each WebSocket message holds one SIP message |
+| **Incoming calls** | Only over the same WebSocket, so Outbound (RFC 5626) and GRUU are used |
+
+<RfcQuote id="rfc7118-5.1-via" />
+
+The media of a browser call is WebRTC: ICE, DTLS-SRTP, and usually Opus (Modules 18 and 26). A gateway converts it for ordinary SIP phones.
+
+## 19.6 The transport in Via and ;transport=; changing transport between hops
+
+Two places name a transport, with different meanings:
+
+| Where | Example | Meaning |
+|---|---|---|
+| **Via** | `Via: SIP/2.0/TCP proxy.atlanta.example;branch=…` | The transport this element **used** for this hop. Each element writes its own |
+| **URI parameter** | `<sip:bob@203.0.113.20;transport=tcp>` | The transport to **use** to reach this URI |
+| **DNS (NAPTR, SRV)** | `_sips._tcp.atlanta.example` | The transports a domain offers (Module 11) |
+
+Each hop chooses its own transport. A call can travel UDP from the phone to the proxy, TCP from proxy to proxy, and TLS to the carrier; the Via list then shows a different transport in each value. A response always uses the transport, and for connections the connection, of its request.
+
+Many phones write `;transport=tls` in their Contact. RFC 3261 had already deprecated it, and RFC 5630 confirms that it was never defined in an RFC; servers still accept it. The standard choices are a `sips:` URI, which requires TLS on every hop, or a `sip:` URI with TLS chosen by configuration, as a best effort (Module 14).
+
+<RfcQuote id="rfc5630-3.1.4-tls" />
+
+## 19.7 Keepalives: CRLF ping and pong, OPTIONS, TCP keepalive
+
+A NAT router forgets a mapping after a quiet period, often 30 to 120 seconds for UDP, and longer for TCP. A firewall closes idle TCP connections. A phone that waits for incoming calls must keep its path open, and must notice when it breaks:
+
+<RfcQuote id="rfc5626-3.5-ping-pong" />
+
+| Keepalive | Transport | What it is | Detects a dead path? |
+|---|---|---|---|
+| **CRLF ping and pong** | TCP, TLS | Double CRLF; the server answers a single CRLF | Yes, if the server sends pongs (RFC 5626) |
+| **STUN** | UDP | A STUN request on the SIP port | Yes: and a changed NAT mapping |
+| **OPTIONS** | Any | A full SIP request, often from proxies to trunks and gateways | Yes: it also checks that SIP works |
+| **TCP keepalive** | TCP | The operating system, usually every 2 hours by default | Too slow for NAT |
+| **WebSocket ping** | WebSocket | A ping frame, when the browser sends one | Depends on the browser |
+
+<Flow id="keepalive-crlf" eyebrow="Call flow · CRLF and STUN keepalives" />
+
+<RfcQuote id="rfc5626-3.5.2-stun" />
+
+Outside Outbound, the `keep` parameter in Via (RFC 6223) asks the next hop to accept keepalives and suggests an interval:
+
+<RfcQuote id="rfc6223-1-keep" />
+
+## 19.8 Behind NAT, the server must reuse the client's connection
+
+A phone behind NAT can open connections **out**, but nobody can open a connection **in**: the NAT router has no mapping for it. So when a call for Alice arrives, the proxy must send the INVITE over the connection that Alice opened when she registered. Opening a new connection to her Contact address fails.
+
+<RfcQuote id="rfc5626-7-same-flow" />
+
+<RfcQuote id="rfc5923-3-nat" />
+
+The proxy keeps the connection as part of the registration (Outbound uses a flow token in Path for this, Module 12), and the phone keeps it alive with keepalives (19.7). If the connection drops, the phone registers again at once, on a new connection. Module 20 covers NAT for UDP and for the media.
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="A large INVITE over UDP is fragmented and dropped">
+    A phone sends a large INVITE over UDP: audio and video codecs, ICE candidates, and a long Allow and Supported list. It fits under 1300 bytes. Proxy A adds its Via and Record-Route, the message grows to 1410 bytes, and Proxy A still sends it over UDP. On a path through a VPN tunnel, the datagram is cut into two IP fragments. A firewall drops the second. Bob's phone never sees the INVITE; the retransmissions fail the same way; after 32 seconds the caller gets 408. Small calls work, so the failure looks random.
+
+    <BrokenFixedFlow broken="udp-big-invite" fixed="tcp-big-invite" />
+
+    <p class="fix"><b>Remember:</b> over 1300 bytes (or within 200 bytes of a known MTU), a request goes over TCP, at every hop. Listen on TCP wherever you listen on UDP. In a capture, look for IP fragments ("Fragmented IP protocol") and a datagram that never completes. Moving to TCP or TLS for all signaling removes the problem.</p>
+  </Mistake>
+
+  <Mistake title="The server opens a new TCP/TLS connection to a client behind NAT">
+    A phone behind NAT registers over TCP. When a call arrives for it, the proxy opens a new connection to the Contact address, a private address, or to the NAT router's public address on port 5060. The router has no mapping for an incoming connection and drops it. Outgoing calls work; incoming calls fail.
+
+    <CompareFlows a="nat-tcp-new-connection" b="nat-tcp-reuse" labels={['Broken: a new connection', 'Fixed: the same connection']} />
+
+    <p class="fix"><b>Remember:</b> send requests for a registered phone over the connection it registered on (RFC 5626 flows, or a proxy setting such as "force connection reuse"). Keep that connection alive with CRLF keepalives, and expire the binding when the connection closes.</p>
+  </Mistake>
+
+  <Mistake title="The TLS certificate does not match the SIP domain">
+    A provider moves its phones to TLS and installs the certificate it already has for its web site: `www.atlanta.example`. The phones connect, receive the certificate, look for `atlanta.example`, and do not find it. They close the connection during the handshake. No SIP is sent, so the SIP logs on the server show nothing; the phones say only "TLS handshake failed".
+
+    <CompareFlows a="tls-cert-mismatch" b="tls-connect" labels={['Broken: web certificate', 'Fixed: SIP domain in the certificate']} />
+
+    <p class="fix"><b>Remember:</b> the certificate must name the SIP domain of the URI: <code>URI:sip:atlanta.example</code> or <code>DNS:atlanta.example</code> in subjectAltName, as Module 14 explains. A host name such as <code>sip1.atlanta.example</code> alone is not enough. Test with <code>openssl s_client -connect proxy.atlanta.example:5061 -servername atlanta.example</code> and read the subjectAltName.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- Every SIP element supports **UDP and TCP**. TLS (port 5061) and **WebSocket** (WSS, port 443) run over TCP.
+- Over UDP, SIP resends lost messages itself; over TCP, TLS, and WebSocket, the transport does.
+- A UDP datagram larger than the path MTU becomes **IP fragments**; one lost fragment loses the whole message, and firewalls often drop fragments. A request **over 1300 bytes** therefore goes over TCP, at every hop, and the top Via says so.
+- Over TCP, **Content-Length** frames each message. Connections are kept open and reused; with TLS, `;alias` lets both sides share one.
+- TLS uses **SNI** and a **certificate check** against the SIP domain. A wrong certificate stops the connection before any SIP.
+- **Via** says which transport a hop used; `;transport=` says which to use for a URI. `transport=tls` is common but was never standardised.
+- **Keepalives** keep NAT mappings and connections open: CRLF ping and pong over TCP, STUN over UDP, OPTIONS between servers.
+- Behind NAT, a server must send requests for a phone **over the phone's own connection**.

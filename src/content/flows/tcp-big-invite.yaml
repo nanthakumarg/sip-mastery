@@ -1,0 +1,154 @@
+id: tcp-big-invite
+title: "Fixed: the proxy switches to TCP"
+summary: "The forwarded INVITE is 1410 bytes, over 1300, so Proxy A sends it over TCP. The top Via says TCP; the hop before it stays UDP."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  - { id: bob, label: Bob, kind: ua, sub: 203.0.113.20 }
+steps:
+  - from: alice
+    to: proxyA
+    label: "INVITE (UDP)"
+    caption: "Alice sends the INVITE over UDP: 1296 bytes, under 1300."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9big
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: b19c8e2a7d@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Allow: INVITE, ACK, CANCEL, BYE, OPTIONS, UPDATE, PRACK, REFER, INFO
+      Supported: 100rel, timer, replaces
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      a=ice-ufrag:8hhY
+      a=ice-pwd:asd88fgpdd777uzjYhagZg
+      m=audio 49170 RTP/AVP 111 9 0 8 101
+      a=rtpmap:111 opus/48000/2
+      a=fmtp:111 minptime=10;useinbandfec=1
+      a=rtpmap:9 G722/8000
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+      a=ptime:20
+      a=candidate:1 1 UDP 2130706431 192.0.2.10 49170 typ host
+      a=candidate:2 1 UDP 1694498815 198.51.100.7 40210 typ srflx raddr 192.0.2.10 rport 49170
+      m=video 51372 RTP/AVP 96 97
+      a=rtpmap:96 H264/90000
+      a=fmtp:96 profile-level-id=42e01f;packetization-mode=1
+      a=rtpmap:97 VP8/90000
+      a=rtcp-fb:96 nack pli
+      a=rtcp-fb:97 nack pli
+      a=candidate:1 1 UDP 2130706431 192.0.2.10 51372 typ host
+      a=candidate:2 1 UDP 1694498815 198.51.100.7 40212 typ srflx raddr 192.0.2.10 rport 51372
+
+  - from: proxyA
+    to: alice
+    label: "100 Trying"
+    caption: "Proxy A takes the call."
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9big
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: b19c8e2a7d@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: 0
+
+  - from: proxyA
+    to: bob
+    proto: net
+    label: "TCP handshake"
+    caption: "The forwarded INVITE would be over 1300 bytes, so Proxy A opens a TCP connection to Bob first."
+    rfc: rfc3261-18.1.1-1300
+    detail: |
+      TCP  198.51.100.10:49152 → 203.0.113.20:5060
+      SYN → SYN-ACK ← ACK →
+
+  - from: proxyA
+    to: bob
+    label: "INVITE (TCP)"
+    caption: "Proxy A writes TCP in its own Via. TCP cuts the stream into segments and resends any segment that goes missing."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/TCP proxy.atlanta.example:5060;branch=z9hG4bKpa7c1big
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9big
+      Max-Forwards: 69
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: b19c8e2a7d@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Allow: INVITE, ACK, CANCEL, BYE, OPTIONS, UPDATE, PRACK, REFER, INFO
+      Supported: 100rel, timer, replaces
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      a=ice-ufrag:8hhY
+      a=ice-pwd:asd88fgpdd777uzjYhagZg
+      m=audio 49170 RTP/AVP 111 9 0 8 101
+      a=rtpmap:111 opus/48000/2
+      a=fmtp:111 minptime=10;useinbandfec=1
+      a=rtpmap:9 G722/8000
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+      a=rtpmap:101 telephone-event/8000
+      a=fmtp:101 0-16
+      a=ptime:20
+      a=candidate:1 1 UDP 2130706431 192.0.2.10 49170 typ host
+      a=candidate:2 1 UDP 1694498815 198.51.100.7 40210 typ srflx raddr 192.0.2.10 rport 49170
+      m=video 51372 RTP/AVP 96 97
+      a=rtpmap:96 H264/90000
+      a=fmtp:96 profile-level-id=42e01f;packetization-mode=1
+      a=rtpmap:97 VP8/90000
+      a=rtcp-fb:96 nack pli
+      a=rtcp-fb:97 nack pli
+      a=candidate:1 1 UDP 2130706431 192.0.2.10 51372 typ host
+      a=candidate:2 1 UDP 1694498815 198.51.100.7 40212 typ srflx raddr 192.0.2.10 rport 51372
+
+  - from: bob
+    to: proxyA
+    label: "180 Ringing"
+    caption: "Bob answers on the same TCP connection."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/TCP proxy.atlanta.example:5060;branch=z9hG4bKpa7c1big
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9big
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: b19c8e2a7d@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060;transport=tcp>
+      Content-Length: 0
+
+  - from: proxyA
+    to: alice
+    label: "180 Ringing"
+    caption: "Proxy A removes its Via and sends the 180 to Alice over UDP. Each hop chooses its own transport."
+    rfc: rfc3261-18.1.1-1300
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74bf9big
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: b19c8e2a7d@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060;transport=tcp>
+      Content-Length: 0

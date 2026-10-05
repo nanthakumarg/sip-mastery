@@ -1,0 +1,144 @@
+id: nat-tcp-reuse
+title: "Fixed: the proxy reuses Alice's connection"
+summary: "A call for Alice arrives. Proxy B sends the INVITE over the connection that Alice opened, and the NAT router delivers it."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.168.1.20 }
+  - { id: nat, label: NAT router, kind: nat, sub: 198.51.100.7 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+steps:
+  - kind: media
+    from: alice
+    to: proxyB
+    proto: net
+    label: "TCP handshake"
+    caption: "Alice's phone opens TCP to the proxy. The NAT router maps 192.168.1.20:51234 to 198.51.100.7:40112."
+    detail: |
+      TCP  192.168.1.20:51234 → 203.0.113.10:5060
+        seen by the proxy as 198.51.100.7:40112
+
+  - from: alice
+    to: nat
+    label: "REGISTER (TCP)"
+    caption: "Alice registers over the connection. Her Contact is her private address."
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/TCP 192.168.1.20:5060;branch=z9hG4bKnatreg1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=n4tr3g
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: n8f2k1x7@192.168.1.20
+      CSeq: 1 REGISTER
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: nat
+    to: proxyB
+    label: "REGISTER (TCP)"
+    caption: "The NAT router changes the IP and TCP headers, not the SIP."
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/TCP 192.168.1.20:5060;branch=z9hG4bKnatreg1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=n4tr3g
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: n8f2k1x7@192.168.1.20
+      CSeq: 1 REGISTER
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: proxyB
+    to: nat
+    label: "200 OK"
+    caption: "The proxy answers on the same connection, as RFC 3261 requires for TCP."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/TCP 192.168.1.20:5060;branch=z9hG4bKnatreg1;received=198.51.100.7
+      From: Alice <sip:alice@atlanta.example>;tag=n4tr3g
+      To: Alice <sip:alice@atlanta.example>;tag=pb2r9q
+      Call-ID: n8f2k1x7@192.168.1.20
+      CSeq: 1 REGISTER
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>;expires=3600
+      Content-Length: 0
+
+  - from: nat
+    to: alice
+    label: "200 OK"
+    caption: "Alice now has a binding at the registrar."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/TCP 192.168.1.20:5060;branch=z9hG4bKnatreg1;received=198.51.100.7
+      From: Alice <sip:alice@atlanta.example>;tag=n4tr3g
+      To: Alice <sip:alice@atlanta.example>;tag=pb2r9q
+      Call-ID: n8f2k1x7@192.168.1.20
+      CSeq: 1 REGISTER
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>;expires=3600
+      Content-Length: 0
+
+  - from: proxyB
+    to: nat
+    label: "INVITE (same connection)"
+    caption: "Proxy B sends the INVITE over the connection Alice opened. Its NAT mapping already exists."
+    rfc: rfc5626-7-same-flow
+    message: |
+      INVITE sip:alice@192.168.1.20:5060;transport=tcp SIP/2.0
+      Via: SIP/2.0/TCP 203.0.113.10:5060;branch=z9hG4bKpbnat1
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKbobnat1
+      Max-Forwards: 69
+      Record-Route: <sip:proxy.atlanta.example;transport=tcp;lr>
+      From: Bob <sip:bob@biloxi.example>;tag=8321234356
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: 3848276298220188511@biloxi.example
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: 0
+
+  - from: nat
+    to: alice
+    label: "INVITE"
+    caption: "The NAT router delivers it to Alice, as part of her own connection."
+    message: |
+      INVITE sip:alice@192.168.1.20:5060;transport=tcp SIP/2.0
+      Via: SIP/2.0/TCP 203.0.113.10:5060;branch=z9hG4bKpbnat1
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKbobnat1
+      Max-Forwards: 69
+      Record-Route: <sip:proxy.atlanta.example;transport=tcp;lr>
+      From: Bob <sip:bob@biloxi.example>;tag=8321234356
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: 3848276298220188511@biloxi.example
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Length: 0
+
+  - from: alice
+    to: nat
+    label: "180 Ringing"
+    caption: "Alice's phone rings, and answers on the same connection."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/TCP 203.0.113.10:5060;branch=z9hG4bKpbnat1
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKbobnat1
+      Record-Route: <sip:proxy.atlanta.example;transport=tcp;lr>
+      From: Bob <sip:bob@biloxi.example>;tag=8321234356
+      To: Alice <sip:alice@atlanta.example>;tag=a6c85cf
+      Call-ID: 3848276298220188511@biloxi.example
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>
+      Content-Length: 0
+
+  - from: nat
+    to: proxyB
+    label: "180 Ringing"
+    caption: "The call works because the phone kept its connection open, and the proxy used it in both directions."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/TCP 203.0.113.10:5060;branch=z9hG4bKpbnat1
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKbobnat1
+      Record-Route: <sip:proxy.atlanta.example;transport=tcp;lr>
+      From: Bob <sip:bob@biloxi.example>;tag=8321234356
+      To: Alice <sip:alice@atlanta.example>;tag=a6c85cf
+      Call-ID: 3848276298220188511@biloxi.example
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>
+      Content-Length: 0

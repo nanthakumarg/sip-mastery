@@ -1,0 +1,90 @@
+id: nat-tcp-new-connection
+title: "Broken: the proxy opens a new connection to Alice"
+summary: "A call for Alice arrives. Proxy B opens a new TCP connection to her registered Contact, a private address behind NAT, and it never connects."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.168.1.20 }
+  - { id: nat, label: NAT router, kind: nat, sub: 198.51.100.7 }
+  - { id: proxyB, label: Proxy B, kind: proxy, sub: 203.0.113.10 }
+steps:
+  - kind: media
+    from: alice
+    to: proxyB
+    proto: net
+    label: "TCP handshake"
+    caption: "Alice's phone opens TCP to the proxy. The NAT router maps 192.168.1.20:51234 to 198.51.100.7:40112."
+    detail: |
+      TCP  192.168.1.20:51234 → 203.0.113.10:5060
+        seen by the proxy as 198.51.100.7:40112
+
+  - from: alice
+    to: nat
+    label: "REGISTER (TCP)"
+    caption: "Alice registers over the connection. Her Contact is her private address."
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/TCP 192.168.1.20:5060;branch=z9hG4bKnatreg1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=n4tr3g
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: n8f2k1x7@192.168.1.20
+      CSeq: 1 REGISTER
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: nat
+    to: proxyB
+    label: "REGISTER (TCP)"
+    caption: "The NAT router changes the IP and TCP headers, not the SIP."
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/TCP 192.168.1.20:5060;branch=z9hG4bKnatreg1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=n4tr3g
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: n8f2k1x7@192.168.1.20
+      CSeq: 1 REGISTER
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>
+      Expires: 3600
+      Content-Length: 0
+
+  - from: proxyB
+    to: nat
+    label: "200 OK"
+    caption: "The proxy answers on the same connection, as RFC 3261 requires for TCP."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/TCP 192.168.1.20:5060;branch=z9hG4bKnatreg1;received=198.51.100.7
+      From: Alice <sip:alice@atlanta.example>;tag=n4tr3g
+      To: Alice <sip:alice@atlanta.example>;tag=pb2r9q
+      Call-ID: n8f2k1x7@192.168.1.20
+      CSeq: 1 REGISTER
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>;expires=3600
+      Content-Length: 0
+
+  - from: nat
+    to: alice
+    label: "200 OK"
+    caption: "Alice now has a binding at the registrar."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/TCP 192.168.1.20:5060;branch=z9hG4bKnatreg1;received=198.51.100.7
+      From: Alice <sip:alice@atlanta.example>;tag=n4tr3g
+      To: Alice <sip:alice@atlanta.example>;tag=pb2r9q
+      Call-ID: n8f2k1x7@192.168.1.20
+      CSeq: 1 REGISTER
+      Contact: <sip:alice@192.168.1.20:5060;transport=tcp>;expires=3600
+      Content-Length: 0
+
+  - kind: media
+    from: proxyB
+    to: nat
+    proto: net
+    label: "TCP SYN to port 5060"
+    caption: "A call for Alice arrives, and Proxy B opens a new TCP connection to port 5060 of the NAT router. The router has no mapping for it."
+    lost: true
+    oneway: true
+    warn: "The call for Alice fails, though her connection to the proxy is open."
+    detail: |
+      TCP  203.0.113.10:49611 → 198.51.100.7:5060  SYN
+      The NAT router has no mapping for an incoming connection: dropped.

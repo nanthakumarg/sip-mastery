@@ -898,6 +898,16 @@
   "updates": [],
   "updatedBy": []
  },
+ "6223": {
+  "title": "Indication of Support for Keep-Alive",
+  "month": "April",
+  "year": 2011,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
  "6314": {
   "title": "NAT Traversal Practices for Client-Server SIP",
   "month": "July",
@@ -927,6 +937,20 @@
   "obsoletedBy": [],
   "updates": [],
   "updatedBy": []
+ },
+ "6455": {
+  "title": "The WebSocket Protocol",
+  "month": "December",
+  "year": 2011,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   7936,
+   8307,
+   8441
+  ]
  },
  "6665": {
   "title": "SIP-Specific Event Notification",

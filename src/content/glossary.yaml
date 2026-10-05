@@ -285,6 +285,9 @@
   definition: Secure RTP. It encrypts and authenticates media packets.
 - term: TLS
   definition: Transport Layer Security. It encrypts SIP between two hops.
+- term: WebSocket
+  aliases: [WS, WSS]
+  definition: A two-way connection that a web page opens over HTTP or HTTPS. SIP runs over it in browsers (RFC 7118).
 - term: DTLS
   definition: TLS for UDP. DTLS-SRTP runs a DTLS handshake on the media ports to create the SRTP keys.
 - term: SDES
