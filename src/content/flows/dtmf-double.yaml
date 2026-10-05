@@ -1,0 +1,57 @@
+id: dtmf-double
+title: "DTMF as audio and as events"
+summary: "Alice presses 5 once. The phone sends the tone in the audio and as telephone-events, and the IVR counts both."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: ivr, label: IVR, kind: server, sub: 203.0.113.30 }
+steps:
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP audio"
+    caption: "The IVR plays its menu. Alice presses 5 on her keypad."
+
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP audio with tone 5"
+    caption: "The phone also leaves the tone in the audio: 770 Hz and 1336 Hz, the two tones of key 5."
+    oneway: true
+    detail: |
+      RTP  192.0.2.10:49170 → 203.0.113.30:20000
+      V=2  M=0  PT=0 (PCMU)  seq=26300  ts=2412544000  SSRC=0x3a5f12c4
+
+      Payload: 160 bytes of G.711, with the two tones of key 5 in it
+
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP event 5 (start)"
+    caption: "The same key also goes as a telephone-event, with the same timestamp."
+    oneway: true
+    detail: |
+      RTP  192.0.2.10:49170 → 203.0.113.30:20000
+      V=2  M=1  PT=101 (telephone-event)  seq=26301  ts=2412544000  SSRC=0x3a5f12c4
+
+      Payload (telephone-event, 4 bytes)
+        event    5
+        E        0
+        volume   10   (−10 dBm0)
+        duration 160  (20 ms at 8000 Hz)
+
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP event 5 (end, \u00d73)"
+    caption: "The event ends normally."
+    oneway: true
+    warn: "The IVR detects 5 in the audio and 5 as an event: it reads 55."
+    detail: |
+      RTP  192.0.2.10:49170 → 203.0.113.30:20000
+      V=2  M=0  PT=101 (telephone-event)  seq=26306, 26307, 26308  ts=2412544000  SSRC=0x3a5f12c4
+
+      Payload (telephone-event, 4 bytes)
+        event    5
+        E        1
+        volume   10   (−10 dBm0)
+        duration 1120  (140 ms at 8000 Hz)

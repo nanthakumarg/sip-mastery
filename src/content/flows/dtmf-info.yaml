@@ -1,0 +1,50 @@
+id: dtmf-info
+title: "DTMF in SIP INFO"
+summary: "Alice presses 5. Her phone sends the key in a SIP INFO request, not in the media."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: ivr, label: IVR, kind: server, sub: 203.0.113.30 }
+steps:
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP audio"
+    caption: "The IVR plays its menu. Alice presses 5 on her keypad."
+
+  - from: alice
+    to: ivr
+    label: "INFO (Signal=5)"
+    caption: "The key travels as SIP, through every proxy on the dialog route. application/dtmf-relay is common, but not a standard."
+    rfc: rfc6086-2-dtmf
+    message: |
+      INFO sip:ivr@203.0.113.30:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKinfo5d1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:menu@bank.example>;tag=ivr8812
+      Call-ID: d7f6a1c2e9@192.0.2.10
+      CSeq: 2 INFO
+      Content-Type: application/dtmf-relay
+      Content-Length: {auto}
+
+      Signal=5
+      Duration=140
+
+  - from: ivr
+    to: alice
+    label: "200 OK"
+    caption: "The IVR confirms the INFO. Each key costs one SIP transaction."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bKinfo5d1
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:menu@bank.example>;tag=ivr8812
+      Call-ID: d7f6a1c2e9@192.0.2.10
+      CSeq: 2 INFO
+      Content-Length: 0
+
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP audio"
+    caption: "The voice stream does not change. A proxy or B2BUA that drops INFO also drops the digits."

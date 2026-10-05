@@ -307,6 +307,22 @@
   definition: The INVITE has no SDP. The offer is in the 200 OK (or a reliable 1xx), and the answer is in the ACK (or PRACK).
 - term: hold
   definition: Stopping the media from the other side with a new offer, usually a=sendonly or a=inactive.
+- term: IVR
+  aliases: [interactive voice response]
+  definition: An automated phone menu that plays prompts and reads the keys the caller presses.
+- term: SSRC
+  definition: The random 32-bit number in each RTP packet that names the stream it belongs to.
+- term: jitter
+  definition: The variation in packet delay. Packets sent every 20 ms arrive 12, 31, 18 ms apart.
+- term: jitter buffer
+  definition: A queue in the receiver that holds packets for a short time, so that they can be played at an even pace.
+- term: comfort noise
+  aliases: [CN]
+  definition: Soft background noise that the receiver plays during silence, so the line does not sound dead.
+- term: symmetric RTP
+  definition: Sending RTP from the same address and port where it is received. NAT routers and SBCs need it.
+- term: latching
+  definition: An SBC sends media back to the address and port that the media came from, not to the address in the SDP.
 - term: STUN
   definition: A protocol that tells a device its public address and port, as a NAT router maps them.
 

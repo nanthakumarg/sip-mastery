@@ -60,6 +60,10 @@ sip-course/
 │  │  ├─ cert.ts                 # RFC 5922 §7 server certificate check (Module 14)
 │  │  ├─ sdp.ts                  # SDP parser and linter, RFC 3264 offer/answer, hold (Module 15)
 │  │  └─ digest.ts               # HA1 / HA2 / response
+│  ├─ net/                       # below SIP: addresses, packets, RTP
+│  │  ├─ address.ts              # address classes (Module 2)
+│  │  ├─ packet.ts               # Ethernet / IPv4 / UDP frame builder (Module 2)
+│  │  └─ rtp.ts                  # RTP header, telephone-event, bandwidth, jitter buffer (Module 16)
 │  ├─ diagrams/                  # React islands
 │  │  ├─ Ladder.tsx              # call-flow ladder, step player
 │  │  ├─ Inspector.tsx           # message inspector with explanations + diff

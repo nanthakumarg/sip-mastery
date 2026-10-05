@@ -1,0 +1,48 @@
+id: rtp-symmetric
+title: "Symmetric RTP: the SBC latches and the audio returns"
+summary: "Alice's phone sends and receives RTP on the same port. The SBC sends back to the address the media came from."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.168.1.20 }
+  - { id: nat, label: NAT router, kind: nat, sub: 198.51.100.7 }
+  - { id: sbc, label: SBC, kind: sbc, sub: 203.0.113.5 }
+steps:
+  - kind: media
+    from: alice
+    to: nat
+    label: "RTP from port 49170"
+    caption: "Alice's SDP said 192.168.1.20:49170. Her phone also sends from 49170: symmetric RTP."
+    rfc: rfc4961-3-symmetric
+    oneway: true
+    detail: |
+      UDP  192.168.1.20:49170 → 203.0.113.5:30000
+      RTP  PT=0 (PCMU)  SSRC=0x3a5f12c4
+
+  - kind: media
+    from: nat
+    to: sbc
+    label: "RTP from port 40200"
+    caption: "The NAT router maps 192.168.1.20:49170 to its public port 40200."
+    oneway: true
+    detail: |
+      UDP  198.51.100.7:40200 → 203.0.113.5:30000
+      RTP  PT=0 (PCMU)  SSRC=0x3a5f12c4
+
+  - kind: media
+    from: sbc
+    to: nat
+    label: "RTP to port 40200"
+    caption: "The SBC ignores the private address in the SDP. It latches: it sends to the source of the media."
+    oneway: true
+    detail: |
+      UDP  203.0.113.5:30000 → 198.51.100.7:40200
+      RTP  PT=0 (PCMU)  SSRC=0x3a5f12c4
+
+  - kind: media
+    from: nat
+    to: alice
+    label: "RTP to port 49170"
+    caption: "The NAT mapping leads back to 49170, where the phone listens. Audio flows both ways."
+    oneway: true
+    detail: |
+      UDP  203.0.113.5:30000 → 192.168.1.20:49170
+      RTP  PT=0 (PCMU)  SSRC=0x3a5f12c4

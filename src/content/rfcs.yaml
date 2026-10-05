@@ -50,7 +50,7 @@ rfcs:
   - { n: 4028, area: ext, proto: sip, short: Session timers, summary: "Refreshes a call at intervals so that both sides can detect a dead call.", modules: [5, 9, 22] }
   - { n: 4235, area: ext, proto: sip, short: Dialog events, summary: "An event package that reports dialog state. Busy lamp fields use it.", modules: [23] }
   - { n: 5627, area: ext, proto: sip, short: GRUU, summary: "A globally routable URI that reaches one specific device.", modules: [12] }
-  - { n: 6086, area: ext, proto: sip, short: INFO, summary: "The INFO method and Info Packages.", modules: [5] }
+  - { n: 6086, area: ext, proto: sip, short: INFO, summary: "The INFO method and Info Packages.", modules: [5, 16] }
   - { n: 6665, area: ext, proto: sip, short: Events, summary: "The SUBSCRIBE and NOTIFY event framework.", modules: [5, 23] }
   - { n: 7044, area: ext, proto: sip, short: History-Info, summary: "The History-Info header records how a request was retargeted.", modules: [7, 24] }
   - { n: 3398, area: ext, proto: sip, short: ISUP mapping, summary: "Maps ISUP messages and cause values from the telephone network to SIP.", modules: [24] }
@@ -64,6 +64,10 @@ rfcs:
   - { n: 4566, area: media, proto: sdp, short: SDP (second version), summary: "The second SDP specification. RFC 8866 replaced it.", modules: [15] }
   - { n: 8866, area: media, proto: sdp, short: SDP, summary: "The Session Description Protocol format.", modules: [15] }
   - { n: 3264, area: media, proto: sdp, short: Offer/answer, summary: "The offer/answer model for negotiating media with SDP.", modules: [15] }
+  - { n: 3389, area: media, proto: rtp, short: Comfort noise, summary: "The comfort noise (CN) payload: the level of the background noise during silence.", modules: [16] }
+  - { n: 4961, area: media, proto: rtp, short: Symmetric RTP, summary: "Send RTP and RTCP from the port where you receive them. NAT and SBCs need it.", modules: [16, 20] }
+  - { n: 6716, area: media, proto: rtp, short: Opus, summary: "The Opus audio codec, from narrowband speech to fullband music.", modules: [16] }
+  - { n: 7587, area: media, proto: rtp, short: Opus in RTP, summary: "The RTP payload format for Opus: opus/48000/2 in every SDP.", modules: [16] }
   - { n: 4733, area: media, proto: rtp, short: DTMF in RTP, summary: "Telephone events (DTMF digits) as RTP packets.", modules: [5, 15, 16] }
   - { n: 6337, area: media, proto: sdp, short: Offer/answer in SIP, summary: "How SIP uses offer/answer in practice: which messages carry SDP, glare, and hold.", modules: [15] }
   - { n: 3611, area: media, proto: rtcp, short: RTCP XR, summary: "Extended RTCP reports, including VoIP quality metrics.", modules: [17] }

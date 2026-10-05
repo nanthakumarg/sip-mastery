@@ -1,0 +1,68 @@
+id: dtmf-rfc4733
+title: "DTMF as RFC 4733 telephone-events"
+summary: "Alice presses 5. Her phone sends the key as telephone-event RTP packets in the same stream as the voice."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: ivr, label: IVR, kind: server, sub: 203.0.113.30 }
+steps:
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP audio"
+    caption: "The IVR plays its menu. Alice presses 5 on her keypad."
+
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP event 5 (start)"
+    caption: "The phone sends a telephone-event packet with the marker bit set. Payload type 101, from the SDP."
+    rfc: rfc4733-2.5.1.2-marks
+    oneway: true
+    detail: |
+      RTP  192.0.2.10:49170 → 203.0.113.30:20000
+      V=2  M=1  PT=101 (telephone-event)  seq=26300  ts=2412544000  SSRC=0x3a5f12c4
+
+      Payload (telephone-event, 4 bytes)
+        event    5
+        E        0
+        volume   10   (−10 dBm0)
+        duration 160  (20 ms at 8000 Hz)
+
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP event 5 (update)"
+    caption: "Updates every 20 ms: the same timestamp, a longer duration. The IVR knows the key at once."
+    oneway: true
+    detail: |
+      RTP  192.0.2.10:49170 → 203.0.113.30:20000
+      V=2  M=0  PT=101 (telephone-event)  seq=26301  ts=2412544000  SSRC=0x3a5f12c4
+
+      Payload (telephone-event, 4 bytes)
+        event    5
+        E        0
+        volume   10   (−10 dBm0)
+        duration 320  (40 ms at 8000 Hz)
+
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP event 5 (end, \u00d73)"
+    caption: "Alice releases the key. The phone sends the final packet, with E=1, three times: one copy may go missing."
+    rfc: rfc4733-2.5.1.4-three
+    oneway: true
+    detail: |
+      RTP  192.0.2.10:49170 → 203.0.113.30:20000
+      V=2  M=0  PT=101 (telephone-event)  seq=26306, 26307, 26308  ts=2412544000  SSRC=0x3a5f12c4
+
+      Payload (telephone-event, 4 bytes)
+        event    5
+        E        1
+        volume   10   (−10 dBm0)
+        duration 1120  (140 ms at 8000 Hz)
+
+  - kind: media
+    from: alice
+    to: ivr
+    label: "RTP audio"
+    caption: "Voice packets continue, with the next sequence numbers. The IVR reads one digit: 5."

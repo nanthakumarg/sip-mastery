@@ -1,0 +1,262 @@
+---
+module: 16
+title: RTP
+part: 5
+level: [intermediate]
+paths: { noc: core, dev: core }
+summary: How the voice itself travels — the RTP header field by field, clock rate and timestamps, the common voice codecs, jitter, loss, delay and the jitter buffer, three ways to send DTMF, comfort noise, symmetric RTP and latching, and how to calculate the real bandwidth of a call.
+objectives:
+  - Read an RTP header and say what each field means, from a capture in hex.
+  - Calculate the timestamp step and the packet rate from the clock rate and the packet time.
+  - Compare G.711, G.722, G.729, Opus, AMR-WB, and EVS.
+  - Explain jitter, loss, and delay, and the trade-off of a jitter buffer.
+  - Compare the three ways to send DTMF, and say why sending two of them at once fails.
+  - Explain symmetric RTP and latching, and why NAT needs them.
+  - Calculate the bandwidth of a call at each layer, from the codec to the Ethernet wire.
+status: draft
+---
+
+## 16.1 The RTP header
+
+SIP and SDP agree where the voice goes and how it is coded. **RTP** carries it: a stream of small UDP packets, usually one every 20 ms in each direction, directly between the two media endpoints (Module 15).
+
+<RfcQuote id="rfc3550-1-rtp" />
+
+Every RTP packet starts with a 12-byte header:
+
+```
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|V=2|P|X|  CC   |M|     PT      |       sequence number         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                           timestamp                           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|           synchronization source (SSRC) identifier            |
++=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+|            contributing source (CSRC) identifiers             |
+|                             ....                              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+<RfcQuote id="rfc3550-5.1-fields" />
+
+| Field | Bits | Meaning | Typical value |
+|---|---|---|---|
+| **V** | 2 | Version | Always 2 |
+| **P** | 1 | Padding at the end | 0; 1 with some encryption |
+| **X** | 1 | A header extension follows | 0 for classic SIP; 1 in WebRTC |
+| **CC** | 4 | Number of CSRCs | 0, unless a mixer sends it |
+| **M** | 1 | Marker | 1 on the first packet after silence, and on the first packet of a DTMF event |
+| **PT** | 7 | Payload type: which codec | 0 (PCMU), 8 (PCMA), 101 (telephone-event)… from the SDP |
+| **Sequence number** | 16 | +1 for each packet | Random start; wraps at 65535 |
+| **Timestamp** | 32 | Sampling instant, in clock ticks | Random start; +160 every 20 ms at 8000 Hz |
+| **SSRC** | 32 | The name of this stream | Random |
+| **CSRC** | 32 each | The sources that a mixer combined | Only in conferences |
+
+<RfcQuote id="rfc3550-5.1-seq" />
+
+<RfcQuote id="rfc3550-5.1-ssrc" />
+
+<Term t="SSRC" />, sequence number, and timestamp each start at a random value, so a capture of two calls never shows the same numbers. Select each field, or paste the UDP payload of an RTP packet from Wireshark:
+
+<RtpHeader />
+
+The payload type is the only link between a packet and the SDP: `PT=101` means telephone-event only because the SDP said `a=rtpmap:101 telephone-event/8000`. A receiver drops packets with a payload type it does not know:
+
+<RfcQuote id="rfc3550-5.1-pt-ignore" />
+
+## 16.2 Clock rate, timestamp, and packet time
+
+The timestamp counts **samples**, not milliseconds. Its clock rate comes from the codec: 8000 Hz for G.711, 48000 for Opus, 90000 for video.
+
+<RfcQuote id="rfc3550-5.1-ts" />
+
+```
+timestamp step   = clock rate × packet time
+G.711, 20 ms     = 8000 × 0.020  = 160
+Opus, 20 ms      = 48000 × 0.020 = 960
+packets/second   = 1000 / packet time = 50
+```
+
+<RfcQuote id="rfc3550-5.1-ts-160" />
+
+The timestamp keeps counting during silence, even when no packets are sent. So the receiver can tell the two cases apart:
+
+| Sequence number | Timestamp | What happened |
+|---|---|---|
+| 1001 → 1002 | +160 | Normal: the next 20 ms |
+| 1001 → 1003 | +320 | One packet lost |
+| 1001 → 1002 | +4800 | No loss: 600 ms of silence was not sent |
+| 1002 → 1001 | −160 | Reordered: the network swapped two packets |
+
+The **packet time** (`a=ptime` in the SDP) is how much audio goes in one packet. 20 ms is the default:
+
+<RfcQuote id="rfc3551-4.2-ptime" />
+
+<RfcQuote id="rfc3551-4.2-tradeoff" />
+
+## 16.3 Codecs: G.711, G.722, G.729, Opus, AMR-WB, EVS
+
+| Codec | Payload type | RTP clock | Bit rate | Audio band | Where |
+|---|---|---|---|---|---|
+| **G.711** (PCMU, PCMA) | 0, 8 | 8000 | 64 kbit/s | Narrowband, 300–3400 Hz | Everywhere. The common denominator of trunks and gateways |
+| **G.722** | 9 | 8000 | 64 kbit/s | Wideband, 50–7000 Hz | HD voice on desk phones |
+| **G.729** | 18 | 8000 | 8 kbit/s | Narrowband | Older trunks and WAN links. Poor for in-band DTMF and fax |
+| **Opus** | dynamic | 48000 | 6–510 kbit/s | Narrowband to fullband | WebRTC, softphones. Built for packet loss |
+| **AMR-WB** | dynamic | 16000 | 6.6–23.85 kbit/s | Wideband | VoLTE HD voice (Module 27) |
+| **EVS** | dynamic | 16000 | 5.9–128 kbit/s | Up to fullband | Newer VoLTE |
+
+Two clock rates surprise people. G.722 samples at 16 kHz, but its RTP clock is 8000:
+
+<RfcQuote id="rfc3551-4.5.2-g722" />
+
+And Opus always says `opus/48000/2` in the SDP, and counts its timestamp at 48000, whatever rate it really uses.
+
+Narrowband sounds like a phone; wideband ("HD voice") sounds like a person in the room. A call is only as good as its worst leg: a wideband call that crosses a G.711 trunk is narrowband from end to end. And each change of codec — **transcoding**, in a gateway or SBC — adds delay and loses quality.
+
+## 16.4 Jitter, loss, delay, and the jitter buffer
+
+Packets leave every 20 ms, but they do not arrive every 20 ms. Queues in routers, Wi-Fi, and busy links add a different delay to each one. That variation is <Term t="jitter" />.
+
+<RfcQuote id="rfc3550-6.4.1-jitter" />
+
+| Problem | Cause | What the caller hears |
+|---|---|---|
+| **Delay** | Distance, queues, the jitter buffer, the codec | Both talk at once. Above about 150 ms one way, conversation becomes hard (ITU-T G.114) |
+| **Jitter** | A different queueing delay for each packet | Nothing, if the jitter buffer absorbs it; gaps, if it does not |
+| **Loss** | Congestion, Wi-Fi, a full queue | Clicks and missing syllables. Codecs hide a little loss; Opus hides more |
+
+The receiver's <Term t="jitter buffer" /> holds each packet for a short time, then plays the packets at an even pace. A deeper buffer saves more late packets, but adds its depth to the delay of every packet. A packet that arrives after its playout time is useless: the receiver throws it away, so a late packet is as bad as a lost one. Change the network and the buffer, and see the trade-off:
+
+<JitterBuffer />
+
+Most phones use an **adaptive** buffer: it grows when the jitter grows, and shrinks when the network is calm. It changes its depth at the start of a talkspurt, when the marker bit is set, so that the change falls in a silence. RTCP reports the jitter that the receiver measures (Module 17).
+
+## 16.5 DTMF: RFC 4733 events, SIP INFO, or in-band
+
+There are three ways to send a key that the caller presses:
+
+| Method | How | Good | Bad |
+|---|---|---|---|
+| **RFC 4733 events** | `telephone-event` RTP packets in the voice stream | Exact; works with every codec; the standard | Both sides must list `telephone-event` in the SDP (Module 15) |
+| **SIP INFO** | One INFO request per key, usually `application/dtmf-relay` | Easy for application servers to read | Not standardised; every proxy and B2BUA on the route must pass it; slower |
+| **In-band** | The tones inside the audio | Needs nothing in the signaling | Works only with G.711; compressed codecs distort the tones |
+
+An RFC 4733 event is a 4-byte payload: the key, an end bit, a volume, and a duration. The first packet of each key has the marker bit; updates keep the same timestamp and a longer duration; the last packet, with the end bit, goes three times.
+
+<RfcQuote id="rfc4733-2.5.1.2-same-ts" />
+
+<RfcQuote id="rfc4733-2.5.1.4-three" />
+
+<CompareFlows a="dtmf-rfc4733" b="dtmf-info" labels={['RFC 4733 events', 'SIP INFO']} />
+
+<RfcQuote id="rfc6086-2-dtmf" />
+
+Both sides must use the **same** method. A phone that sends INFO to a gateway that waits for RFC 4733 events sends digits that nobody reads.
+
+## 16.6 Comfort noise and silence suppression
+
+In a normal conversation, each side is silent more than half the time. With **silence suppression** (VAD, voice activity detection), a phone stops sending RTP while its user is silent, and saves that bandwidth.
+
+<RfcQuote id="rfc3551-4.1-silence" />
+
+Total silence sounds like a dropped call, so the sender first sends a <Term t="comfort noise" /> packet: a description of its background noise, in a byte or a few bytes. The receiver plays similar noise until speech returns. The first voice packet after the silence has the marker bit set.
+
+<RfcQuote id="rfc3389-5-cn" />
+
+<RfcQuote id="rfc3551-4.1-marker" />
+
+| Codec | Comfort noise |
+|---|---|
+| G.711, G.722 | The generic CN payload: payload type 13 (`m=audio 49170 RTP/AVP 0 13`) |
+| G.729 | Its own, Annex B. `a=fmtp:18 annexb=no` turns it off |
+| Opus, AMR-WB, EVS | Built in (DTX) |
+
+Silence suppression saves bandwidth, but it clips the first syllable when the detector is slow, and it can confuse fax and modem calls. Many trunks turn it off.
+
+## 16.7 Symmetric RTP and latching
+
+A phone behind a NAT router writes its private address in the SDP (Module 15). An SBC on the public side cannot send to that address. But it can see where the phone's RTP **comes from**: the public address and port of the NAT mapping. The SBC sends its RTP back to that address. This is <Term t="latching" />.
+
+Latching works only if the phone sends RTP **from** the same port where it receives RTP: <Term t="symmetric RTP" />. Then the NAT mapping that its outgoing packets created also brings the incoming packets back to the right port.
+
+<RfcQuote id="rfc4961-3-symmetric" />
+
+<CompareFlows a="rtp-symmetric" b="rtp-asymmetric" labels={['Symmetric RTP', 'Asymmetric RTP']} />
+
+<RfcQuote id="rfc4961-4-recommended" />
+
+Latching trusts the first packet that arrives, so an attacker who sends RTP to the SBC's port first can take over the stream. SBCs limit this: they latch only to the address in the signaling, or only at the start, or only with SRTP. Module 20 covers NAT traversal with STUN, TURN, and ICE.
+
+## 16.8 How to calculate bandwidth
+
+The codec rate is only the payload. Every packet also carries an RTP, a UDP, and an IP header, and on a LAN an Ethernet header. At 20 ms there are 50 packets a second in each direction, so the headers add up:
+
+```
+G.711, 20 ms, IPv4, Ethernet
+payload  160 bytes  (64 kbit/s × 20 ms ÷ 8)
+RTP       12
+UDP        8
+IPv4      20
+Ethernet  18        (14 header + 4 FCS)
+         ---
+         218 bytes × 50 packets/s × 8 = 87.2 kbit/s in each direction
+```
+
+| Codec, 20 ms | Codec rate | IP | Ethernet | Ethernet on the wire |
+|---|---|---|---|---|
+| G.711 | 64 | 80 | 87.2 | 95.2 |
+| G.729 | 8 | 24 | 31.2 | 39.2 |
+
+For G.729, the headers are twice as big as the voice. A longer packet time saves headers but adds delay: G.729 at 40 ms needs 16 kbit/s at the IP layer, not 24. SRTP adds a 10-byte authentication tag, and IPv6 adds 20 bytes to the IP header.
+
+<BandwidthCalc />
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Reading an SSRC, sequence, or timestamp jump as an error">
+    An engineer looks at a capture and sees the SSRC change in the middle of a call, and the sequence number and timestamp jump to new random values. It looks like a broken stream. Usually it is not: a transfer, a re-INVITE to a new media server, a switch from early media to the answered call, or an SBC that changed its media relay starts a new stream, and a new stream has new random values.
+
+    ```
+    seq    timestamp    SSRC          from
+    4012   2412560160   0x3a5f12c4    203.0.113.30   IVR menu
+    4013   2412560320   0x3a5f12c4    203.0.113.30
+    ----   transfer to an agent: re-INVITE with new SDP   ----
+    51877  884210400    0x9e04b7d1    203.0.113.44   a new source
+    51878  884210560    0x9e04b7d1    203.0.113.44   +1, +160: normal again
+    ```
+
+    <RfcQuote id="rfc3550-5.1-ssrc-move" />
+
+    <p class="fix"><b>Remember:</b> check what happened in the signaling at that moment. A jump with a new SSRC, a new source address, or a re-INVITE just before it is a new stream, not loss. A jump in the sequence number with the <b>same</b> SSRC and source is real loss. A receiver must follow the new SSRC; one that does not gives one-way audio after a transfer.</p>
+  </Mistake>
+
+  <Mistake title="Planning bandwidth from the codec rate only">
+    A site needs 30 simultaneous G.711 calls. The plan says 30 × 64 kbit/s = 1.9 Mbit/s, and a 2 Mbit/s link looks fine. But each call uses 87.2 kbit/s on Ethernet in each direction, so 30 calls need 2.6 Mbit/s: calls break up as soon as the office is busy. With G.729 the error is bigger: 8 kbit/s on paper, 31.2 on Ethernet.
+
+    <p class="fix"><b>Remember:</b> plan with the packet size, not the codec rate: payload plus 12 (RTP) + 8 (UDP) + 20 (IPv4) or 40 (IPv6) + 18 (Ethernet), times the packets per second. Add SRTP and VPN headers if they are used, and leave room for RTCP and signaling. Use the calculator above.</p>
+  </Mistake>
+
+  <Mistake title="DTMF sent both in-band and as RFC 4733 events">
+    The phone sends telephone-event packets for each key, but it also leaves the tones in the G.711 audio. An IVR that listens for both detects each key twice: the caller presses 5 and the IVR reads 55. Or the gateway that converts events back to tones plays them over the tones that are already in the audio.
+
+    <CompareFlows a="dtmf-double" b="dtmf-rfc4733" labels={['Broken: tones and events', 'Fixed: events only']} />
+
+    <RfcQuote id="rfc4733-2.5.2.2-render" />
+
+    <p class="fix"><b>Remember:</b> choose one method for each call and configure it on both sides. With RFC 4733, the sender removes the tones from the audio, and the receiver ignores in-band detection. Phones and gateways call this setting "DTMF mode": RFC 2833 (the old number of RFC 4733), in-band, INFO, or auto.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- **RTP** carries the media in UDP packets with a 12-byte header: version, padding, extension, CSRC count, **marker**, **payload type**, **sequence number**, **timestamp**, and **SSRC**.
+- The **payload type** links a packet to the SDP. The **sequence number** goes up by one per packet; the **timestamp** counts samples at the codec's clock rate (+160 every 20 ms at 8000 Hz). Both start at random values.
+- Common codecs: **G.711** and **G.722** (64 kbit/s), **G.729** (8), **Opus** (variable, clock 48000), **AMR-WB** and **EVS** (VoLTE).
+- **Jitter** is the variation of delay. A **jitter buffer** trades delay for fewer late packets; a late packet is as bad as a lost one.
+- **DTMF** goes as RFC 4733 events (the standard), SIP INFO, or in-band tones. Use one method, on both sides.
+- **Comfort noise** fills the silence when a phone stops sending. The first packet after it has the marker bit.
+- **Symmetric RTP** lets an SBC **latch** to the public address of a phone behind NAT.
+- **Bandwidth** includes every header: G.711 at 20 ms is 80 kbit/s at IP and 87.2 on Ethernet, in each direction.

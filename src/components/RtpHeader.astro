@@ -1,0 +1,12 @@
+---
+/** <RtpHeader /> : the RTP header bit by bit; paste hex to decode (RFC 3550 §5.1, Module 16) */
+import Island from '../diagrams/RtpHeader.tsx';
+import { quoteMap } from '../lib/bundle.ts';
+
+const quotes = quoteMap([
+  'rfc3550-5.1-fields', 'rfc3550-5.1-csrc', 'rfc3551-4.1-marker', 'rfc3550-5.1-pt', 'rfc3550-5.1-seq', 'rfc3550-5.1-ts',
+  'rfc3550-5.1-ssrc', 'rfc3550-5.3.1-ext', 'rfc4733-2.3.1-event', 'rfc4733-2.5.1.2-marks', 'rfc4733-2.3.3-r',
+  'rfc4733-2.3.4-volume', 'rfc4733-2.3.5-duration',
+]);
+---
+<div class="wide"><Island client:visible quotes={quotes} /></div>

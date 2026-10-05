@@ -3485,3 +3485,259 @@
     The problem arises when a client advertises its address to receive
     media and it exists in a private network that is not accessible from
     outside the NAT.
+
+# --- Module 16: RTP ------------------------------------------------------
+
+- id: rfc3550-5.1-fields
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    The first twelve octets are present in every RTP packet, while the list of
+    CSRC identifiers is present only when inserted by a mixer.
+
+- id: rfc3550-5.1-csrc
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    CSRC identifiers are inserted by mixers (see Section 7.1), using the SSRC
+    identifiers of contributing sources.
+
+- id: rfc3550-5.1-pt
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    This field identifies the format of the RTP payload and determines its
+    interpretation by the application.
+
+- id: rfc3550-5.1-pt-ignore
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    A receiver MUST ignore packets with payload types that it does not
+    understand.
+
+- id: rfc3550-5.1-seq
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    The sequence number increments by one for each RTP data packet sent, and
+    may be used by the receiver to detect packet loss and to restore packet
+    sequence.
+
+- id: rfc3550-5.1-ts
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    The timestamp reflects the sampling instant of the first octet in the RTP
+    data packet.
+
+- id: rfc3550-5.1-ts-160
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    If an audio application reads blocks covering 160 sampling periods from
+    the input device, the timestamp would be increased by 160 for each such
+    block, regardless of whether the block is transmitted in a packet or
+    dropped as silent.
+
+- id: rfc3550-5.1-random
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    The initial value of the timestamp SHOULD be random, as for the sequence
+    number.
+
+- id: rfc3550-5.1-ssrc
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    The SSRC field identifies the synchronization source. This identifier
+    SHOULD be chosen randomly, with the intent that no two synchronization
+    sources within the same RTP session will have the same SSRC identifier.
+
+- id: rfc3550-5.1-ssrc-move
+  rfc: 3550
+  section: "5.1"
+  title: RTP Fixed Header Fields
+  text: >-
+    If a source changes its source transport address, it must also choose a
+    new SSRC identifier to avoid being interpreted as a looped source (see
+    Section 8.2).
+
+- id: rfc3550-5.3.1-ext
+  rfc: 3550
+  section: "5.3.1"
+  title: RTP Header Extension
+  text: >-
+    This mechanism is designed so that the header extension may be ignored by
+    other interoperating implementations that have not been extended.
+
+- id: rfc3550-6.4.1-jitter
+  rfc: 3550
+  section: "6.4.1"
+  title: "SR: Sender Report RTCP Packet"
+  text: >-
+    The interarrival jitter J is defined to be the mean deviation (smoothed
+    absolute value) of the difference D in packet spacing at the receiver
+    compared to the sender for a pair of packets.
+
+- id: rfc3551-4.1-marker
+  rfc: 3551
+  section: "4.1"
+  title: Encoding-Independent Rules
+  text: >-
+    For applications which send either no packets or occasional comfort-noise
+    packets during silence, the first packet of a talkspurt, that is, the
+    first packet after a silence period during which packets have not been
+    transmitted contiguously, SHOULD be distinguished by setting the marker
+    bit in the RTP data header to one.
+
+- id: rfc3551-4.1-silence
+  rfc: 3551
+  section: "4.1"
+  title: Encoding-Independent Rules
+  text: >-
+    Receivers MUST assume that senders may suppress silence unless this is
+    restricted by signaling specified elsewhere.
+
+- id: rfc3551-4.2-ptime
+  rfc: 3551
+  section: "4.2"
+  title: Operating Recommendations
+  text: >-
+    For packetized audio, the default packetization interval SHOULD have a
+    duration of 20 ms or one frame, whichever is longer, unless otherwise
+    noted in Table 1 (column "ms/packet").
+
+- id: rfc3551-4.2-tradeoff
+  rfc: 3551
+  section: "4.2"
+  title: Operating Recommendations
+  text: >-
+    The packetization interval determines the minimum end-to-end delay; longer
+    packets introduce less header overhead but higher delay and make packet
+    loss more noticeable.
+
+- id: rfc3389-5-cn
+  rfc: 3389
+  section: "5"
+  title: Guidelines for Use
+  text: >-
+    At the beginning of an inactive voice segment (silence period), a CN
+    packet is transmitted in the same RTP stream and indicated by the CN
+    payload type.
+
+- id: rfc3389-2-sid
+  rfc: 3389
+  section: "2"
+  title: Introduction
+  text: >-
+    The comfort noise payload, which is also known as a Silence Insertion
+    Descriptor (SID) frame, consists of a single octet description of the
+    noise level and MAY contain spectral information in subsequent octets.
+
+- id: rfc4733-2.1-same-stream
+  rfc: 4733
+  section: "2.1"
+  title: Introduction
+  text: >-
+    Named telephone events are carried as part of the audio stream and MUST
+    use the same sequence number and timestamp base as the regular audio
+    channel to simplify the generation of audio waveforms at a gateway.
+
+- id: rfc4733-2.3.1-event
+  rfc: 4733
+  section: "2.3.1"
+  title: Event Field
+  text: >-
+    The event field is a number between 0 and 255 identifying a specific
+    telephony event.
+
+- id: rfc4733-2.3.3-r
+  rfc: 4733
+  section: "2.3.3"
+  title: R Bit
+  text: >-
+    This field is reserved for future use. The sender MUST set it to zero, and
+    the receiver MUST ignore it.
+
+- id: rfc4733-2.3.4-volume
+  rfc: 4733
+  section: "2.3.4"
+  title: Volume Field
+  text: >-
+    For DTMF digits and other events representable as tones, this field
+    describes the power level of the tone, expressed in dBm0 after dropping
+    the sign.
+
+- id: rfc4733-2.3.5-duration
+  rfc: 4733
+  section: "2.3.5"
+  title: Duration Field
+  text: >-
+    The duration field indicates the duration of the event or segment being
+    reported, in timestamp units, expressed as an unsigned integer in network
+    byte order.
+
+- id: rfc4733-2.5.1.2-marks
+  rfc: 4733
+  section: "2.5.1.2"
+  title: Transmission of Event Packets
+  text: >-
+    The first packet for an event MUST have the M bit set. The final packet
+    for an event MUST have the E bit set, but setting of the "E" bit MAY be
+    deferred until the final packet is retransmitted (see Section 2.5.1.4).
+
+- id: rfc4733-2.5.1.2-same-ts
+  rfc: 4733
+  section: "2.5.1.2"
+  title: Transmission of Event Packets
+  text: >-
+    The update packets MUST have the same RTP timestamp value as the initial
+    packet for the event, but the duration MUST be increased to reflect the
+    total cumulative duration since the beginning of the event.
+
+- id: rfc4733-2.5.1.4-three
+  rfc: 4733
+  section: "2.5.1.4"
+  title: Retransmission of Final Packet
+  text: >-
+    The final packet for each event and for each segment SHOULD be sent a
+    total of three times at the interval used by the source for updates.
+
+- id: rfc4733-2.5.2.2-render
+  rfc: 4733
+  section: "2.5.2.2"
+  title: Playout of Tone Events
+  text: >-
+    It is RECOMMENDED that gateways render only the telephone-event payload
+    once it is received, since the audio may contain spurious tones introduced
+    by the audio compression algorithm.
+
+- id: rfc4961-3-symmetric
+  rfc: 4961
+  section: "3"
+  title: Definition of Symmetric RTP and Symmetric RTCP
+  text: >-
+    A device supports symmetric RTP if it selects, communicates, and uses IP
+    addresses and port numbers such that, when receiving a bidirectional RTP
+    media stream on UDP port "A" and IP address "a", it also transmits RTP
+    media for that stream from the same source UDP port "A" and IP address
+    "a".
+
+- id: rfc4961-4-recommended
+  rfc: 4961
+  section: "4"
+  title: Recommended Usage
+  text: >-
+    For these reasons, it is RECOMMENDED that symmetric RTP and symmetric RTCP
+    always be used for bidirectional RTP media streams.

@@ -1606,3 +1606,90 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 .hp-hist span { color: var(--text); }
 .hp-hist li.is-bad { color: var(--err); }
 @media (max-width: 760px) { .hp-bottom { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- RTP header bit map (Module 16) ---------- */
+.rtph { max-width: 1400px; }
+.rtph-input { display: grid; gap: 6px; margin-top: 14px; }
+.rtph-input textarea { width: 100%; padding: 8px 10px; resize: vertical; background: var(--bg-deep); border: 1px solid var(--line); border-radius: 6px; color: var(--dim); font: 400 12.5px/1.6 var(--mono); }
+.rtph-input textarea:focus { outline: none; border-color: var(--text); }
+.rtph-err, .rtph-issues { margin-top: 10px; font-size: 14px; color: var(--err); }
+.rtph-issues { list-style: none; padding: 0; display: grid; gap: 4px; }
+.rtph-main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 16px; margin-top: 14px; align-items: start; }
+.rtph-map-wrap { min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+.rtph-ruler, .rtph-map { display: grid; grid-template-columns: repeat(32, minmax(15px, 1fr)); min-width: 520px; }
+.rtph-ruler span { font: 400 10px var(--mono); color: var(--muted); padding-left: 2px; }
+.rtph-map { gap: 3px 0; margin-top: 2px; }
+.rtph-cell { height: 52px; min-width: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; padding: 0 2px; border: 1px solid var(--line); background: var(--panel); color: var(--text); overflow: hidden; cursor: pointer; border-radius: 0; }
+.rtph-cell:hover, .rtph-cell:focus-visible { background: var(--panel-2); outline: none; }
+.rtph-cell.p-header { border-top: 2px solid var(--rtp); }
+.rtph-cell.p-csrc { border-top: 2px dashed var(--rtp); }
+.rtph-cell.p-ext { border-top: 2px solid var(--dns); }
+.rtph-cell.p-payload { border-top: 2px solid var(--sdp); background: var(--bg-deep); }
+.rtph-cell.p-padding { border-top: 2px solid var(--muted); }
+.rtph-cell.is-sel { background: var(--text); color: var(--bg); border-color: var(--text); }
+.rtph-cell.is-sel .rtph-v { color: var(--bg); }
+.rtph-k { font: 600 12px var(--mono); white-space: nowrap; }
+.rtph-v { font: 400 11px var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.rtph-cell.is-narrow .rtph-k { font-size: 10.5px; }
+.rtph-size { margin-top: 8px; font: 400 12px var(--mono); color: var(--muted); min-width: 520px; }
+.rtph-detail { min-width: 0; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-2); border-left: 3px solid var(--rtp); border-radius: 0 8px 8px 0; display: grid; gap: 8px; }
+.rtph-bits { display: flex; flex-wrap: wrap; gap: 2px; font: 500 13px var(--mono); color: var(--muted); }
+.rtph-bits span { min-width: 12px; text-align: center; }
+.rtph-bits span.is-1 { color: var(--rtp); }
+.rtph-explain { font-size: 15px; line-height: 1.5; color: var(--text); }
+@media (max-width: 900px) { .rtph-main { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Jitter buffer (Module 16) ---------- */
+.jb { max-width: 1200px; }
+.jb-lg-ok { background: var(--rtp); }
+.jb-controls { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: end; margin-top: 14px; }
+.jb-slider { display: grid; gap: 4px; min-width: 200px; flex: 1 1 200px; font: 400 12.5px var(--mono); color: var(--muted); }
+.jb-slider span { display: flex; justify-content: space-between; }
+.jb-slider b { color: var(--text); font-weight: 500; }
+.jb-slider input { accent-color: var(--rtp); width: 100%; }
+.jb-chart { margin-top: 14px; }
+.jb-chart svg { width: 100%; display: block; }
+.jb-grid line { stroke: var(--line-2); }
+.jb-grid text, .jb-axis { font: 400 11px var(--mono); fill: var(--muted); }
+.jb-buffer { fill: rgba(63, 208, 201, .07); }
+.jb-deadline { stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.jb-deadline-t { font: 500 12px var(--mono); fill: var(--text); }
+.jb-pkt.is-played { fill: var(--rtp); }
+.jb-pkt.is-late { fill: var(--err); }
+.jb-lost { font: 700 12px var(--mono); fill: var(--down); }
+.jb-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 14px; }
+.jb-stats .stat b, .bwc-stats .stat b { font-size: clamp(22px, 2.6vw, 30px); color: var(--text); }
+.jb-stats .stat.is-bad b { color: var(--err); }
+.jb-verdict { margin-top: 12px; font-size: 15px; color: var(--dim); }
+
+/* ---------- Bandwidth calculator (Module 16) ---------- */
+.bwc { max-width: 1200px; }
+.bwc-controls { display: grid; gap: 10px; margin-top: 14px; }
+.bwc-seg { flex-wrap: wrap; }
+.bwc-seg button:disabled { opacity: .35; cursor: not-allowed; }
+.bwc-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.bwc-calls { display: inline-flex; align-items: center; gap: 8px; font: 400 13px var(--mono); color: var(--dim); }
+.bwc-calls input { width: 90px; height: 34px; padding: 0 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 5px; color: var(--text); font: 500 14px var(--mono); }
+.bwc-codec { margin-top: 12px; font-size: 14.5px; color: var(--dim); }
+.bwc-codec b { color: var(--text); }
+.bwc-bar { display: flex; height: 34px; margin-top: 12px; border-radius: 5px; overflow: hidden; border: 1px solid var(--line-2); }
+.bwc-bar span { min-width: 3px; display: flex; align-items: center; justify-content: center; font: 500 11.5px var(--mono); border-right: 1px solid var(--bg); }
+.bwc-seg-voice { background: var(--rtp); color: var(--bg); }
+.bwc-seg-hdr { background: var(--net); color: var(--bg); }
+.bwc .bwc-table { width: 100%; max-width: 640px; margin-top: 12px; border-collapse: collapse; font: 400 13px var(--mono); }
+.bwc .bwc-table th, .bwc .bwc-table td { padding: 5px 8px; border-bottom: 1px solid var(--line-2); text-align: right; letter-spacing: 0; text-transform: none; font-size: 13px; }
+.bwc .bwc-table th[scope=row], .bwc .bwc-table thead th:first-child { text-align: left; font-weight: 400; color: var(--dim); }
+.bwc .bwc-table thead th { color: var(--muted); font-size: 11.5px; }
+.bwc-total th, .bwc-total td { color: var(--text); font-weight: 600; }
+.bwc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 14px; }
+@media (max-width: 520px) {
+  .rtph-ruler, .rtph-map, .rtph-size { min-width: 0; }
+  .rtph-ruler, .rtph-map { grid-template-columns: repeat(32, minmax(0, 1fr)); }
+  .rtph-cell { padding: 0; height: 46px; }
+  .rtph-k { font-size: 10px; }
+  .rtph-v { font-size: 9.5px; }
+}
+@media (max-width: 700px) {
+  .jb-chart { overflow-x: auto; overscroll-behavior-x: contain; }
+  .jb-chart svg { min-width: 640px; }
+}

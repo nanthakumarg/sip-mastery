@@ -23,7 +23,7 @@ npm run dev        # http://localhost:4321
 | `npm run check:content` | Protocol checks and diagram language checks on every flow |
 | `npm run verify:rfc` | Checks every RFC quote word for word against rfc-editor.org |
 | `npm run sync:rfc-index` | Refreshes `rfc-index.json` (titles, dates, status, obsoletes/updates) from the official RFC index, for the RFCs in `rfcs.yaml` |
-| `npm test` | Unit tests (parser, checks, digest maths, transaction timers, dialog state, routing, DNS, registrar, security, SDP and offer/answer) |
+| `npm test` | Unit tests (parser, checks, digest maths, transaction timers, dialog state, routing, DNS, registrar, security, SDP and offer/answer, RTP) |
 | `npm run verify` | `check:content`, `verify:rfc`, and `test` together |
 | `npm run check` | TypeScript and Astro type check |
 
@@ -69,6 +69,7 @@ All course content lives in `src/content/`.
 <ExpiryClock initial={{ asked: 3600, natTimeout: 60 }} />                      registration expiry vs NAT mapping (src/sip/expiry.ts)
 <AttackMap />  <CertCheck />                                                   attacks and defences; RFC 5922 certificate check (src/sip/attacks.ts, cert.ts)
 <SdpLinter />  <OfferAnswer />  <HoldPlayer />                                 SDP lines, offer/answer, hold and resume (src/sip/sdp.ts)
+<RtpHeader />  <JitterBuffer />  <BandwidthCalc />                            RTP header bits, jitter buffer, bandwidth per layer (src/net/rtp.ts)
 ```
 
 ### Flow file rules

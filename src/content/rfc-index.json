@@ -275,6 +275,16 @@
    8996
   ]
  },
+ "3389": {
+  "title": "Real-time Transport Protocol (RTP) Payload for Comfort Noise (CN)",
+  "month": "October",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
  "3398": {
   "title": "Integrated Services Digital Network (ISDN) User Part (ISUP) to Session Initiation Protocol (SIP) Mapping",
   "month": "December",
@@ -606,6 +616,16 @@
    7857
   ]
  },
+ "4961": {
+  "title": "Symmetric RTP / RTP Control Protocol (RTCP)",
+  "month": "July",
+  "year": 2007,
+  "status": "BEST CURRENT PRACTICE",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
  "5245": {
   "title": "Interactive Connectivity Establishment (ICE): A Protocol for Network Address Translator (NAT) Traversal for Offer/Answer Protocols",
   "month": "April",
@@ -878,6 +898,18 @@
    7621
   ]
  },
+ "6716": {
+  "title": "Definition of the Opus Audio Codec",
+  "month": "September",
+  "year": 2012,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8251
+  ]
+ },
  "7044": {
   "title": "An Extension to the Session Initiation Protocol (SIP) for Request History Information",
   "month": "February",
@@ -925,6 +957,16 @@
    7976,
    9878
   ]
+ },
+ "7587": {
+  "title": "RTP Payload Format for the Opus Speech and Audio Codec",
+  "month": "June",
+  "year": 2015,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
  },
  "7616": {
   "title": "HTTP Digest Access Authentication",

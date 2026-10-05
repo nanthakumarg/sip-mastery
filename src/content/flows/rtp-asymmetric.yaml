@@ -1,0 +1,49 @@
+id: rtp-asymmetric
+title: "Asymmetric RTP: the audio returns to the wrong port"
+summary: "Alice's phone receives on port 49170 but sends from 49172. The SBC latches to the wrong mapping."
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.168.1.20 }
+  - { id: nat, label: NAT router, kind: nat, sub: 198.51.100.7 }
+  - { id: sbc, label: SBC, kind: sbc, sub: 203.0.113.5 }
+steps:
+  - kind: media
+    from: alice
+    to: nat
+    label: "RTP from port 49172"
+    caption: "Alice's SDP said port 49170, but her phone sends from 49172. This is asymmetric RTP."
+    oneway: true
+    detail: |
+      UDP  192.168.1.20:49172 → 203.0.113.5:30000
+      RTP  PT=0 (PCMU)  SSRC=0x3a5f12c4
+
+  - kind: media
+    from: nat
+    to: sbc
+    label: "RTP from port 40388"
+    caption: "The NAT router maps 192.168.1.20:49172 to public port 40388."
+    oneway: true
+    detail: |
+      UDP  198.51.100.7:40388 → 203.0.113.5:30000
+      RTP  PT=0 (PCMU)  SSRC=0x3a5f12c4
+
+  - kind: media
+    from: sbc
+    to: nat
+    label: "RTP to port 40388"
+    caption: "The SBC latches to the source it saw, 198.51.100.7:40388. No mapping exists for port 49170."
+    oneway: true
+    detail: |
+      UDP  203.0.113.5:30000 → 198.51.100.7:40388
+      RTP  PT=0 (PCMU)  SSRC=0x3a5f12c4
+
+  - kind: media
+    from: nat
+    to: alice
+    label: "RTP to port 49172"
+    caption: "The NAT router delivers it to 49172. The phone listens on 49170, so it never plays the audio."
+    lost: true
+    oneway: true
+    warn: "One-way audio: the SBC hears Alice, Alice hears nothing."
+    detail: |
+      UDP  203.0.113.5:30000 → 192.168.1.20:49172
+      RTP  PT=0 (PCMU)  SSRC=0x3a5f12c4
