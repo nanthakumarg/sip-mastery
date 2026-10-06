@@ -70,6 +70,8 @@ const total = OUTLINE.reduce((n, p) => n + p.modules.length, 0);
 </Base>
 
 <style>
+  /* The hero glow reaches 20vw past the content; clip it so phones get no sideways scroll */
+  :global(html) { overflow-x: clip; }
   .home { max-width: 1400px; margin: 0 auto; padding: 0 var(--gutter) 120px; }
   .hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 48px; align-items: center; min-height: calc(100vh - 64px); padding: 48px 0; position: relative; }
   .hero::before { content: ''; position: absolute; inset: 0 -20vw; z-index: -1; background: radial-gradient(900px 600px at 78% 45%, rgba(255,176,0,.07), transparent 60%); }

@@ -7,6 +7,7 @@ import '../styles/base.css';
 import '../styles/site.css';
 import '../styles/diagram.css';
 import BrandMark from '../components/BrandMark.astro';
+import SiteSearch from '../diagrams/SiteSearch.tsx';
 import { url } from '../lib/url.ts';
 
 interface Props {
@@ -38,11 +39,14 @@ const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
     <a class="sr-only" href="#content">Skip to content</a>
     <header class="site-head">
       <a class="brand" href={url()}><BrandMark />SIP <em>Mastery</em></a>
-      <nav class="site-nav" aria-label="Site">
-        <a href={url()} aria-current={path === url() || path === url().replace(/\/$/, '') ? 'page' : undefined}>Course map</a>
-        {repoUrl && <a href={repoUrl} rel="noopener">Source</a>}
-      </nav>
-      {withSidebar && <button class="menu-btn" type="button" aria-expanded="false" aria-controls="sidebar" id="menu-btn">Modules</button>}
+      <div class="head-tools">
+        <nav class="site-nav" aria-label="Site">
+          <a href={url()} aria-current={path === url() || path === url().replace(/\/$/, '') ? 'page' : undefined}>Course map</a>
+          {repoUrl && <a href={repoUrl} rel="noopener">Source</a>}
+        </nav>
+        <SiteSearch client:idle />
+        {withSidebar && <button class="menu-btn" type="button" aria-expanded="false" aria-controls="sidebar" id="menu-btn">Modules</button>}
+      </div>
     </header>
     <slot />
     <footer class="site-foot">
