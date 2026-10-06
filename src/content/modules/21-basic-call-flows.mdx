@@ -45,7 +45,7 @@ The simplest call has no server at all: Alice's phone sends the INVITE straight 
 
 This is the **call flow builder**. Every option above the ladder changes the call, and the ladder and every message change with it. Try *Lost packet: The 200 OK*: Bob's phone sends the 200 OK again and again until an ACK arrives, because only the UAS core can make a 2xx reliable:
 
-<CallBuilder preset={{ path: 'direct' }} eyebrow="Call flow builder · RFC 3665 §3.1: a direct call" />
+<FlowBuilder kind="call" preset={{ path: 'direct' }} eyebrow="Flow builder · RFC 3665 §3.1: a direct call" />
 
 <RfcQuote id="rfc3261-13.3.1.4-2xx-retransmit" />
 
@@ -53,13 +53,13 @@ This is the **call flow builder**. Every option above the ladder changes the cal
 
 With **one proxy**, Alice's phone sends the INVITE to Proxy B, the proxy for biloxi.example; DNS gives its address (Module 11). Proxy B answers 100 Trying, finds Bob's Contact in its <Term t="location service" />, puts that Contact in the Request-URI, adds its own Via, and forwards the INVITE. The responses come back along the Via headers. Without Record-Route, Proxy B is out of the dialog after the 200 OK: the ACK and the BYE go straight to Bob's Contact.
 
-<CallBuilder preset={{ path: 'proxy', recordRoute: false }} eyebrow="Call flow builder · one proxy, no Record-Route" />
+<FlowBuilder kind="call" preset={{ path: 'proxy', recordRoute: false }} eyebrow="Flow builder · one proxy, no Record-Route" />
 
 With **two proxies** (RFC 3665 §3.2), Alice's phone sends everything to Proxy A, its <Term t="outbound proxy" />, with a <Term t="pre-loaded Route">pre-loaded Route</Term> header. Proxy A removes its Route entry and forwards the INVITE to Proxy B. Both proxies add Record-Route, so both stay in the path of every in-dialog request:
 
 <RfcQuote id="rfc3665-3.2-record-route" />
 
-<CallBuilder preset={{ path: 'two-proxies' }} eyebrow="Call flow builder · RFC 3665 §3.2: two proxies with Record-Route" />
+<FlowBuilder kind="call" preset={{ path: 'two-proxies' }} eyebrow="Flow builder · RFC 3665 §3.2: two proxies with Record-Route" />
 
 Switch Record-Route off and on, and watch the ACK and the BYE: with it, they follow the <Term t="route set" />; without it, they go straight to Bob's Contact. The INVITE and its responses always pass through both proxies.
 
@@ -80,7 +80,7 @@ Proxy A accepts calls only from its own users, so it challenges the first INVITE
 
 <RfcQuote id="rfc3261-22.3-challenge-407" />
 
-<CallBuilder preset={{ path: 'two-proxies', auth: true }} eyebrow="Call flow builder · RFC 3665 §3.2: a 407 challenge" />
+<FlowBuilder kind="call" preset={{ path: 'two-proxies', auth: true }} eyebrow="Flow builder · RFC 3665 §3.2: a 407 challenge" />
 
 Follow the CSeq: 1 for the first INVITE and the ACK for the 407, 2 for the INVITE with credentials and the ACK for the 200 OK, and 3 for Alice's BYE. The Call-ID and the From tag never change. Proxy A removes the Proxy-Authorization header before it forwards the INVITE, because those credentials are for its own realm only. Proxy B never sees them.
 
@@ -100,7 +100,7 @@ A call can fail at Bob's phone or at a proxy. In each case the failure response 
 
 Pick an outcome in the builder:
 
-<CallBuilder preset={{ path: 'two-proxies', outcome: 'busy' }} eyebrow="Call flow builder · failure responses" />
+<FlowBuilder kind="call" preset={{ path: 'two-proxies', outcome: 'busy' }} eyebrow="Flow builder · failure responses" />
 
 <RfcQuote id="rfc3261-21.4.18-480" />
 
@@ -125,7 +125,7 @@ A **603** means that Bob does not want the call, on any device. A forking proxy 
 
 Alice hangs up while Bob's phone rings. Her phone sends a CANCEL, which Proxy A answers itself and then sends on, hop by hop, with the branch of its own INVITE on that hop. The 200 OK to the CANCEL means only "CANCEL received". The INVITE ends with **487 Request Terminated**, which travels back like any other failure response, with an ACK on each hop:
 
-<CallBuilder preset={{ path: 'two-proxies', outcome: 'cancel' }} eyebrow="Call flow builder · RFC 3665 §3.8: Alice cancels" />
+<FlowBuilder kind="call" preset={{ path: 'two-proxies', outcome: 'cancel' }} eyebrow="Flow builder · RFC 3665 §3.8: Alice cancels" />
 
 Two rules from Module 5 and Module 8 matter here. A phone sends a CANCEL only after it has received a provisional response; before that, the CANCEL may arrive before the INVITE. And a CANCEL has no effect once the INVITE has a final response. If a 200 OK crosses the CANCEL, the call is up, and Alice's phone must end it properly:
 
@@ -137,7 +137,7 @@ Two rules from Module 5 and Module 8 matter here. A phone sends a CANCEL only af
 
 <RfcQuote id="rfc3261-13.3.1.1-progress" />
 
-<CallBuilder preset={{ path: 'two-proxies', earlyMedia: true }} eyebrow="Call flow builder · early media in a 183" />
+<FlowBuilder kind="call" preset={{ path: 'two-proxies', earlyMedia: true }} eyebrow="Flow builder · early media in a 183" />
 
 Alice's phone must decide what to play: its own <Term t="ringback tone" />, or the media that arrives. RFC 3960 gives the rule:
 
@@ -155,7 +155,7 @@ In a <Term t="late offer" />, the INVITE has no SDP. Bob's 200 OK carries the of
 
 <RfcQuote id="rfc3261-13.2.1-patterns" />
 
-<CallBuilder preset={{ path: 'two-proxies', lateOffer: true }} eyebrow="Call flow builder · late offer" />
+<FlowBuilder kind="call" preset={{ path: 'two-proxies', lateOffer: true }} eyebrow="Flow builder · late offer" />
 
 Three consequences:
 
@@ -169,7 +169,7 @@ A <Term t="Redirect server" /> does not forward the INVITE. It looks up the targ
 
 <RfcQuote id="rfc3261-21.3.3-302" />
 
-<CallBuilder preset={{ path: 'redirect' }} eyebrow="Call flow builder · a redirect, then a new INVITE" />
+<FlowBuilder kind="call" preset={{ path: 'redirect' }} eyebrow="Flow builder · a redirect, then a new INVITE" />
 
 The new INVITE keeps the Call-ID, the From tag, and the To header (still without a tag), and uses CSeq 2 and a new branch: it is a new transaction in the same call attempt (RFC 3261 §8.1.3.4). The Redirect server keeps no state for the call, and it is never in the dialog. RFC 3665 §3.6 combines a redirect with a proxy and a late offer.
 
@@ -183,7 +183,7 @@ When Proxy B finds more than one Contact for Bob's AOR, it can try them all at o
 
 <RfcQuote id="rfc3261-16.7-cancel-branches" />
 
-<CallBuilder preset={{ path: 'fork-parallel' }} eyebrow="Call flow builder · parallel forking" />
+<FlowBuilder kind="call" preset={{ path: 'fork-parallel' }} eyebrow="Flow builder · parallel forking" />
 
 **Sequential forking** ("hunting") tries one device at a time, usually in the order of the q-values in the Contact headers. Proxy B gives each device a ring time, then cancels it and tries the next. The 487 from a cancelled device stays at Proxy B: Alice's phone sees only the early dialogs, one after the other. Switch the path to *Forking: sequential* to compare.
 

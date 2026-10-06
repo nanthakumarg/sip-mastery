@@ -59,7 +59,11 @@ sip-course/
 │  │  ├─ attacks.ts              # attacks and the defences that close them (Module 14)
 │  │  ├─ cert.ts                 # RFC 5922 §7 server certificate check (Module 14)
 │  │  ├─ sdp.ts                  # SDP parser and linter, RFC 3264 offer/answer, hold (Module 15)
-│  │  ├─ callflow.ts             # call flow generator: every basic call of RFC 3665 from a few options (Module 21)
+│  │  ├─ sipgen.ts               # building blocks for the generators: the network, messages as data, dialogs
+│  │  ├─ callflow.ts             # basic calls of RFC 3665, with "what if" options and call forwarding (Modules 21, 22)
+│  │  ├─ reinvite.ts             # hold, resume, codec, video, address, session refresh; re-INVITE or UPDATE; glare (Module 22)
+│  │  ├─ transfer.ts             # blind and attended transfer: REFER, NOTIFY with sipfrag, Replaces (Module 22)
+│  │  ├─ generators.ts           # the generators and their options, for the FlowBuilder island
 │  │  └─ digest.ts               # HA1 / HA2 / response
 │  ├─ net/                       # below SIP: addresses, packets, RTP
 │  │  ├─ address.ts              # address classes (Module 2)
@@ -86,10 +90,10 @@ sip-course/
 │  │  ├─ Mistake.astro
 │  │  └─ ModuleHeader.astro …
 │  ├─ layouts/
-│  ├─ pages/                     # also call-builder.json: quotes and header notes shared by every call flow builder
+│  ├─ pages/                     # also flow-builder.json: quotes and header notes shared by every flow builder
 │  └─ styles/tokens.css, base.css, diagram.css
 ├─ scripts/
-│  ├─ check-content.ts           # runs both linters over every flow, and every call flow generator combination
+│  ├─ check-content.ts           # runs both linters over every flow, and every combination of every generator
 │  └─ verify-rfc-quotes.ts       # verifies quotes against rfc-editor.org text
 ├─ tests/                        # Vitest
 ├─ presentations/                # original decks (design reference)
@@ -243,6 +247,8 @@ Rendering choices:
 | `sdes-over-tls` | An SDP with an SDES key (`a=crypto` with `inline:`) travels only on a TLS (or WSS) hop, from the top Via (RFC 4568 §8.3) |
 | `udp-size` | A request over 1300 bytes is not sent over UDP (top Via), at any hop (RFC 3261 §18.1.1) |
 | `sip-alg` | A message that leaves a NAT lane is the message that entered it: a NAT router rewrites IP and UDP headers, not SIP (RFC 4787 §7, RFC 6314 §3) |
+| `replaces-match` | The Replaces header of an INVITE names a dialog of the receiver: to-tag is the receiver's own tag; an early dialog only at the UA that created it (RFC 3891 §3) |
+| `prack-rack` | A PRACK's RAck holds the RSeq, CSeq number, and method of a reliable provisional response on its hop (RFC 3262 §7.2) |
 | `late-offer-ack` | When the INVITE has no SDP, the 2xx carries the offer, and the ACK for it carries the answer (RFC 3261 §13.2.2.4, RFC 3264 §4) |
 | `dtls-setup` | A DTLS-SRTP offer says `a=setup:actpass`; the answer says `active` or `passive`, the opposite of a fixed role in the offer (RFC 8842 §5.2, RFC 4145 §4.1) |
 

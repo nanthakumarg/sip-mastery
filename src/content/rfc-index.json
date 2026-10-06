@@ -467,6 +467,18 @@
   "updates": [],
   "updatedBy": []
  },
+ "3892": {
+  "title": "The Session Initiation Protocol (SIP) Referred-By Mechanism",
+  "month": "September",
+  "year": 2004,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8217
+  ]
+ },
  "3903": {
   "title": "Session Initiation Protocol (SIP) Extension for Event State Publication",
   "month": "November",
@@ -550,6 +562,16 @@
   ],
   "updatedBy": []
  },
+ "4353": {
+  "title": "A Framework for Conferencing with the Session Initiation Protocol (SIP)",
+  "month": "February",
+  "year": 2006,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
  "4474": {
   "title": "Enhancements for Authenticated Identity Management in the Session Initiation Protocol (SIP)",
   "month": "August",
@@ -592,6 +614,16 @@
   "month": "July",
   "year": 2006,
   "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "4579": {
+  "title": "Session Initiation Protocol (SIP) Call Control - Conferencing for User Agents",
+  "month": "August",
+  "year": 2006,
+  "status": "BEST CURRENT PRACTICE",
   "obsoletes": [],
   "obsoletedBy": [],
   "updates": [],
@@ -705,6 +737,16 @@
    7350,
    8553
   ]
+ },
+ "5589": {
+  "title": "Session Initiation Protocol (SIP) Call Control - Transfer",
+  "month": "June",
+  "year": 2009,
+  "status": "BEST CURRENT PRACTICE",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
  },
  "5626": {
   "title": "Managing Client-Initiated Connections in the Session Initiation Protocol (SIP)",

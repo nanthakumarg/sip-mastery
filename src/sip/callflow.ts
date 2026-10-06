@@ -5,7 +5,8 @@
  * media, a lost packet, who hangs up). The flows follow RFC 3665 and RFC 3261.
  * Every combination passes lint-flow.ts and lint-diagram.ts (tests/callflow.test.ts).
  */
-import type { FlowData, FlowStep, Lane } from './flow.ts';
+import type { FlowData } from './flow.ts';
+import { ALICE, BOB, FlowWriter, PROXY_A, PROXY_B, sdp, withTag, type Hop, type Msg, type Node } from './sipgen.ts';
 
 export const PATHS = {
   direct: 'Direct',
@@ -31,6 +32,10 @@ export type Outcome = keyof typeof OUTCOMES;
 export const LOSSES = { none: 'Nothing', invite: 'The INVITE', ok: 'The 200 OK', ack: 'The ACK' } as const;
 export type Loss = keyof typeof LOSSES;
 
+/** Call forwarding at Proxy B, to the voicemail server (Module 22, RFC 5359 §2.7–2.9). */
+export const FORWARDS = { none: 'None', always: 'Always', busy: 'When busy', 'no-answer': 'On no answer' } as const;
+export type Forward = keyof typeof FORWARDS;
+
 export interface CallOptions {
   path: CallPath;
   outcome: Outcome;
@@ -45,10 +50,12 @@ export interface CallOptions {
   /** One packet is lost on the way, and the timers recover it. */
   lose: Loss;
   hangup: 'alice' | 'bob';
+  /** Bob's call forwarding rule. */
+  forward: Forward;
 }
 
 export const DEFAULT_CALL: CallOptions = {
-  path: 'two-proxies', outcome: 'answer', recordRoute: true, auth: false, lateOffer: false, earlyMedia: false, lose: 'none', hangup: 'alice',
+  path: 'two-proxies', outcome: 'answer', recordRoute: true, auth: false, lateOffer: false, earlyMedia: false, lose: 'none', hangup: 'alice', forward: 'none',
 };
 
 const RINGS: Outcome[] = ['answer', 'unavailable', 'decline', 'cancel'];
@@ -69,6 +76,16 @@ export function applyChange(o: CallOptions, change: Partial<CallOptions>): { opt
     if (n[k] !== v) { n[k] = v; notes.push(note); }
   };
   for (let pass = 0; pass < 3; pass++) {
+    if (n.forward !== 'none') {
+      const why = 'Forwarding is shown with Proxy B and a call that the voicemail server answers.';
+      if (n.path !== 'proxy' && n.path !== 'two-proxies') {
+        if (changed('forward')) set('path', 'two-proxies', `Path: two proxies. ${why}`); else set('forward', 'none', `Forwarding: none. ${why}`);
+      }
+      if (n.outcome !== 'answer' || n.lose !== 'none' || n.earlyMedia) {
+        if (changed('forward')) { set('outcome', 'answer', `Outcome: answered. ${why}`); set('lose', 'none', `Lost packet: nothing. ${why}`); set('earlyMedia', false, `Early media: off. ${why}`); }
+        else set('forward', 'none', `Forwarding: none. ${why}`);
+      }
+    }
     if (n.auth && n.path !== 'two-proxies') {
       if (changed('auth')) set('path', 'two-proxies', 'Path: two proxies. Proxy A sends the 407.');
       else set('auth', false, '407 challenge: off. Only Proxy A sends it.');
@@ -105,14 +122,15 @@ export function applyChange(o: CallOptions, change: Partial<CallOptions>): { opt
 export function inactive(o: CallOptions): Partial<Record<'recordRoute' | 'hangup', string>> {
   return {
     ...(hasProxy(o.path) ? {} : { recordRoute: 'There is no proxy on this path.' }),
-    ...(o.outcome === 'answer' ? {} : { hangup: 'Only an answered call has a BYE.' }),
+    ...(o.outcome !== 'answer' ? { hangup: 'Only an answered call has a BYE.' } : o.forward !== 'none' ? { hangup: 'Alice hangs up when she has left her message.' } : {}),
   };
 }
 
 /** A short id for a combination, e.g. "two-proxies.busy.rr.auth". */
 export function callKey(o: CallOptions): string {
   return [o.path, o.outcome, o.recordRoute && hasProxy(o.path) ? 'rr' : '', o.auth ? 'auth' : '', o.lateOffer ? 'late' : '',
-    o.earlyMedia ? 'early' : '', o.lose !== 'none' ? `lose-${o.lose}` : '', o.outcome === 'answer' && o.hangup === 'bob' ? 'bob-bye' : '']
+    o.earlyMedia ? 'early' : '', o.lose !== 'none' ? `lose-${o.lose}` : '', o.outcome === 'answer' && o.hangup === 'bob' && o.forward === 'none' ? 'bob-bye' : '',
+    o.forward !== 'none' ? `fwd-${o.forward}` : '']
     .filter(Boolean).join('.');
 }
 
@@ -123,8 +141,9 @@ export function allCalls(): CallOptions[] {
     for (const outcome of Object.keys(OUTCOMES) as Outcome[])
       for (const recordRoute of [true, false]) for (const auth of [true, false])
         for (const lateOffer of [true, false]) for (const earlyMedia of [true, false])
-          for (const lose of Object.keys(LOSSES) as Loss[]) for (const hangup of ['alice', 'bob'] as const) {
-            const o = { path, outcome, recordRoute, auth, lateOffer, earlyMedia, lose, hangup };
+          for (const lose of Object.keys(LOSSES) as Loss[]) for (const hangup of ['alice', 'bob'] as const)
+          for (const forward of Object.keys(FORWARDS) as Forward[]) {
+            const o = { path, outcome, recordRoute, auth, lateOffer, earlyMedia, lose, hangup, forward };
             if (applyChange(o, {}).notes.length) continue;
             out.set(callKey(o), o);
           }
@@ -140,39 +159,21 @@ export const CALL_QUOTES = [
   'rfc3261-17.1.1.2-timer-b', 'rfc3261-13.3.1.4-2xx-retransmit', 'rfc3261-13.2.2.4-ack-core',
   'rfc3261-8.1.3.4-3xx', 'rfc3261-21.1.5-183', 'rfc3261-13.2.1-patterns', 'rfc3261-13.2.2.4-ack-answer', 'rfc3261-16.5-empty-480',
   'rfc3261-21.4.24-486', 'rfc3261-21.4.18-480', 'rfc3261-21.6.2-603', 'rfc3261-21.4.5-404', 'rfc3261-16.7-cancel-branches',
-  'rfc3261-16.6-parallel-sequential', 'rfc3261-13.2.2.4-forking', 'rfc3261-21.3.3-302',
+  'rfc3261-16.6-parallel-sequential', 'rfc3261-13.2.2.4-forking', 'rfc3261-21.3.3-302', 'rfc3261-16.8-timer-c', 'rfc5359-2.7-retarget',
 ] as const;
 type QuoteId = (typeof CALL_QUOTES)[number];
 
 // ---------------------------------------------------------------------------
-// The network: the same addresses as the rest of the course.
+// The call: nodes and values that only this generator uses.
 
-interface Node {
-  id: string;
-  label: string;
-  kind: Lane['kind'];
-  ip: string;
-  /** Proxies: the URI they put in Record-Route and Route. */
-  uri?: string;
-  /** User agents: Contact URI and dialog tag. */
-  contact?: string;
-  tag?: string;
-  /** Prefix of the branch IDs this node creates. */
-  br: string;
-}
-
-const ALICE: Node = { id: 'alice', label: 'Alice', kind: 'ua', ip: '192.0.2.10', contact: 'sip:alice@192.0.2.10:5060', tag: '9fxced76sl', br: '74b' };
-const PROXY_A: Node = { id: 'proxyA', label: 'Proxy A', kind: 'proxy', ip: '198.51.100.10', uri: 'sip:proxy.atlanta.example;lr', br: 'pa' };
-const PROXY_B: Node = { id: 'proxyB', label: 'Proxy B', kind: 'proxy', ip: '203.0.113.10', uri: 'sip:proxy.biloxi.example;lr', br: 'pb' };
-const BOB: Node = { id: 'bob', label: 'Bob', kind: 'ua', ip: '203.0.113.20', contact: 'sip:bob@203.0.113.20:5060', tag: '314159', br: 'b0' };
 const REDIRECT: Node = { id: 'redirect', label: 'Redirect server', kind: 'server', ip: '203.0.113.30', br: 'rs' };
 const DESK: Node = { id: 'desk', label: 'Desk phone', kind: 'ua', ip: '203.0.113.20', contact: 'sip:bob@203.0.113.20:5060', tag: '314159', br: 'd0' };
+const VOICEMAIL: Node = { id: 'vm', label: 'Voicemail server', kind: 'server', ip: '203.0.113.50', contact: 'sip:voicemail@203.0.113.50:5060', tag: '7c1e0a9', br: 'vm' };
 const MOBILE: Node = { id: 'mobile', label: 'Mobile', kind: 'ua', ip: '203.0.113.40', contact: 'sip:bob@203.0.113.40:5060', tag: 'a73kszlfl', br: 'm0' };
 
 const FROM = `Alice <sip:alice@atlanta.example>;tag=${ALICE.tag}`;
 const TO = 'Bob <sip:bob@biloxi.example>';
 const AOR = 'sip:bob@biloxi.example';
-const CALL_ID = '3848276298220188511@192.0.2.10';
 const NONCE = 'f84f1cec41e6cbe5aea9c8e88d359';
 const CREDENTIALS = { username: 'alice', password: 'wonderland-2026' };
 const PROXY_AUTH = (method: string) =>
@@ -181,116 +182,14 @@ const PROXY_AUTH = (method: string) =>
 /** Tags of the responses that a proxy or server creates itself. */
 const OWN_TAG: Record<string, string> = { proxyA: '3flal12sf', proxyB: '6e9a1c2b', redirect: '8e3c7a01' };
 
-function sdp(user: string, id: string, ip: string, port: number, pts: number[]): string {
-  const name = (pt: number) => (pt === 0 ? 'PCMU' : 'PCMA');
-  return [`v=0`, `o=${user} ${id} ${id} IN IP4 ${ip}`, 's=-', `c=IN IP4 ${ip}`, 't=0 0', `m=audio ${port} RTP/AVP ${pts.join(' ')}`,
-    ...pts.map(pt => `a=rtpmap:${pt} ${name(pt)}/8000`)].join('\n') + '\n';
-}
-const ALICE_SDP = (pts: number[]) => sdp('alice', '2890844526', ALICE.ip, 49170, pts);
-const CALLEE_SDP = (n: Node, pts: number[]) => sdp('bob', n.id === 'mobile' ? '1188442277' : '2808844564', n.ip, n.id === 'mobile' ? 7078 : 3456, pts);
+const ALICE_SDP = (pts: number[]) => sdp({ user: 'alice', id: 2890844526, ip: ALICE.ip, port: 49170, pts });
+const CALLEE_SDP = (n: Node, pts: number[]) => n.id === 'vm'
+  ? sdp({ user: 'vm', id: 3141592653, ip: n.ip, port: 6000, pts })
+  : sdp({ user: 'bob', id: n.id === 'mobile' ? 1188442277 : 2808844564, ip: n.ip, port: n.id === 'mobile' ? 7078 : 3456, pts });
 
-// ---------------------------------------------------------------------------
-// Messages
-
-interface Msg {
-  line: string;
-  via: string[];
-  maxForwards?: number;
-  route?: string[];
-  recordRoute?: string[];
-  from: string;
-  to: string;
-  cseq: string;
-  contact?: string;
-  extra?: string[];
-  sdp?: string;
-}
-
-function text(m: Msg): string {
-  const h = [m.line, ...m.via.map(v => `Via: ${v}`)];
-  if (m.maxForwards !== undefined) h.push(`Max-Forwards: ${m.maxForwards}`);
-  for (const r of m.route ?? []) h.push(`Route: <${r}>`);
-  for (const r of m.recordRoute ?? []) h.push(`Record-Route: <${r}>`);
-  h.push(`From: ${m.from}`, `To: ${m.to}`, `Call-ID: ${CALL_ID}`, `CSeq: ${m.cseq}`);
-  if (m.contact) h.push(`Contact: <${m.contact}>`);
-  h.push(...(m.extra ?? []));
-  if (m.sdp) h.push('Content-Type: application/sdp');
-  h.push('Content-Length: {auto}');
-  return h.join('\n') + '\n' + (m.sdp ? '\n' + m.sdp : '');
-}
-
-const ruriOf = (m: Msg) => m.line.split(' ')[1]!;
-const methodOf = (m: Msg) => m.line.split(' ')[0]!;
-const withTag = (to: string, tag: string) => (/;tag=/.test(to) ? to : `${to};tag=${tag}`);
-
-/** A request as it travels on one hop. */
-interface Hop { from: Node; to: Node; msg: Msg }
-
-class Builder {
-  steps: FlowStep[] = [];
+class Builder extends FlowWriter {
   readonly o: CallOptions;
-  private count = new Map<string, number>();
-  constructor(o: CallOptions) { this.o = o; }
-
-  branch(n: Node): string {
-    const k = (this.count.get(n.id) ?? 0) + 1;
-    this.count.set(n.id, k);
-    const seed = [...n.id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) % 0xfff;
-    return `z9hG4bK${n.br}${(0x1000 + seed + k * 0x2d3).toString(16)}`;
-  }
-
-  via(n: Node): string {
-    return `SIP/2.0/UDP ${n.ip}:5060;branch=${this.branch(n)}`;
-  }
-
-  msg(from: Node, to: Node, label: string, caption: string, m: Msg, more: Partial<FlowStep> & { rfc?: QuoteId } = {}): void {
-    this.steps.push({ from: from.id, to: to.id, label, caption, message: text(m), ...more });
-  }
-
-  media(from: Node, to: Node, label: string, caption: string, oneway = false): void {
-    this.steps.push({ kind: 'media', from: from.id, to: to.id, proto: 'rtp', label, caption, ...(oneway ? { oneway } : {}) });
-  }
-
-  /** A proxy forwards a request (RFC 3261 §16.6). */
-  forward(prev: Msg, p: Node, how: { initial: boolean; retarget?: string }): Msg {
-    const route = [...(prev.route ?? [])];
-    if (route[0] === p.uri) route.shift();
-    return {
-      ...prev,
-      line: how.retarget ? `${methodOf(prev)} ${how.retarget} SIP/2.0` : prev.line,
-      via: [this.via(p), ...prev.via],
-      maxForwards: prev.maxForwards! - 1,
-      route: route.length ? route : undefined,
-      recordRoute: how.initial && this.o.recordRoute ? [p.uri!, ...(prev.recordRoute ?? [])] : prev.recordRoute,
-      // Proxy A consumes the credentials for its own realm (RFC 3261 §22.3).
-      extra: p.id === 'proxyA' ? prev.extra?.filter(h => !h.startsWith('Proxy-Authorization')) : prev.extra,
-    };
-  }
-
-  /** A response on one hop: the Via headers of the request on that hop (RFC 3261 §8.2.6.2, §16.7). */
-  response(h: Hop, status: string, more: Partial<Msg> & { tag?: string }): Msg {
-    const { tag, ...rest } = more;
-    return {
-      line: `SIP/2.0 ${status}`, via: h.msg.via, from: h.msg.from, to: tag ? withTag(h.msg.to, tag) : h.msg.to,
-      cseq: h.msg.cseq, ...rest,
-    };
-  }
-
-  /** The ACK for a non-2xx final response: same hop, same branch (RFC 3261 §17.1.1.3). */
-  ackNon2xx(h: Hop, toTag: string): Msg {
-    return {
-      line: `ACK ${ruriOf(h.msg)} SIP/2.0`, via: [h.msg.via[0]!], maxForwards: 70, route: h.msg.route,
-      from: h.msg.from, to: withTag(h.msg.to, toTag), cseq: `${h.msg.cseq.split(' ')[0]} ACK`,
-    };
-  }
-
-  /** A CANCEL on one hop: Request-URI, Route, and branch of the INVITE on that hop (RFC 3261 §9.1). */
-  cancel(h: Hop): Msg {
-    return {
-      line: `CANCEL ${ruriOf(h.msg)} SIP/2.0`, via: [h.msg.via[0]!], maxForwards: 70, route: h.msg.route,
-      from: h.msg.from, to: h.msg.to, cseq: `${h.msg.cseq.split(' ')[0]} CANCEL`,
-    };
-  }
+  constructor(o: CallOptions) { super(); this.o = o; this.recordRoute = o.recordRoute; }
 }
 
 // ---------------------------------------------------------------------------
@@ -313,7 +212,7 @@ const STATUS: Record<Exclude<Outcome, 'answer' | 'cancel'>, { status: string; la
  * callee (Bob, or the Redirect server). Each proxy answers 100 Trying.
  * Returns the INVITE on each hop it reached.
  */
-function sendInvite(b: Builder, nodes: Node[], first: Msg, opts: { loseFirst?: boolean; stopAt?: number; lead?: string; noTrying?: boolean } = {}): Hop[] {
+function sendInvite(b: Builder, nodes: Node[], first: Msg, opts: { loseFirst?: boolean; stopAt?: number; lead?: string; noTrying?: boolean; home?: string } = {}): Hop[] {
   const o = b.o;
   const hops: Hop[] = [];
   const callee = nodes[nodes.length - 1]!;
@@ -342,8 +241,8 @@ function sendInvite(b: Builder, nodes: Node[], first: Msg, opts: { loseFirst?: b
         b.msg(from, to, label, `${lead} ${o.lateOffer ? 'It has no SDP: Bob will make the offer.' : 'The SDP offer lists PCMU and PCMA.'}`, msg);
       }
     } else if (home && to.kind === 'ua') {
-      b.msg(from, to, 'INVITE', `${from.label} finds Bob's Contact in its location service. It adds its Via${RR_NOTE(o)} and sends the INVITE there.`, msg,
-        { rfc: o.recordRoute ? 'rfc3261-16.6-record-route' : 'rfc3261-16.6-request-uri' });
+      b.msg(from, to, 'INVITE', opts.home ?? `${from.label} finds Bob's Contact in its location service. It adds its Via${RR_NOTE(o)} and sends the INVITE there.`, msg,
+        { rfc: opts.home ? 'rfc5359-2.7-retarget' : o.recordRoute ? 'rfc3261-16.6-record-route' : 'rfc3261-16.6-request-uri' });
     } else {
       b.msg(from, to, 'INVITE', `${o.auth ? `${from.label} accepts the credentials and removes them. It` : from.label} removes its own Route entry, adds its Via${RR_NOTE(o)}, and forwards the INVITE.`, msg,
         { rfc: o.auth ? 'rfc3261-22.3-consume-realm' : 'rfc3261-16.4-route-pop' });
@@ -401,8 +300,8 @@ interface Leg {
 /** The call with one callee: direct, through one or two proxies, or after a redirect. */
 function oneCallee(b: Builder, leg: Leg): void {
   const o = b.o;
-  const { nodes } = leg;
-  const callee = nodes[nodes.length - 1]!;
+  const nodes = o.forward === 'always' ? [...leg.nodes.slice(0, -1), VOICEMAIL] : leg.nodes;
+  let callee = nodes[nodes.length - 1]!;
   const proxies = nodes.filter(n => n.kind === 'proxy');
   const invite: Msg = {
     line: `INVITE ${leg.ruri ?? AOR} SIP/2.0`, via: [b.via(ALICE)], maxForwards: 70, route: leg.route, from: FROM, to: TO,
@@ -418,8 +317,11 @@ function oneCallee(b: Builder, leg: Leg): void {
       : relay('404')(h), {}, STATUS['not-found'].rfc);
     return;
   }
-  const hops = sendInvite(b, nodes, invite, { loseFirst: o.lose === 'invite' });
-  const last = hops[hops.length - 1]!;
+  let hops = sendInvite(b, nodes, invite, {
+    loseFirst: o.lose === 'invite',
+    home: o.forward === 'always' ? `Bob forwards all his calls to voicemail. Proxy B puts the voicemail server in the Request-URI${o.recordRoute ? ', adds Record-Route,' : ''} and forwards the INVITE there.` : undefined,
+  });
+  let last = hops[hops.length - 1]!;
   const k = hops.length - 1;
 
   // Bob's phone is gone: Proxy B retransmits, then gives up with 408.
@@ -436,6 +338,27 @@ function oneCallee(b: Builder, leg: Leg): void {
     return;
   }
 
+  // Forwarding when busy or on no answer: Proxy B ends the branch to Bob and tries the voicemail server.
+  if (o.forward === 'busy' || o.forward === 'no-answer') {
+    const toBob = last;
+    if (o.forward === 'busy') {
+      b.msg(BOB, PROXY_B, STATUS.busy.label, 'Bob is on another call. His phone rejects the INVITE at once.', b.response(toBob, STATUS.busy.status, { tag: BOB.tag }), { rfc: STATUS.busy.rfc });
+      b.msg(PROXY_B, BOB, 'ACK', 'Proxy B confirms the 486 on this hop. Bob forwards busy calls, so the 486 stops here.', b.ackNon2xx(toBob, BOB.tag!));
+    } else {
+      const r180 = { contact: BOB.contact, ...(toBob.msg.recordRoute ? { recordRoute: toBob.msg.recordRoute } : {}) };
+      sendBack(b, hops, k, '180 Ringing', '180 Ringing', (h, j) => j === k ? 'Bob\'s phone rings.' : j === 0 ? `${h.to.label} forwards the 180. Alice's phone plays a ringback tone.` : relay('180')(h), r180, 'rfc3261-12-early');
+      b.msg(PROXY_B, BOB, 'CANCEL', 'Nobody answers within Bob\'s ring time, 20 s. Proxy B cancels the branch to Bob.', b.cancel(toBob), { rfc: 'rfc3261-16.8-timer-c' });
+      b.msg(BOB, PROXY_B, '200 OK (CANCEL)', 'Bob\'s phone stops ringing and answers the CANCEL.', b.response({ ...toBob, msg: b.cancel(toBob) }, '200 OK', { tag: BOB.tag }));
+      b.msg(BOB, PROXY_B, '487 Request Terminated', 'Bob\'s phone ends its INVITE transaction with 487.', b.response(toBob, '487 Request Terminated', { tag: BOB.tag }));
+      b.msg(PROXY_B, BOB, 'ACK', 'Proxy B confirms the 487. It forwards nothing to Alice: the call goes on.', b.ackNon2xx(toBob, BOB.tag!));
+    }
+    const vm: Hop = { from: PROXY_B, to: VOICEMAIL, msg: b.forward(hops[k - 1]!.msg, PROXY_B, { initial: true, retarget: VOICEMAIL.contact }) };
+    b.msg(PROXY_B, VOICEMAIL, 'INVITE', `Proxy B tries Bob's forwarding target: the voicemail server, on a new branch. The To header still names Bob.`, vm.msg, { rfc: 'rfc5359-2.7-retarget' });
+    hops = [...hops.slice(0, k), vm];
+    last = vm;
+    callee = VOICEMAIL;
+  }
+
   // Bob is busy: the phone rejects the INVITE at once, without ringing.
   const rr = last.msg.recordRoute ? { recordRoute: last.msg.recordRoute } : {};
   if (o.outcome === 'busy') {
@@ -444,13 +367,15 @@ function oneCallee(b: Builder, leg: Leg): void {
     return;
   }
 
-  // Ringing, or early media.
+  // Ringing, or early media. The voicemail server answers at once.
   const answerSdp = CALLEE_SDP(callee, [0]);
-  if (o.earlyMedia) {
+  if (o.forward !== 'none') {
+    // no ringing
+  } else if (o.earlyMedia) {
     sendBack(b, hops, k, '183 Session Progress', '183 Session Progress', (h, j) => j === k
       ? 'Bob\'s phone answers the offer in a 183, before anybody picks up. The To tag creates an early dialog.'
       : relay('183 and its SDP')(h), { contact: callee.contact, ...rr, sdp: answerSdp }, 'rfc3261-21.1.5-183');
-    b.media(callee, ALICE, 'RTP early media', 'Bob\'s side sends a ringback tone or an announcement as RTP. Alice\'s phone plays it and makes no tone of its own.', true);
+    b.media(callee, ALICE, 'RTP early media', 'Bob\'s side sends a ringback tone or an announcement as RTP. Alice\'s phone plays it and makes no tone of its own.', { oneway: true });
   } else {
     sendBack(b, hops, k, '180 Ringing', '180 Ringing', (h, j) => j === k
       ? `Bob's phone rings${k === 0 ? ', and Alice\'s phone plays a ringback tone' : ''}. The To tag in the 180 creates an early dialog.`
@@ -481,7 +406,9 @@ function oneCallee(b: Builder, leg: Leg): void {
   // Bob answers.
   const ok = { contact: callee.contact, ...rr, sdp: o.lateOffer ? CALLEE_SDP(callee, [0, 8]) : answerSdp };
   const okLabel = o.lateOffer ? '200 OK (offer)' : '200 OK';
-  const answered = o.lateOffer ? 'Bob answers. The INVITE had no SDP, so the 200 OK carries Bob\'s offer.'
+  const answered = callee === VOICEMAIL
+    ? (o.lateOffer ? 'The voicemail server answers at once. The INVITE had no SDP, so the 200 OK carries its offer.' : 'The voicemail server answers at once, with its SDP answer.')
+    : o.lateOffer ? 'Bob answers. The INVITE had no SDP, so the 200 OK carries Bob\'s offer.'
     : o.earlyMedia ? 'Bob answers. The 200 OK repeats the SDP of the 183, so the media goes on unchanged.'
     : 'Bob answers. The 200 OK carries the SDP answer: PCMU.';
   const routeSetNote = o.recordRoute && proxies.length ? ' Alice\'s phone reverses the Record-Route list to build the route set.' : '';
@@ -518,7 +445,8 @@ function oneCallee(b: Builder, leg: Leg): void {
       h.msg, i === 0 ? { rfc: 'rfc3261-13.2.2.4-ack-core' } : {}));
   }
 
-  b.media(ALICE, callee, 'RTP audio (PCMU)', proxies.length ? 'Alice and Bob send RTP straight to each other. The proxies never see the media.'
+  if (callee === VOICEMAIL) b.media(ALICE, callee, 'RTP audio (PCMU)', 'Alice hears Bob\'s greeting, and leaves a message after the tone.');
+  else b.media(ALICE, callee, 'RTP audio (PCMU)', proxies.length ? 'Alice and Bob send RTP straight to each other. The proxies never see the media.'
     : 'Alice and Bob send RTP straight to each other, to the addresses in the SDP.');
   bye(b, callee, dialogProxies, leg.cseq + 1);
 }
@@ -526,7 +454,7 @@ function oneCallee(b: Builder, leg: Leg): void {
 /** One side hangs up: BYE along the route set, and 200 OK back (RFC 3261 §15). */
 function bye(b: Builder, callee: Node, dialogProxies: Node[], aliceSeq: number): void {
   const o = b.o;
-  const byAlice = o.hangup === 'alice';
+  const byAlice = o.hangup === 'alice' || o.forward !== 'none';
   const chain = byAlice ? [ALICE, ...dialogProxies, callee] : [callee, ...[...dialogProxies].reverse(), ALICE];
   const m: Msg = byAlice
     ? { line: `BYE ${callee.contact} SIP/2.0`, via: [b.via(ALICE)], maxForwards: 70, route: dialogProxies.length ? dialogProxies.map(p => p.uri!) : undefined,
@@ -539,7 +467,7 @@ function bye(b: Builder, callee: Node, dialogProxies: Node[], aliceSeq: number):
     : `${from.label} removes its own Route entry and forwards the BYE.`, byAlice ? 'rfc3261-15-bye' : 'rfc3261-12.2.1.1-target');
   for (let j = hops.length - 1; j >= 0; j--) {
     const h = hops[j]!;
-    b.msg(h.to, h.from, '200 OK (BYE)', j === hops.length - 1 ? `${byAlice ? 'Bob' : 'Alice'}'s phone confirms the BYE. The dialog ends.` : `${h.to.label} forwards the 200 OK.`,
+    b.msg(h.to, h.from, '200 OK (BYE)', j === hops.length - 1 ? `${callee.id === 'vm' ? 'The voicemail server' : byAlice ? 'Bob\'s phone' : 'Alice\'s phone'} confirms the BYE. The dialog ends.` : `${h.to.label} forwards the 200 OK.`,
       b.response(h, '200 OK', {}));
   }
 }
@@ -655,14 +583,14 @@ export function buildCall(options: CallOptions): FlowData {
   switch (o.path) {
     case 'direct':
       lanes = [ALICE, BOB];
-      oneCallee(b, { nodes: lanes, cseq: 1 });
+      oneCallee(b, { nodes: lanes.filter(n => n !== VOICEMAIL), cseq: 1 });
       break;
     case 'proxy':
-      lanes = [ALICE, PROXY_B, BOB];
-      oneCallee(b, { nodes: lanes, cseq: 1 });
+      lanes = [ALICE, PROXY_B, BOB, ...(o.forward !== 'none' ? [VOICEMAIL] : [])];
+      oneCallee(b, { nodes: lanes.filter(n => n !== VOICEMAIL), cseq: 1 });
       break;
     case 'two-proxies': {
-      lanes = [ALICE, PROXY_A, PROXY_B, BOB];
+      lanes = [ALICE, PROXY_A, PROXY_B, BOB, ...(o.forward !== 'none' ? [VOICEMAIL] : [])];
       const route = [PROXY_A.uri!];
       if (o.auth) {
         const first: Msg = {
@@ -675,7 +603,7 @@ export function buildCall(options: CallOptions): FlowData {
           () => 'Proxy A rejects the INVITE with 407. Proxy-Authenticate carries the realm and a nonce.',
           { extra: [`Proxy-Authenticate: Digest realm="atlanta.example", qop="auth", nonce="${NONCE}", algorithm=MD5`] }, 'rfc3261-22.3-challenge-407');
       }
-      oneCallee(b, { nodes: lanes, cseq: o.auth ? 2 : 1, route, extra: o.auth ? [PROXY_AUTH('INVITE')] : undefined });
+      oneCallee(b, { nodes: lanes.filter(n => n !== VOICEMAIL), cseq: o.auth ? 2 : 1, route, extra: o.auth ? [PROXY_AUTH('INVITE')] : undefined });
       break;
     }
     case 'redirect':
@@ -688,7 +616,7 @@ export function buildCall(options: CallOptions): FlowData {
   }
   return {
     id: `call-${callKey(o)}`,
-    title: `${TITLE[o.outcome]}, ${VIA[o.path]}`,
+    title: o.forward !== 'none' ? `Bob forwards ${{ always: 'every call', busy: 'busy calls', 'no-answer': 'unanswered calls' }[o.forward]} to voicemail` : `${TITLE[o.outcome]}, ${VIA[o.path]}`,
     lanes: lanes.map(n => ({ id: n.id, label: n.label, kind: n.kind, sub: n.ip })),
     steps: b.steps,
     ...(o.auth ? { credentials: CREDENTIALS } : {}),

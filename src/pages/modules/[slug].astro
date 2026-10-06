@@ -63,7 +63,8 @@ import KeyExchange from '../../components/KeyExchange.astro';
 import TransportRace from '../../components/TransportRace.astro';
 import NatSimulator from '../../components/NatSimulator.astro';
 import IceChecker from '../../components/IceChecker.astro';
-import CallBuilder from '../../components/CallBuilder.astro';
+import FlowBuilder from '../../components/FlowBuilder.astro';
+import FlowPair from '../../components/FlowPair.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -99,7 +100,7 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   AttackMap, CertCheck, OfferAnswer, SdpLinter, HoldPlayer,
   RtpHeader, JitterBuffer, BandwidthCalc,
   RtcpExplorer, RttTimeline, MosCalc,
-  SrtpPacket, KeyExchange, TransportRace, NatSimulator, IceChecker, CallBuilder };
+  SrtpPacket, KeyExchange, TransportRace, NatSimulator, IceChecker, FlowBuilder, FlowPair };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

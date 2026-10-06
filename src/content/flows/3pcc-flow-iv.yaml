@@ -1,0 +1,197 @@
+id: 3pcc-flow-iv
+title: "Third-party call control: click to dial"
+summary: Flow IV of RFC 3725. A Controller calls Alice, then Bob, and connects their media by passing each one's SDP to the other.
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: 192.0.2.10
+  - id: ctrl
+    label: Controller
+    kind: b2bua
+    sub: 198.51.100.20
+  - id: bob
+    label: Bob
+    kind: ua
+    sub: 203.0.113.20
+steps:
+  - from: ctrl
+    to: alice
+    label: INVITE (no media)
+    caption: Alice clicks "Call Bob" on a web page. The Controller calls Alice first, with an SDP that has no m= lines.
+    message: |
+      INVITE sip:alice@atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.20:5060;branch=z9hG4bKcc12dc
+      Max-Forwards: 70
+      From: Click to dial <sip:3pcc@atlanta.example>;tag=3c71aa
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: 3pcc-a-55aa01@198.51.100.20
+      CSeq: 1 INVITE
+      Contact: <sip:3pcc@198.51.100.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=ctrl 1717171717 1717171717 IN IP4 198.51.100.20
+      s=-
+      c=IN IP4 198.51.100.20
+      t=0 0
+    rfc: rfc3725-4.4-no-media
+  - from: alice
+    to: ctrl
+    label: 200 OK (no media)
+    caption: Alice answers. Her answer has no media either.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 198.51.100.20:5060;branch=z9hG4bKcc12dc
+      From: Click to dial <sip:3pcc@atlanta.example>;tag=3c71aa
+      To: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      Call-ID: 3pcc-a-55aa01@198.51.100.20
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+  - from: ctrl
+    to: alice
+    label: ACK
+    caption: The Controller confirms. Alice now waits on a call with no audio.
+    message: |
+      ACK sip:alice@192.0.2.10:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.20:5060;branch=z9hG4bKcc15af
+      Max-Forwards: 70
+      From: Click to dial <sip:3pcc@atlanta.example>;tag=3c71aa
+      To: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      Call-ID: 3pcc-a-55aa01@198.51.100.20
+      CSeq: 1 ACK
+      Content-Length: {auto}
+  - from: ctrl
+    to: bob
+    label: INVITE (no SDP)
+    caption: The Controller calls Bob with no SDP, so Bob's 200 OK must carry an offer.
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.20:5060;branch=z9hG4bKcc1882
+      Max-Forwards: 70
+      From: Click to dial <sip:3pcc@atlanta.example>;tag=3c71bb
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3pcc-b-55aa02@198.51.100.20
+      CSeq: 1 INVITE
+      Contact: <sip:3pcc@198.51.100.20:5060>
+      Content-Length: {auto}
+  - from: bob
+    to: ctrl
+    label: 200 OK (offer)
+    caption: Bob answers. His offer, offer2, lists PCMU and PCMA at Bob's address.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 198.51.100.20:5060;branch=z9hG4bKcc1882
+      From: Click to dial <sip:3pcc@atlanta.example>;tag=3c71bb
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3pcc-b-55aa02@198.51.100.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+  - from: ctrl
+    to: alice
+    label: INVITE (offer)
+    caption: "The Controller sends Bob's offer to Alice in a re-INVITE. Only the o= line changes: the Controller's origin, next version."
+    message: |
+      INVITE sip:alice@192.0.2.10:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.20:5060;branch=z9hG4bKcc1b55
+      Max-Forwards: 70
+      From: Click to dial <sip:3pcc@atlanta.example>;tag=3c71aa
+      To: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      Call-ID: 3pcc-a-55aa01@198.51.100.20
+      CSeq: 2 INVITE
+      Contact: <sip:3pcc@198.51.100.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=ctrl 1717171717 1717171718 IN IP4 198.51.100.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+    rfc: rfc3725-4.4-origin
+  - from: alice
+    to: ctrl
+    label: 200 OK (answer)
+    caption: Alice's phone answers with PCMU, at her own address.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 198.51.100.20:5060;branch=z9hG4bKcc1b55
+      From: Click to dial <sip:3pcc@atlanta.example>;tag=3c71aa
+      To: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      Call-ID: 3pcc-a-55aa01@198.51.100.20
+      CSeq: 2 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844527 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+  - from: ctrl
+    to: bob
+    label: ACK (answer)
+    caption: The Controller passes Alice's answer to Bob in the ACK, with its own origin for this dialog.
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.20:5060;branch=z9hG4bKcc1e28
+      Max-Forwards: 70
+      From: Click to dial <sip:3pcc@atlanta.example>;tag=3c71bb
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3pcc-b-55aa02@198.51.100.20
+      CSeq: 1 ACK
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=ctrl 1818181818 1818181818 IN IP4 198.51.100.20
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+  - from: ctrl
+    to: alice
+    label: ACK
+    caption: The Controller confirms Alice's 200 OK.
+    message: |
+      ACK sip:alice@192.0.2.10:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.20:5060;branch=z9hG4bKcc20fb
+      Max-Forwards: 70
+      From: Click to dial <sip:3pcc@atlanta.example>;tag=3c71aa
+      To: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      Call-ID: 3pcc-a-55aa01@198.51.100.20
+      CSeq: 2 ACK
+      Content-Length: {auto}
+  - kind: media
+    from: alice
+    to: bob
+    proto: rtp
+    label: RTP audio (PCMU)
+    caption: The media flows between Alice and Bob. The Controller stays in both dialogs, but never sees the RTP.

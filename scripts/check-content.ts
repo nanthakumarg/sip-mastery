@@ -8,7 +8,7 @@ import { lintDiagram } from '../src/sip/lint-diagram.ts';
 import { lintFlow, type LintIssue } from '../src/sip/lint-flow.ts';
 import { prepareFlow } from '../src/sip/flow.ts';
 import { loadMethods, methodFlow } from '../src/lib/methods.ts';
-import { allCalls, buildCall, CALL_QUOTES, callKey } from '../src/sip/callflow.ts';
+import { GENERATORS } from '../src/sip/generators.ts';
 
 // Parse every data file first, so a YAML error fails here and not only in the dev server.
 const headerRef = loadHeaderRef();
@@ -77,18 +77,19 @@ for (const m of methods) {
   for (const i of issues.filter(x => x.severity === 'warn')) { console.log(`  ⚠ ${fmt(i)}`); warnings++; }
 }
 
-// Call flow generator (Module 21): every combination follows the same rules as the flow files.
-{
-  const calls = allCalls();
+// Flow generators (Modules 21 and 22): every combination follows the same rules as the flow files.
+for (const [kind, g] of Object.entries(GENERATORS)) {
+  const all = g.all();
   let bad = 0;
-  for (const id of CALL_QUOTES) if (!quoteIds.has(id)) { console.log(`  ✗ callflow.ts: unknown quote id "${id}"`); bad++; }
-  for (const o of calls) {
-    const flow = await prepareFlow(buildCall(o));
+  for (const id of g.quotes) if (!quoteIds.has(id)) { console.log(`  ✗ ${kind}: unknown quote id "${id}"`); bad++; }
+  for (const o of all) {
+    const flow = await prepareFlow(g.build(o));
     const issues = [...lintFlow(flow), ...lintDiagram(flow, terms)].filter(i => i.severity === 'error');
-    for (const i of issues) { console.log(`  ✗ call ${callKey(o)} ${fmt(i)}`); bad++; }
+    for (const i of issues) { console.log(`  ✗ ${kind} ${g.key(o)} ${fmt(i)}`); bad++; }
+    for (const s of flow.steps) if (s.rfc && !g.quotes.includes(s.rfc)) { console.log(`  ✗ ${kind} ${g.key(o)}: quote ${s.rfc} is not in its quote list`); bad++; }
   }
   errors += bad;
-  console.log(`${bad ? '✗' : '✓'} call flow generator: ${calls.length} combinations`);
+  console.log(`${bad ? '✗' : '✓'} ${kind} generator: ${all.length} combinations`);
 }
 
 console.log(`\n${errors} error(s), ${warnings} warning(s)`);

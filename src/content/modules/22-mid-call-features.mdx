@@ -1,0 +1,262 @@
+---
+module: 22
+title: Mid-call features
+part: 8
+level: [intermediate, advanced]
+paths: { noc: core, dev: core }
+summary: "What happens inside a call that is already up: hold and resume, re-INVITE and UPDATE for a new codec, video, or address, reliable provisional responses (100rel and PRACK), preconditions, session timers, blind and attended transfer with REFER and Replaces, call forwarding, call pickup and park, third-party call control, and conferences."
+objectives:
+  - Put a call on hold and take it off hold, and read the SDP direction attributes and o= versions in each step.
+  - Change a session with re-INVITE or UPDATE, and say what happens when the change is rejected or two changes cross (glare).
+  - Explain reliable provisional responses (RSeq, RAck, PRACK) and why preconditions need them.
+  - Follow a blind and an attended transfer, with REFER, NOTIFY and message/sipfrag, and Replaces.
+  - Explain call forwarding, call pickup, call park, third-party call control, and a conference focus in terms of the SIP messages they use.
+status: draft
+---
+
+## 22.1 Hold and resume
+
+A call that is up can change at any time. Either side sends a new SDP offer inside the dialog, and the other side answers it, exactly as in Module 15. The request that carries the offer is a **re-INVITE**: an INVITE with the To tag of the dialog. **UPDATE** can carry it too (22.2).
+
+The most common change is hold. The phone that holds sends an offer with `a=sendonly`, so it can still play <Term t="music on hold" />, and the other side answers `a=recvonly`:
+
+<RfcQuote id="rfc3264-8.4-hold" />
+
+<FlowBuilder kind="reinvite" preset={{ change: 'hold' }} eyebrow="Flow builder · hold with a=sendonly" />
+
+Three details matter in every hold trace:
+
+- **The o= version goes up by one** in every new offer, and in every answer that differs from the last one. A phone that keeps the old version tells the other side "nothing changed" (Module 15).
+- **The direction is the sender's point of view.** Alice's offer says `sendonly` ("I will only send"); Bob's answer says `recvonly` ("I will only receive").
+- **`a=inactive`** holds without any media in either direction. Try *Change: Hold (inactive)*. Old phones used `c=0.0.0.0` instead, which RFC 3264 no longer recommends:
+
+<RfcQuote id="rfc3264-8.4-zero" />
+
+To resume, the holding side sends another offer with `a=sendrecv` and the next version. Try *Change: Hold, then resume*, and *Sent by: Bob*: the callee can hold the caller too, with his own CSeq numbers and his own o= versions.
+
+## 22.2 Re-INVITE: codec change, add video, new media address
+
+The same mechanism changes anything in the session. Each change is a new offer, with the next o= version:
+
+| Change | What the new offer changes | What the answer does |
+|---|---|---|
+| New codec | The payload types on the m= line | Picks from them, or the whole offer fails with 488 |
+| Add video | A new m=video line after the audio | Accepts it with a port, or rejects it with port 0 |
+| New IP address | The address in c= | Usually nothing: same SDP, same version |
+
+<FlowBuilder kind="reinvite" preset={{ change: 'video' }} eyebrow="Flow builder · add video with a re-INVITE" />
+
+**When the other side cannot accept the change.** Try *Result: Rejected*. A video stream that Bob's phone cannot handle is rejected in the answer, with port 0; the rest of the offer is accepted. A codec that Bob's phone does not have makes the whole offer fail, with **488 Not Acceptable Here**. A failed re-INVITE does not end the call:
+
+<RfcQuote id="rfc3261-14.1-unchanged" />
+
+<RfcQuote id="rfc3264-6-reject" />
+
+**When two changes cross.** If both phones send a re-INVITE at the same moment, each one rejects the other with **491 Request Pending** (Module 9). Each then waits a random time and tries again; the phone that does not own the Call-ID waits less:
+
+<RfcQuote id="rfc3261-14.1-491-timer" />
+
+**re-INVITE or UPDATE?** Switch *Method* to UPDATE. UPDATE carries the same offer, but the answer comes in its 200 OK, with no ACK, and it must come at once. A re-INVITE can wait for the user, for example to accept video. So RFC 3311 prefers re-INVITE in a confirmed dialog:
+
+<RfcQuote id="rfc3311-5.1-update" />
+
+UPDATE is essential in one place: before the call is answered, where a re-INVITE is not allowed (22.4).
+
+## 22.3 Reliable provisional responses: 100rel, PRACK, RSeq, RAck
+
+Provisional responses are not reliable (Module 8): a lost 180 is simply lost. That is a problem when a provisional response carries something that must arrive, such as the SDP answer in a 183 (Module 21). RFC 3262 makes them reliable:
+
+<RfcQuote id="rfc3262-3-require" />
+
+1. The INVITE says `Supported: 100rel` (or `Require: 100rel`).
+2. Bob's phone sends the 1xx with `Require: 100rel` and an **RSeq** number, and resends it, with T1 doubling, until it is acknowledged.
+3. Alice's phone acknowledges it with a **PRACK**, a new request in the early dialog. Its **RAck** header names the response: RSeq, then the CSeq number and method of the INVITE.
+4. The PRACK gets its own 200 OK.
+
+<Flow id="prack-reliable-180" eyebrow="Call flow · a reliable 180, a lost PRACK, and the retransmissions" />
+
+<RfcQuote id="rfc3262-7.2-rack" />
+
+With an SDP answer in a reliable 183, the offer/answer exchange is complete before the 200 OK, and the early dialog can use UPDATE for further offers. Module 15 shows that flow (`sdp-183-prack-update`).
+
+## 22.4 UPDATE before the answer (preconditions overview)
+
+On some networks, a call must not ring until the network has reserved resources for its media: a guaranteed bandwidth on a mobile or cable network, for example. Otherwise the callee answers a call that then fails, a "ghost ring":
+
+<RfcQuote id="rfc3312-1-ghost" />
+
+<Term t="precondition">Preconditions</Term> (RFC 3312) solve this with three tools from this module: an offer that lists the condition, a reliable 183 with the answer, and an UPDATE when the condition is met. The callee's phone rings only after that:
+
+<RfcQuote id="rfc3312-1-precondition" />
+
+<Flow id="preconditions-qos" eyebrow="Call flow · preconditions: ring only when resources are reserved" />
+
+The `a=curr` lines say what is reserved now; `a=des` says what each side needs; `a=conf` asks the other side to confirm. You will meet this mostly in IMS and VoLTE networks. Most enterprise and trunk calls do not use it.
+
+## 22.5 Session timer refresh
+
+A SIP proxy that keeps state for a call cannot tell whether the call is still up: a phone can crash without a BYE. The session timer (RFC 4028, Module 9) fixes this. One side, the <Term t="refresher" />, sends a refresh request before the interval ends. If none arrives, the other side sends BYE, and the proxies can forget the call:
+
+<RfcQuote id="rfc4028-7.2-half" />
+
+<FlowBuilder kind="reinvite" preset={{ change: 'refresh', method: 'update' }} eyebrow="Flow builder · session refresh with UPDATE" />
+
+An UPDATE without SDP is the lightest refresh. A re-INVITE also works; its SDP is the same as before, with the same o= version, because nothing changes. `refresher=uac` or `refresher=uas` in Session-Expires says who refreshes, from the point of view of the transaction that carries it.
+
+## 22.6 Blind transfer: REFER, Refer-To, 202, NOTIFY with sipfrag
+
+In a transfer, the <Term t="transferor" /> (Alice) asks the <Term t="transferee" /> (Bob) to call the <Term t="transfer target" /> (Carol). The request is **REFER**:
+
+<RfcQuote id="rfc3515-1-overview" />
+
+1. Alice usually puts Bob on hold first.
+2. Alice sends **REFER** in the existing dialog, with **Refer-To** (Carol's address) and **Referred-By** (Alice).
+3. Bob's phone answers **202 Accepted**. The REFER also creates a subscription: Bob must now report how the new call goes.
+4. Bob's phone calls Carol, in a new dialog with a new Call-ID.
+5. Bob's phone sends **NOTIFY** requests with `Event: refer` and a **message/sipfrag** body: the status line of Carol's response, such as `SIP/2.0 100 Trying`, then `SIP/2.0 200 OK`.
+6. When the transfer worked, Alice ends her call with Bob with a BYE. When it failed, she can take Bob back.
+
+<FlowBuilder kind="transfer" preset={{ type: 'blind' }} eyebrow="Flow builder · blind transfer (RFC 5589 §6.1)" />
+
+<RfcQuote id="rfc3515-2.4.5-sipfrag" />
+
+Try *Carol: busy*. The last NOTIFY says `SIP/2.0 486 Busy Here`, and Alice takes Bob off hold. The REFER and the call it starts are separate from the original call, which stays up until somebody sends BYE:
+
+<RfcQuote id="rfc5589-5-bye" />
+
+RFC 5589 sends the REFER inside the existing dialog, as here, unless the transferor knows that a REFER on a new dialog will reach the same phone:
+
+<RfcQuote id="rfc5589-5-in-dialog" />
+
+## 22.7 Attended transfer: REFER with Replaces
+
+In an attended (or consultation) transfer, Alice first talks to Carol, then connects Bob to her. Alice now has two dialogs: one with Bob, on hold, and one with Carol. The REFER asks Bob to **replace** Alice's dialog with Carol:
+
+1. Refer-To carries Carol's Contact, with a **Replaces** header inside the URI: the Call-ID of Alice's call with Carol, and its two tags.
+2. Bob's phone sends Carol an INVITE with that `Replaces` header.
+3. Carol's phone finds the dialog, answers the INVITE at once, without ringing, and ends its call with Alice with a BYE.
+
+<FlowBuilder kind="transfer" preset={{ type: 'attended' }} eyebrow="Flow builder · attended transfer (RFC 5589 §7.3)" />
+
+Replaces names the dialog **as the receiver sees it**. Carol's phone compares `to-tag` with its own tag:
+
+<RfcQuote id="rfc3891-3-match" />
+
+<RfcQuote id="rfc3891-3-bye" />
+
+## 22.8 Call forwarding: unconditional, busy, no answer
+
+Call forwarding usually happens in the network, at Bob's proxy or PBX, not in Bob's phone. Proxy B changes the Request-URI to the forwarding target and forwards the INVITE there (RFC 5359 §2.7 to §2.9):
+
+<RfcQuote id="rfc5359-2.7-retarget" />
+
+| Rule | When Proxy B forwards | What Bob's phone sees |
+|---|---|---|
+| Unconditional (always) | At once | Nothing: it never rings |
+| Busy | After Bob's phone answers 486 | An INVITE, which it rejects |
+| No answer | After Bob's ring time, for example 20 s | An INVITE, a CANCEL, and a 487 |
+
+<FlowBuilder kind="call" preset={{ path: 'proxy', forward: 'busy' }} eyebrow="Flow builder · call forwarding to voicemail" />
+
+Change *Forwarding* in the builder. This is sequential forking (Module 21) with a rule: the 486 or 487 from Bob's branch stays at Proxy B, and Alice sees only the call that the <Term t="Voicemail server" /> answers. The To header still names Bob, and a simple voicemail server picks the mailbox from it. After more than one forward, it needs a header that records the history of the call: Diversion or History-Info (Module 24).
+
+A phone can also forward a call itself, with a 302 redirect (Module 21). That works only while the phone is registered and reachable.
+
+## 22.9 Call pickup and call park (concepts)
+
+**Call pickup**: Bob's phone rings while he is away, and Carol, in the same team, picks up the call from her own phone. Carol's phone learns the dialog of the ringing call (Call-ID and tags) from the dialog event package (Module 23), then sends Alice an INVITE with `Replaces` and the `early-only` flag. Alice's phone answers Carol and cancels its INVITE to Bob:
+
+<Flow id="call-pickup" eyebrow="Call flow · call pickup with Replaces (RFC 5359 §2.16)" />
+
+<RfcQuote id="rfc3891-3-early" />
+
+<RfcQuote id="rfc5359-2.16-pickup" />
+
+**Call park** is a transfer to a park server: Bob transfers Alice to "park orbit 701", and the park server holds her, usually with music on hold. Later, Carol retrieves the call from any phone. Her phone sends Alice an INVITE with Replaces for the dialog with the park server. RFC 5359 calls park "a special case of call transfer":
+
+<RfcQuote id="rfc5359-2.15-park" />
+
+Both features use only REFER, Replaces, and the dialog event package. Most PBXs implement them inside the PBX instead, as a B2BUA; then the phones see ordinary calls.
+
+## 22.10 Third-party call control (3PCC)
+
+In <Term t="third-party call control" />, a third element sets up a call between two others. The classic example is click to dial: Alice clicks "Call Bob" on a web page, and a <Term t="Controller" /> calls her, then calls Bob, and connects the two. The Controller is a B2BUA. It has one dialog with each party, and passes each party's SDP to the other, so the media flows directly between Alice and Bob.
+
+RFC 3725 describes four ways to do this. Flow IV is the one to use for calls to people:
+
+<RfcQuote id="rfc3725-5-recommend" />
+
+<Flow id="3pcc-flow-iv" eyebrow="Call flow · click to dial, RFC 3725 Flow IV" />
+
+<RfcQuote id="rfc3725-4.4-origin" />
+
+Flow I is simpler: the Controller sends Alice an INVITE without SDP, and passes her offer to Bob. But it holds Alice's ACK until Bob answers, and a person may take longer than the 32 s that Alice's phone resends its 200 OK:
+
+<RfcQuote id="rfc3725-4.1-timeout" />
+
+So Flow I is for automatic answerers, such as a media server or a conference bridge.
+
+## 22.11 Conferences (concepts)
+
+A SIP conference has a centre, the <Term t="Conference focus" />: a SIP user agent at a conference URI, such as `sip:conf-4711@conf.atlanta.example`. Each participant has a normal dialog with the focus. The focus uses a mixer to send each participant the sum of the other voices:
+
+<RfcQuote id="rfc4353-4.1-focus" />
+
+<Flow id="conference-focus" eyebrow="Call flow · two participants, one focus" />
+
+The focus marks its Contact with `isfocus`, so that a conference-aware phone can offer conference controls:
+
+<RfcQuote id="rfc4579-4.2-isfocus" />
+
+Other operations use the tools of this module. To bring Carol into the conference, a participant sends the focus a REFER with Carol's address, and the focus calls her. To turn a call into a three-way call, a phone can transfer both parties to a new focus. The conference event package (Module 23) tells participants who is in the conference. Large conference systems often use a single B2BUA with a media server instead, but the participants still see one dialog each.
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="REFER without handling the NOTIFY">
+    A phone sends REFER, gets 202 Accepted, and hangs up at once: from the user's point of view, the transfer is done. But a 202 means only that Bob's phone will try. When Carol is busy, Bob's call fails, and nobody is left to take him back. Worse, the transferor's phone often answers the NOTIFYs with 481, so it never even sees the failure.
+
+    <FlowPair a={{ kind: 'transfer', preset: { target: 'busy', hangup: 'after-202' } }} b={{ kind: 'transfer', preset: { target: 'busy' } }} labels={['Broken: hangs up after the 202', 'Fixed: waits for the last NOTIFY']} />
+
+    <p class="fix"><b>Remember:</b> keep the call with the transferee until the NOTIFY with a final status (2xx to 6xx) arrives, and answer every NOTIFY with 200 OK. If the status is a failure, take the call back. Only "blind" transfers in a PBX that retries on failure may hang up early.</p>
+  </Mistake>
+
+  <Mistake title="Replaces with the tags the wrong way round">
+    In an attended transfer, the transferor builds the Replaces value from its own dialog with the target: Call-ID, its own tag, the target's tag. It writes its own tag as to-tag. But the target compares to-tag with its own local tag, finds no match, and answers 481. The transfer fails every time, and only for attended transfers.
+
+    <FlowPair a="transfer-replaces-swapped" b={{ kind: 'transfer', preset: { type: 'attended' } }} />
+
+    <p class="fix"><b>Remember:</b> Replaces names the dialog as the receiver sees it. to-tag is the receiver's tag; from-tag is the other tag. For Carol, that is to-tag = Carol's tag, from-tag = Alice's tag. The course's checker calls this rule replaces-match.</p>
+  </Mistake>
+
+  <Mistake title="A PRACK that names the wrong response">
+    A phone builds RAck from its own PRACK: RSeq, then the PRACK's CSeq number. The UAS cannot match it, answers 481, and resends the 180. After 32 s it gives up on the call with a 5xx, though both phones work and the network is fine.
+
+    <BrokenFixedFlow broken="prack-wrong-rack" fixed="prack-reliable-180" />
+
+    <p class="fix"><b>Remember:</b> RAck = RSeq of the reliable response, then the CSeq number and method of that response, which are the INVITE's. The course's checker calls this rule prack-rack.</p>
+  </Mistake>
+
+  <Mistake title="Ending the call after a rejected re-INVITE">
+    A softphone tries to switch to G.722 in the middle of a call. The other side answers 488 Not Acceptable Here. The softphone treats the error as the end of the call and sends BYE, or drops its media. But a failed re-INVITE leaves the session exactly as it was:
+
+    <RfcQuote id="rfc3261-14.1-unchanged" />
+
+    <FlowBuilder kind="reinvite" preset={{ change: 'codec', result: 'reject' }} eyebrow="Flow builder · the call goes on after a 488" />
+
+    <p class="fix"><b>Remember:</b> after a 4xx–6xx to a re-INVITE, go on with the old SDP. Only a 481 (the dialog is gone) or a 408 (no response) ends the call (RFC 3261 §12.2.1.2).</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A call changes with a new **offer inside the dialog**: a re-INVITE, or an UPDATE. Every changed SDP has the next **o= version**.
+- **Hold** is `a=sendonly` (or `a=inactive`), answered by `a=recvonly` (or `a=inactive`). **Resume** is `a=sendrecv`.
+- A **rejected** change (488, or port 0 for one stream) leaves the session as it was. Two crossing offers both get **491** and retry after a random time.
+- **100rel**: a reliable 1xx has Require: 100rel and RSeq, and the UAC acknowledges it with a **PRACK** whose **RAck** names it.
+- **Preconditions** delay ringing until network resources are reserved: a reliable 183, PRACK, and an UPDATE.
+- **Session timers**: the refresher sends a re-INVITE or UPDATE before half the interval ends.
+- **Blind transfer**: REFER with Refer-To, 202 Accepted, the transferee calls the target, NOTIFYs with message/sipfrag report the result. The transferor ends its own call with BYE.
+- **Attended transfer**: the same, with a **Replaces** header that names the transferor's dialog with the target, as the target sees it.
+- **Call forwarding** is a proxy that retargets the INVITE: always, after a 486, or after a ring timeout and a CANCEL.
+- **Pickup** and **park** use Replaces; **3PCC** passes SDP between two dialogs (RFC 3725 Flow IV); a **conference** is one dialog per participant with a **focus**.

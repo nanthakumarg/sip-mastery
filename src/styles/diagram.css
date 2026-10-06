@@ -1900,7 +1900,7 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 
 /* Call flow builder (Module 21) */
 .cb-controls { display: grid; gap: 8px; margin-top: 14px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; }
-.cb-group { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 4px 0; min-width: 0; }
+.cb-group { display: grid; grid-template-columns: 116px minmax(0, 1fr); align-items: center; gap: 4px 0; min-width: 0; }
 .cb-opts { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
 .cb-label { font: 500 11.5px var(--mono); color: var(--muted); }
 .cb-opts > button:not(.rl-toggle) { height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--dim); font: 400 12.5px var(--mono); }

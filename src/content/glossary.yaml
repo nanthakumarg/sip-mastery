@@ -14,7 +14,7 @@
 - term: Registrar
   definition: The server that accepts REGISTER requests for a domain and stores the bindings in its location service. In most examples it serves atlanta.example; in Module 12, biloxi.example.
 - term: Carol
-  definition: A third user. Bob is transferred to Carol in transfer examples; she is another support agent in Module 9.
+  definition: A third user, at chicago.example. Alice transfers Bob to Carol in Module 22; she is another support agent in Module 9.
 - term: Proxy B1
   definition: One of the two proxies of biloxi.example in Module 11, sip1.biloxi.example (203.0.113.11).
 - term: Proxy B2
@@ -34,6 +34,13 @@
   definition: The home router that translates private addresses to a public address. Where Alice and Bob each have one, they are NAT A and NAT B.
 - term: Firewall
   definition: In Module 20, the office firewall in front of a PBX. It forwards some ports to the PBX and blocks the rest.
+- term: Controller
+  definition: In third-party call control (Module 22), the element that sets up a call between two other parties, for example a click-to-dial server. It is a B2BUA.
+- term: Conference focus
+  aliases: [focus]
+  definition: The SIP user agent at a conference URI. Each participant has a dialog with it, and it makes sure that everybody gets the conference media, with a mixer.
+- term: Voicemail server
+  definition: A server that answers calls for a user who cannot take them, plays a greeting, and records a message. In Module 22, Bob's forwarding target.
 - term: Carrier gateway
   definition: The gateway between SIP and the public telephone network.
 
@@ -107,6 +114,23 @@
 - term: ringback tone
   aliases: [ringback, local ringback]
   definition: The tone the caller hears while the callee's phone rings. The caller's phone makes it locally after a 180, unless early media arrives from the far end.
+- term: music on hold
+  definition: Audio that a phone sends to the other side while it holds the call (a=sendonly), instead of silence.
+- term: transferor
+  definition: In a call transfer, the party that sends the REFER. In Module 22, Alice.
+- term: transferee
+  definition: In a call transfer, the party that receives the REFER and makes the new call. In Module 22, Bob.
+- term: transfer target
+  definition: In a call transfer, the party that the transferee calls. In Module 22, Carol.
+- term: reliable provisional response
+  aliases: [100rel, PRACK]
+  definition: A 101–199 response that carries Require 100rel and RSeq. The UAS resends it until a PRACK arrives (RFC 3262).
+- term: precondition
+  aliases: [preconditions]
+  definition: A condition in the SDP offer, usually reserved network resources (qos), that must be met before the callee's phone rings (RFC 3312).
+- term: third-party call control
+  aliases: [3PCC]
+  definition: Setting up a call between two parties from a third element, the Controller, which passes each party's SDP to the other (RFC 3725).
 - term: Q.850
   definition: The ITU-T list of cause values that telephone networks use to say why a call ended, such as 16 (normal clearing) or 17 (user busy).
 - term: location service

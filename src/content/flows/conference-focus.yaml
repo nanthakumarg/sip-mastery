@@ -1,0 +1,149 @@
+id: conference-focus
+title: "A conference: two calls to one focus"
+summary: Alice and Bob each call the conference URI. The focus answers both, marks its Contact with isfocus, and mixes their audio.
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: 192.0.2.10
+  - id: bob
+    label: Bob
+    kind: ua
+    sub: 203.0.113.20
+  - id: focus
+    label: Conference focus
+    kind: server
+    sub: 198.51.100.40
+steps:
+  - from: alice
+    to: focus
+    label: INVITE
+    caption: Alice dials the conference URI. It is a normal INVITE, to a normal SIP URI.
+    message: |
+      INVITE sip:conf-4711@conf.atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Weekly meeting <sip:conf-4711@conf.atlanta.example>
+      Call-ID: conf-alice-1@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+    rfc: rfc4353-4.1-focus
+  - from: focus
+    to: alice
+    label: 200 OK
+    caption: "The focus answers. The isfocus parameter in Contact says: this dialog is a conference."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Weekly meeting <sip:conf-4711@conf.atlanta.example>;tag=f0c05
+      Call-ID: conf-alice-1@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:conf-4711@198.51.100.40:5060;isfocus>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=focus 4004004004 4004004004 IN IP4 198.51.100.40
+      s=-
+      c=IN IP4 198.51.100.40
+      t=0 0
+      m=audio 40000 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+    rfc: rfc4579-4.2-isfocus
+  - from: alice
+    to: focus
+    label: ACK
+    caption: Alice's phone confirms the 200 OK.
+    message: |
+      ACK sip:conf-4711@198.51.100.40:5060;isfocus SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b2048
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Weekly meeting <sip:conf-4711@conf.atlanta.example>;tag=f0c05
+      Call-ID: conf-alice-1@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+  - from: bob
+    to: focus
+    label: INVITE
+    caption: Bob dials the same conference URI. His call is a separate dialog with the focus.
+    message: |
+      INVITE sip:conf-4711@conf.atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=314159
+      To: Weekly meeting <sip:conf-4711@conf.atlanta.example>
+      Call-ID: conf-bob-2@203.0.113.20
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2808844564 2808844564 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+  - from: focus
+    to: bob
+    label: 200 OK
+    caption: The focus answers Bob too, with its own SDP for his leg.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      From: Bob <sip:bob@biloxi.example>;tag=314159
+      To: Weekly meeting <sip:conf-4711@conf.atlanta.example>;tag=f0c06
+      Call-ID: conf-bob-2@203.0.113.20
+      CSeq: 1 INVITE
+      Contact: <sip:conf-4711@198.51.100.40:5060;isfocus>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=focus 4004004005 4004004005 IN IP4 198.51.100.40
+      s=-
+      c=IN IP4 198.51.100.40
+      t=0 0
+      m=audio 40002 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+  - from: bob
+    to: focus
+    label: ACK
+    caption: Bob's phone confirms the 200 OK.
+    message: |
+      ACK sip:conf-4711@198.51.100.40:5060;isfocus SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb0223e
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=314159
+      To: Weekly meeting <sip:conf-4711@conf.atlanta.example>;tag=f0c06
+      Call-ID: conf-bob-2@203.0.113.20
+      CSeq: 1 ACK
+      Content-Length: {auto}
+  - kind: media
+    from: alice
+    to: focus
+    proto: rtp
+    label: RTP audio (Alice)
+    caption: Alice sends her audio to the focus, and gets back a mix of everybody else.
+  - kind: media
+    from: bob
+    to: focus
+    proto: rtp
+    label: RTP audio (Bob)
+    caption: Bob does the same. The focus mixes the two streams; Alice and Bob never send RTP to each other.

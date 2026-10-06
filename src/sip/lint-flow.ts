@@ -83,6 +83,8 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   checkUdpSize(msgs, add);
   checkNatUnchanged(flow, msgs, add);
   checkLateOfferAck(flow, msgs, add);
+  checkReplaces(flow, add);
+  checkPrackRack(msgs, add);
   return issues;
 }
 
@@ -590,6 +592,54 @@ function checkLateOfferAck(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
     const ack = msgs.slice(i + 1).find(a => a.from === r.to && isRequest(a.parsed, 'ACK') && callId(a.parsed) === callId(r.parsed) && cseq(a.parsed)?.seq === c.seq);
     if (ack && !hasSdp(ack.parsed)) {
       add('late-offer-ack', ack.index, 'The INVITE had no SDP, so the 200 OK carried the offer. This ACK must carry the answer, but it has no SDP');
+    }
+  });
+}
+
+/**
+ * replaces-match (RFC 3891 §3): the Replaces header of an INVITE names a dialog
+ * that the receiving UA has: the Call-ID, its own tag as to-tag, and the other
+ * side's tag as from-tag. An early dialog can be replaced only at the UA that
+ * sent its INVITE. Anything else gets a 481, and the transfer or pickup fails.
+ */
+function checkReplaces(flow: PreparedFlow, add: Add) {
+  const steps = flow.steps.map(s => ({ from: s.from, to: s.to, msg: s.parsed }));
+  const snaps = new Map<string, ReturnType<typeof trackDialogs>>();
+  flow.steps.forEach((s, i) => {
+    const m = s.parsed;
+    if (!m || !isRequest(m, 'INVITE')) return;
+    const value = getHeader(m, 'Replaces');
+    if (!value) return;
+    const callIdPart = value.split(';')[0]!.trim();
+    const toTag = headerParam(value, 'to-tag');
+    const fromTag = headerParam(value, 'from-tag');
+    if (!snaps.has(s.to)) snaps.set(s.to, trackDialogs(steps, s.to));
+    const live = (snaps.get(s.to)![i - 1]?.dialogs ?? []).filter(d => d.state !== 'terminated');
+    const d = live.find(x => x.callId === callIdPart && x.localTag === toTag && x.remoteTag === fromTag);
+    if (!d) {
+      const swapped = live.some(x => x.callId === callIdPart && x.localTag === fromTag && x.remoteTag === toTag);
+      add('replaces-match', s.index, `Replaces names ${callIdPart} with to-tag ${toTag} and from-tag ${fromTag}, but the receiver has no such dialog${swapped ? ': the to-tag and from-tag are swapped. The to-tag must be the receiver\'s own tag' : ''}`);
+    } else if (d.state === 'early' && d.role !== 'UAC') {
+      add('replaces-match', s.index, 'Replaces names an early dialog that the receiver did not create. Only the UA that sent the INVITE can have its early dialog replaced');
+    }
+  });
+}
+
+/**
+ * prack-rack (RFC 3262 §7.2): a PRACK acknowledges one reliable provisional
+ * response. Its RAck holds that response's RSeq, then the CSeq number and
+ * method of the INVITE.
+ */
+function checkPrackRack(msgs: MsgStep[], add: Add) {
+  msgs.forEach((p, i) => {
+    if (!isRequest(p.parsed, 'PRACK')) return;
+    const rack = getHeader(p.parsed, 'RAck')?.trim().split(/\s+/) ?? [];
+    const rel = msgs.slice(0, i).reverse().find(r => reverseHop(r, p) && isResponse(r.parsed, 1) && getHeader(r.parsed, 'RSeq') && callId(r.parsed) === callId(p.parsed));
+    if (!rel) { add('prack-rack', p.index, 'PRACK, but no reliable provisional response (with RSeq) arrived on this hop'); return; }
+    const c = cseq(rel.parsed)!;
+    const want = [getHeader(rel.parsed, 'RSeq')!.trim(), String(c.seq), c.method];
+    if (rack.join(' ') !== want.join(' ')) {
+      add('prack-rack', p.index, `RAck is "${rack.join(' ')}", but the reliable ${rel.parsed.status} has RSeq ${want[0]} and CSeq ${want[1]} ${want[2]}: RAck must be "${want.join(' ')}"`);
     }
   });
 }

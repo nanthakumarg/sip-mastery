@@ -1,0 +1,29 @@
+---
+/**
+ * <FlowPair a="flow-id" b={{ kind: 'transfer', preset: { type: 'attended' } }} labels={['Broken', 'Fixed']} />
+ * Broken/Fixed (or a neutral comparison) where either side is a flow file or a generated flow (src/sip/generators.ts).
+ */
+import BrokenFixed from '../diagrams/BrokenFixed.tsx';
+import { toClientFlow } from '../diagrams/client-flow.ts';
+import type { FlowBundle } from '../diagrams/types.ts';
+import { clientRefData, flowBundle, quoteMap } from '../lib/bundle.ts';
+import { GENERATORS, type GeneratorKind } from '../sip/generators.ts';
+import { prepareFlow } from '../sip/flow.ts';
+
+type Source = string | { kind: GeneratorKind; preset: Record<string, string | boolean> };
+interface Props { a: Source; b: Source; labels?: [string, string]; neutral?: boolean }
+const { a, b, labels, neutral } = Astro.props;
+
+async function bundle(src: Source): Promise<FlowBundle> {
+  if (typeof src === 'string') return (await flowBundle(src))[0]!;
+  const g = GENERATORS[src.kind];
+  const { options, notes } = g.apply({ ...g.defaults, ...src.preset }, {});
+  if (notes.length) throw new Error(`FlowPair ${src.kind} preset ${JSON.stringify(src.preset)} is not a valid combination: ${notes.join(' ')}`);
+  const flow = toClientFlow(await prepareFlow(g.build(options)));
+  return { flow, quotes: quoteMap([...new Set(flow.steps.flatMap(s => (s.rfc ? [s.rfc] : [])))]), refData: clientRefData() };
+}
+const [fa, fb] = await Promise.all([bundle(a), bundle(b)]);
+---
+<div class="wide">
+  <BrokenFixed client:visible broken={fa} fixed={fb} labels={labels} neutral={neutral} />
+</div>

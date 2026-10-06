@@ -1,0 +1,24 @@
+---
+/** <FlowBuilder kind="call" preset={{ path: 'direct' }} /> : a flow builder (src/sip/generators.ts), starting from one combination. */
+import FlowBuilder from '../diagrams/FlowBuilder.tsx';
+import { toClientFlow } from '../diagrams/client-flow.ts';
+import { clientRefData, quoteMap } from '../lib/bundle.ts';
+import { GENERATORS, type GeneratorKind } from '../sip/generators.ts';
+import { prepareFlow } from '../sip/flow.ts';
+
+interface Props { kind: GeneratorKind; preset?: Record<string, string | boolean>; eyebrow?: string }
+const { kind, preset = {}, eyebrow } = Astro.props;
+const g = GENERATORS[kind];
+const { options, notes } = g.apply({ ...g.defaults, ...preset }, {});
+if (notes.length) throw new Error(`FlowBuilder ${kind} preset ${JSON.stringify(preset)} is not a valid combination: ${notes.join(' ')}`);
+const flow = toClientFlow(await prepareFlow(g.build(options)));
+
+// Only what the first flow needs; the island loads the rest from /flow-builder.json.
+const ref = clientRefData();
+const wires = flow.steps.map(s => s.wire ?? '').join('');
+const refData = { ...ref, headers: Object.fromEntries(Object.entries(ref.headers).filter(([name]) => wires.includes(`\r\n${name}:`))) };
+const quotes = quoteMap([...new Set(flow.steps.flatMap(s => (s.rfc ? [s.rfc] : [])))]);
+---
+<div class="wide">
+  <FlowBuilder client:visible kind={kind} options={options} flow={flow} quotes={quotes} refData={refData} eyebrow={eyebrow} />
+</div>

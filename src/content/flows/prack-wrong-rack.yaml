@@ -1,0 +1,155 @@
+id: prack-wrong-rack
+title: "Broken: the PRACK names the wrong response"
+summary: Alice's phone puts its own CSeq into RAck. Bob's phone cannot match the PRACK, keeps resending the 180, and fails the call after 32 s.
+broken: true
+breaks:
+  - prack-rack
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: 192.0.2.10
+  - id: bob
+    label: Bob
+    kind: ua
+    sub: 203.0.113.20
+steps:
+  - from: alice
+    to: bob
+    label: INVITE
+    caption: "Alice calls Bob. Supported: 100rel says her phone can acknowledge provisional responses."
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Supported: 100rel
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+    rfc: rfc3262-3-require
+  - from: bob
+    to: alice
+    label: 180 Ringing (reliable)
+    caption: "Bob's phone rings. Require: 100rel makes this 180 reliable, and RSeq numbers it."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Require: 100rel
+      RSeq: 1
+      Content-Length: {auto}
+    rfc: rfc3262-3-rseq
+  - from: alice
+    to: bob
+    label: PRACK
+    caption: Alice's phone acknowledges the 180. It writes its own new CSeq number into RAck, not the INVITE's.
+    message: |
+      PRACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b2048
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 2 PRACK
+      RAck: 1 2 INVITE
+      Content-Length: {auto}
+    warn: "RAck must be the RSeq, then the CSeq number and method of the INVITE: 1 1 INVITE."
+  - from: bob
+    to: alice
+    label: 481 Call/Transaction Does Not Exist
+    caption: Bob's phone has no reliable response with that RAck. It answers 481.
+    message: |
+      SIP/2.0 481 Call/Transaction Does Not Exist
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b2048
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 2 PRACK
+      Content-Length: {auto}
+    rfc: rfc3262-3-481
+  - from: bob
+    to: alice
+    label: 180 Ringing (retransmission)
+    caption: "Nothing acknowledges the 180, so Bob's phone sends it again. The interval doubles: 500 ms, 1 s, 2 s."
+    message: |
+      SIP/2.0 180 Ringing
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Require: 100rel
+      RSeq: 1
+      Content-Length: {auto}
+    rfc: rfc3262-3-retransmit
+  - from: alice
+    to: bob
+    label: PRACK
+    caption: Alice's phone makes the same mistake again, with its next CSeq.
+    message: |
+      PRACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b231b
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 3 PRACK
+      RAck: 1 3 INVITE
+      Content-Length: {auto}
+  - from: bob
+    to: alice
+    label: 481 Call/Transaction Does Not Exist
+    caption: Bob's phone answers 481 again.
+    message: |
+      SIP/2.0 481 Call/Transaction Does Not Exist
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b231b
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 3 PRACK
+      Content-Length: {auto}
+  - from: bob
+    to: alice
+    label: 500 Server Internal Error
+    caption: After 32 s with no valid PRACK, Bob's phone gives up on the INVITE with a 5xx.
+    message: |
+      SIP/2.0 500 Server Internal Error
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+    rfc: rfc3262-3-5xx
+    warn: Bob's phone rang for 32 s, and the call fails before anybody can answer.
+  - from: alice
+    to: bob
+    label: ACK
+    caption: Alice's phone confirms the 500. The call never started.
+    message: |
+      ACK sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}

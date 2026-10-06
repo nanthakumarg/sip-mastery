@@ -4706,3 +4706,319 @@
     Therefore, by only looking at the SIP signalling, a UAC cannot be sure
     whether or not there will be early media for a particular session. The UAC
     needs to check if media packets are arriving at a given moment.
+
+# Module 22: mid-call features
+
+- id: rfc3261-14.1-unchanged
+  rfc: 3261
+  section: "14.1"
+  title: UAC Behavior
+  text: >-
+    If a UA receives a non-2xx final response to a re-INVITE, the session
+    parameters MUST remain unchanged, as if no re-INVITE had been issued.
+
+- id: rfc3264-8.3.1-address
+  rfc: 3264
+  section: "8.3.1"
+  title: Modifying Address, Port or Transport
+  text: >-
+    To change the IP address where media is sent to, the same procedure is
+    followed for changing the port number. The only difference is that the
+    connection line is updated, not the port number.
+
+- id: rfc3264-8.3.2-new-codec
+  rfc: 3264
+  section: "8.3.2"
+  title: Changing the Set of Media Formats
+  text: >-
+    The list of media formats used in the session MAY be changed. To do this,
+    the offerer creates a new media description, with the list of media formats
+    in the "m=" line different from the corresponding media stream in the
+    previous SDP.
+
+- id: rfc3311-5.1-update
+  rfc: 3311
+  section: "5.1"
+  title: Sending an UPDATE
+  text: >-
+    Although UPDATE can be used on confirmed dialogs, it is RECOMMENDED that a
+    re-INVITE be used instead. This is because an UPDATE needs to be answered
+    immediately, ruling out the possibility of user approval.
+
+- id: rfc4028-7.2-half
+  rfc: 4028
+  section: "7.2"
+  title: Processing a 2xx Response
+  text: >-
+    If the UA seeks to continue with the session beyond the session expiration,
+    it MUST generate a refresh before the session expiration. It is RECOMMENDED
+    that this refresh be sent once half the session interval has elapsed.
+
+- id: rfc3515-1-overview
+  rfc: 3515
+  section: "1"
+  title: Overview
+  text: >-
+    For instance, if Alice is in a call with Bob, and decides Bob needs to talk
+    to Carol, Alice can instruct her SIP user agent (UA) to send a SIP REFER
+    request to Bob's UA providing Carol's SIP Contact information. Assuming Bob
+    has given it permission, Bob's UA will attempt to call Carol using that
+    contact. Bob's UA will then report whether it succeeded in reaching the
+    contact to Alice's UA.
+
+- id: rfc3515-2.4.2-202
+  rfc: 3515
+  section: "2.4.2"
+  title: Processing a REFER request
+  text: >-
+    If a REFER request is accepted (that is, a 2xx class response is returned),
+    the recipient MUST create a subscription and send notifications of the
+    status of the refer as described in Section 2.4.4.
+
+- id: rfc3515-2.4.4-notify
+  rfc: 3515
+  section: "2.4.4"
+  title: Using SIP Events to Report the Results of the Reference
+  text: >-
+    The NOTIFY mechanism defined in [2] MUST be used to inform the agent sending
+    the REFER of the status of the reference.
+
+- id: rfc3515-2.4.5-sipfrag
+  rfc: 3515
+  section: "2.4.5"
+  title: The Body of the NOTIFY
+  text: >-
+    The body of a NOTIFY MUST begin with a SIP Response Status-Line as defined
+    in [1]. The response class in this status line indicates the status of the
+    referred action.
+
+- id: rfc5589-5-bye
+  rfc: 5589
+  section: "5"
+  title: Using REFER to Achieve Call Transfer
+  text: >-
+    Note that a successful REFER transaction does not terminate the session
+    between the Transferor and the Transferee. If those parties wish to
+    terminate their session, they must do so with a subsequent BYE request.
+
+- id: rfc5589-5-in-dialog
+  rfc: 5589
+  section: "5"
+  title: Using REFER to Achieve Call Transfer
+  text: >-
+    If the nature of the Contact URI is not known or if support for the
+    target-dialog extension is not known, the REFER SHOULD be sent inside the
+    existing dialog.
+
+- id: rfc3892-1-referred-by
+  rfc: 3892
+  section: "1"
+  title: Overview
+  text: >-
+    If that URI is a SIP URI, the referee will send a SIP request, often an
+    INVITE, to that URI (the refer target). Nothing provided in [2]
+    distinguishes this referenced request from any other request the referee
+    might have sent to the refer target.
+
+- id: rfc3891-3-match
+  rfc: 3891
+  section: "3"
+  title: "User Agent Server Behavior: Receiving a Replaces Header"
+  text: >-
+    The User Agent Server (UAS) matches the to-tag and from-tag parameters as
+    if they were tags present in an incoming request. In other words, the
+    to-tag parameter is compared to the local tag, and the from-tag parameter
+    is compared to the remote tag.
+
+- id: rfc3891-3-bye
+  rfc: 3891
+  section: "3"
+  title: "User Agent Server Behavior: Receiving a Replaces Header"
+  text: >-
+    Otherwise, it accepts the new INVITE by sending a 200-class response, and
+    shuts down the replaced dialog by sending a BYE.
+
+- id: rfc3891-3-early
+  rfc: 3891
+  section: "3"
+  title: "User Agent Server Behavior: Receiving a Replaces Header"
+  text: >-
+    If the Replaces header field matches an early dialog that was initiated by
+    the UA, it accepts the new INVITE by sending a 200-class response, and
+    shuts down the replaced dialog by sending a CANCEL.
+
+- id: rfc6665-4.2.2-481
+  rfc: 6665
+  section: "4.2.2"
+  title: Sending State Information to Subscribers
+  text: >-
+    If the NOTIFY transaction fails due to the receipt of a 404, 405, 410, 416,
+    480-485, 489, 501, or 604 response to the NOTIFY request, the notifier MUST
+    remove the corresponding subscription.
+
+- id: rfc5359-2.7-retarget
+  rfc: 5359
+  section: "2.7"
+  title: Call Forwarding Unconditional
+  text: >-
+    Alice calls Bob. The proxy server rewrites the Request URI, and forwards
+    the INVITE to a Gateway.
+
+- id: rfc3262-3-require
+  rfc: 3262
+  section: "3"
+  title: UAS Behavior
+  text: >-
+    A UAS MAY send any non-100 provisional response to INVITE reliably, so long
+    as the initial INVITE request (the request whose provisional response is
+    being sent reliably) contained a Supported header field with the option tag
+    100rel.
+
+- id: rfc3262-3-rseq
+  rfc: 3262
+  section: "3"
+  title: UAS Behavior
+  text: >-
+    In addition, it MUST contain a Require header field containing the option
+    tag 100rel, and MUST include an RSeq header field.
+
+- id: rfc3262-3-retransmit
+  rfc: 3262
+  section: "3"
+  title: UAS Behavior
+  text: >-
+    The reliable provisional response is passed to the transaction layer
+    periodically with an interval that starts at T1 seconds and doubles for each
+    retransmission (T1 is defined in Section 17 of RFC 3261).
+
+- id: rfc3262-3-481
+  rfc: 3262
+  section: "3"
+  title: UAS Behavior
+  text: >-
+    If a PRACK request is received by the UA core that does not match any
+    unacknowledged reliable provisional response, the UAS MUST respond to the
+    PRACK with a 481 response.
+
+- id: rfc3262-3-5xx
+  rfc: 3262
+  section: "3"
+  title: UAS Behavior
+  text: >-
+    If a reliable provisional response is retransmitted for 64*T1 seconds
+    without reception of a corresponding PRACK, the UAS SHOULD reject the
+    original request with a 5xx response.
+
+- id: rfc3262-7.2-rack
+  rfc: 3262
+  section: "7.2"
+  title: RAck
+  text: >-
+    The first number is the value from the RSeq header in the provisional
+    response that is being acknowledged. The next number, and the method, are
+    copied from the CSeq in the response that is being acknowledged.
+
+- id: rfc3312-1-ghost
+  rfc: 3312
+  section: "1"
+  title: Introduction
+  text: >-
+    In order to minimize "ghost rings", it is necessary to reserve network
+    resources for the session before the callee is alerted.
+
+- id: rfc3312-1-precondition
+  rfc: 3312
+  section: "1"
+  title: Introduction
+  text: >-
+    A precondition is a set of constraints about the session which are
+    introduced in the offer. The recipient of the offer generates an answer,
+    but does not alert the user or otherwise proceed with session
+    establishment. That only occurs when the preconditions are met.
+
+- id: rfc3311-1-early
+  rfc: 3311
+  section: "1"
+  title: Introduction
+  text: >-
+    It can be sent by a UA within a dialog (early or confirmed) to update
+    session parameters without impacting the dialog state itself.
+
+- id: rfc3725-4.4-no-media
+  rfc: 3725
+  section: "4.4"
+  title: Flow IV
+  text: >-
+    The initial INVITE (1) contains SDP with no media at all, meaning that there
+    are no m lines. This is valid, and implies that the media makeup of the
+    session will be established later through a re-INVITE [4].
+
+- id: rfc3725-4.4-origin
+  rfc: 3725
+  section: "4.4"
+  title: Flow IV
+  text: >-
+    The only change that is needed is to modify the origin lines, so that the
+    origin line in offer2' is valid based on the value in offer1 (validity
+    requires that the version increments by one, and that the other parameters
+    remain unchanged).
+
+- id: rfc3725-5-recommend
+  rfc: 3725
+  section: "5"
+  title: Recommendations
+  text: >-
+    For calls to unknown entities, or to entities known to represent people, it
+    is RECOMMENDED that Flow IV (Figure 4) be used for third party call control.
+
+- id: rfc3725-4.1-timeout
+  rfc: 3725
+  section: "4.1"
+  title: Flow I
+  text: >-
+    However, it has a serious timeout problem. User B may not answer the call
+    immediately. The result is that the controller cannot send the ACK to A
+    right away.
+
+- id: rfc4353-4.1-focus
+  rfc: 4353
+  section: "4.1"
+  title: Focus
+  text: >-
+    As its name implies, the focus is the center of the conference. All
+    participants in the conference are connected to it by a SIP dialog.
+
+- id: rfc4579-4.2-isfocus
+  rfc: 4579
+  section: "4.2"
+  title: Session Establishment
+  text: >-
+    In session establishment, a focus MUST include the 'isfocus' feature
+    parameter in the Contact header field unless the focus wishes to hide the
+    fact that it is a focus.
+
+- id: rfc5359-2.16-pickup
+  rfc: 5359
+  section: "2.16"
+  title: Call Pickup
+  text: >-
+    This parameter prevents Alice from accepting the INVITE if Bob has already
+    accepted the INVITE.
+
+- id: rfc5359-2.15-park
+  rfc: 5359
+  section: "2.15"
+  title: Call Park
+  text: >-
+    Carol wishes to retrieve the call, so she sends an INVITE containing the
+    dialog identifiers to Alice, which replaces the session with the Park
+    Server.
+
+- id: rfc3264-5.1-inactive
+  rfc: 3264
+  section: "5.1"
+  title: Unicast Streams
+  text: >-
+    If the offerer wishes to communicate, but wishes to neither send nor
+    receive media at this time, it MUST mark the stream with an "a=inactive"
+    attribute.

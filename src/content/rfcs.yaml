@@ -17,7 +17,7 @@ areas:
 rfcs:
   # --- SIP core ---------------------------------------------------------------
   - { n: 2543, area: core, proto: sip, short: SIP (first version), summary: "The first SIP specification. In 2002, RFC 3261 and four companion RFCs (3262 to 3265) replaced it.", modules: [1] }
-  - { n: 3261, area: core, proto: sip, short: SIP, summary: "The core of SIP: messages, transactions, dialogs, proxies, registration, and authentication.", modules: [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 19, 21] }
+  - { n: 3261, area: core, proto: sip, short: SIP, summary: "The core of SIP: messages, transactions, dialogs, proxies, registration, and authentication.", modules: [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 19, 21, 22] }
   - { n: 3263, area: core, proto: dns, short: Locating SIP servers, summary: "How a client uses DNS (NAPTR, SRV, A and AAAA records) to find a SIP server.", modules: [11] }
   - { n: 2782, area: core, proto: dns, short: DNS SRV, summary: "The SRV record: which servers offer a service in a domain, at which port, with priority for failover and weight for load sharing.", modules: [11] }
   - { n: 3581, area: core, proto: sip, short: rport, summary: "The rport parameter sends a response back to the source IP address and port of the request. This helps behind NAT.", modules: [10, 20] }
@@ -36,7 +36,7 @@ rfcs:
   - { n: 3262, area: ext, proto: sip, short: PRACK, summary: "Reliable provisional responses (100rel) and the PRACK method.", modules: [5, 15, 22] }
   - { n: 3265, area: ext, proto: sip, short: Events (first version), summary: "The first SUBSCRIBE and NOTIFY framework. RFC 6665 replaced it.", modules: [23] }
   - { n: 3311, area: ext, proto: sip, short: UPDATE, summary: "The UPDATE method changes session parameters before the call is answered.", modules: [5, 15, 22] }
-  - { n: 3312, area: ext, proto: sip, short: Preconditions, summary: "Lets a call wait for network resources, such as reserved bandwidth, before the phone rings.", modules: [5] }
+  - { n: 3312, area: ext, proto: sip, short: Preconditions, summary: "Lets a call wait for network resources, such as reserved bandwidth, before the phone rings.", modules: [5, 22] }
   - { n: 4488, area: ext, proto: sip, short: REFER without subscription, summary: "The norefersub option tag: a REFER that does not create an implicit subscription.", modules: [5, 22] }
   - { n: 7647, area: ext, proto: sip, short: REFER clarifications, summary: "Updates REFER for RFC 6665. A REFER is now accepted with 200, never 202.", modules: [5, 22] }
   - { n: 3323, area: ext, proto: sip, short: Privacy, summary: "The Privacy header and how to hide the identity of a caller.", modules: [7, 14, 24] }
@@ -47,13 +47,14 @@ rfcs:
   - { n: 3515, area: ext, proto: sip, short: REFER, summary: "The REFER method asks another user agent to contact a third party. Call transfer uses it.", modules: [5, 22] }
   - { n: 3608, area: ext, proto: sip, short: Service-Route, summary: "The registrar tells the user agent which proxies to use for its requests.", modules: [12, 27] }
   - { n: 3842, area: ext, proto: sip, short: Message waiting, summary: "An event package for message waiting indication (the voicemail light).", modules: [23] }
+  - { n: 3892, area: ext, proto: sip, short: Referred-By, summary: "The Referred-By header tells the refer target who asked for the call.", modules: [22] }
   - { n: 3891, area: ext, proto: sip, short: Replaces, summary: "The Replaces header lets a new dialog replace an existing one. Attended transfer uses it.", modules: [5, 22] }
   - { n: 3903, area: ext, proto: sip, short: PUBLISH, summary: "The PUBLISH method publishes event state, such as presence.", modules: [5, 23] }
   - { n: 4028, area: ext, proto: sip, short: Session timers, summary: "Refreshes a call at intervals so that both sides can detect a dead call.", modules: [5, 9, 22] }
   - { n: 4235, area: ext, proto: sip, short: Dialog events, summary: "An event package that reports dialog state. Busy lamp fields use it.", modules: [23] }
   - { n: 5627, area: ext, proto: sip, short: GRUU, summary: "A globally routable URI that reaches one specific device.", modules: [12] }
   - { n: 6086, area: ext, proto: sip, short: INFO, summary: "The INFO method and Info Packages.", modules: [5, 16] }
-  - { n: 6665, area: ext, proto: sip, short: Events, summary: "The SUBSCRIBE and NOTIFY event framework.", modules: [5, 23] }
+  - { n: 6665, area: ext, proto: sip, short: Events, summary: "The SUBSCRIBE and NOTIFY event framework.", modules: [5, 22, 23] }
   - { n: 7044, area: ext, proto: sip, short: History-Info, summary: "The History-Info header records how a request was retargeted.", modules: [7, 24] }
   - { n: 3398, area: ext, proto: sip, short: ISUP mapping, summary: "Maps ISUP messages and cause values from the telephone network to SIP.", modules: [24] }
   - { n: 6432, area: ext, proto: sip, short: Q.850 in responses, summary: "Carries Q.850 cause values in the Reason header of SIP responses.", modules: [24] }
@@ -65,7 +66,7 @@ rfcs:
   - { n: 2327, area: media, proto: sdp, short: SDP (first version), summary: "The first SDP specification.", modules: [15] }
   - { n: 4566, area: media, proto: sdp, short: SDP (second version), summary: "The second SDP specification. RFC 8866 replaced it.", modules: [15] }
   - { n: 8866, area: media, proto: sdp, short: SDP, summary: "The Session Description Protocol format.", modules: [15] }
-  - { n: 3264, area: media, proto: sdp, short: Offer/answer, summary: "The offer/answer model for negotiating media with SDP.", modules: [15, 21] }
+  - { n: 3264, area: media, proto: sdp, short: Offer/answer, summary: "The offer/answer model for negotiating media with SDP.", modules: [15, 21, 22] }
   - { n: 3389, area: media, proto: rtp, short: Comfort noise, summary: "The comfort noise (CN) payload: the level of the background noise during silence.", modules: [16] }
   - { n: 4961, area: media, proto: rtp, short: Symmetric RTP, summary: "Send RTP and RTCP from the port where you receive them. NAT and SBCs need it.", modules: [16, 20] }
   - { n: 6716, area: media, proto: rtp, short: Opus, summary: "The Opus audio codec, from narrowband speech to fullband music.", modules: [16] }
@@ -129,6 +130,9 @@ rfcs:
   - { n: 3665, area: guide, proto: sip, short: Basic call flows, summary: "Example message flows for registration and basic calls.", modules: [21] }
   - { n: 3960, area: guide, proto: rtp, short: Early media, summary: "Early media and ringing tone generation: when the caller's phone plays local ringback, and when it plays the media from the far end.", modules: [21] }
   - { n: 3725, area: guide, proto: sip, short: Third-party call control, summary: "Best current practices for third-party call control.", modules: [22] }
+  - { n: 5589, area: guide, proto: sip, short: Call transfer, summary: "Best current practices for blind and attended call transfer with REFER.", modules: [22] }
+  - { n: 4353, area: guide, proto: sip, short: Conferencing framework, summary: "The framework for SIP conferences: focus, mixer, conference URI, and policy.", modules: [22] }
+  - { n: 4579, area: ext, proto: sip, short: Conference call control, summary: "Call control for conferences: isfocus, creating, joining, and leaving a conference.", modules: [22] }
   - { n: 5359, area: guide, proto: sip, short: Service examples, summary: "Example flows for services such as hold, transfer, and call forwarding.", modules: [22] }
   - { n: 6141, area: guide, proto: sip, short: re-INVITE handling, summary: "How to handle re-INVITEs and their failures correctly.", modules: [9, 22] }
   - { n: 5853, area: guide, proto: sip, short: SBC requirements, summary: "What Session Border Controllers do in real networks, and the problems they cause for SIP.", modules: [3, 14, 25] }
