@@ -1,0 +1,218 @@
+---
+module: 24
+title: PSTN interworking and SIP trunks
+part: 8
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: "How a PBX reaches the telephone network: SIP trunks that register or that the carrier knows by IP address; E.164 numbers, tel URIs, user=phone, and normalisation; caller ID with From, P-Asserted-Identity, and Privacy; Diversion and History-Info on forwarded calls; how a gateway maps ISUP messages and Q.850 causes to SIP, with the Reason header; and early media from the PSTN."
+objectives:
+  - Compare a registration-based and an IP-based SIP trunk, and say how the carrier knows the PBX in each.
+  - Turn a dialled number into E.164, and write it as a tel URI and as a SIP URI with user=phone.
+  - Explain how From, P-Asserted-Identity, and Privacy decide the number that the called phone shows.
+  - Read Diversion and History-Info on a forwarded call, and say why a carrier or a voicemail server needs them.
+  - Map the ISUP messages IAM, ACM, ANM, and REL to SIP, and a Q.850 cause to a SIP response with a Reason header.
+  - Tell ringback or an announcement in a 183 from a local ringback tone after a 180.
+status: draft
+---
+
+## 24.1 SIP trunks: registration-based and IP-based
+
+A <Term t="SIP trunk" /> connects a company's <Term t="PBX" /> to a carrier, in place of physical phone lines. The carrier gives the company a block of numbers (<Term t="DID">DIDs</Term>), takes its outgoing calls to the <Term t="PSTN" />, and sends it the incoming ones. Every trunk must answer one question: **how does the carrier know that a request comes from this customer, and where to send calls for its numbers?** There are two common answers.
+
+| | Registration-based trunk | IP-based trunk |
+|---|---|---|
+| The PBX's address | Can change; the PBX tells the carrier with REGISTER | Fixed, and written in the carrier's configuration |
+| Authentication | Digest: 401 to REGISTER, often 407 to every INVITE | The source IP address, often with TLS and certificates |
+| Is the PBX alive? | The registration expires if the PBX stops refreshing | The carrier sends OPTIONS and stops calls if no answer comes |
+| Typical use | Small offices, PBXs behind NAT, cloud PBXs | Larger sites and data centres, with a fixed address |
+
+The PBX in this module, in Atlanta, uses the carrier's **<Term t="Carrier SBC" />**, a B2BUA at the edge of the carrier's network. Behind it, a <Term t="Carrier gateway" /> converts SIP to ISUP, the signaling of the telephone exchanges. Switch *Trunk* between the two types. Every option in this builder changes the messages, so try each one as you read this module:
+
+<FlowBuilder kind="trunk" preset={{}} eyebrow="Flow builder · a call to the PSTN on a SIP trunk" />
+
+A registration-based trunk registers **one** number, often the main number of the company, and the carrier routes the whole number block to that binding. RFC 6140 defines a standard REGISTER for a block of numbers, but most carriers use their own conventions. Read your carrier's trunk guide.
+
+<RfcQuote id="rfc6140-1-blocks" />
+
+<Note kind="warn" title="A trunk is a target for toll fraud">
+A trunk can call any number in the world, at the customer's cost. Use a long, random trunk password, allow only the PBX's addresses on an IP-based trunk, and ask the carrier for a limit on international calls (Module 14).
+</Note>
+
+## 24.2 Numbers: E.164, tel URIs, user=phone, normalisation
+
+Users dial numbers in many ways: `9` for an outside line, seven digits for a local call, `011` for an international one. A carrier cannot guess what each PBX means, so trunks almost always carry numbers in **<Term t="E.164" />** format: `+`, the country code, and the national number, with no prefixes.
+
+<RfcQuote id="rfc3966-5.1.4-global" />
+
+The PBX therefore does **<Term t="number normalisation" />**: it removes the outside-line prefix, replaces an international prefix with `+`, and adds the country code and area code where they are missing. Try some numbers, in two different countries:
+
+<NumberNormaliser />
+
+A number can travel in two kinds of URI. A **<Term t="tel URI" />**, `tel:+14045550199`, is only a number. A **SIP URI with `user=phone`**, `sip:+14045550199@sip.carrier.example;user=phone`, says that the user part is a telephone number, and also names the host that routes it. Trunks usually use the second form. A local number in either form must say where it is valid:
+
+<RfcQuote id="rfc3261-19.1.1-user-phone" />
+
+<RfcQuote id="rfc3966-5.1.5-phone-context" />
+
+At the gateway, the number goes into the ISUP **<Term t="IAM" />**. If the country code is the gateway's own, it becomes a national number:
+
+<RfcQuote id="rfc3398-12.2-national" />
+
+A number that is not in international format may not work at all. Set *Number sent* to *Local* in the builder:
+
+<FlowBuilder kind="trunk" preset={{ trunk: 'ip', number: 'local' }} eyebrow="Flow builder · seven digits, with no area code" />
+
+<RfcQuote id="rfc3398-12.2-484" />
+
+## 24.3 Caller ID: From, PAI, and Privacy; withheld numbers
+
+Module 7 introduced the three headers, and Module 14 the trust domain. On a trunk, they decide the number on the called phone:
+
+- **From** is what the PBX writes. Carriers do not trust it for the caller's number.
+- **P-Asserted-Identity** (PAI) is the identity that the carrier checks. The carrier SBC accepts it only if the number belongs to this trunk, or if the call shows why it does not (24.4).
+- **Privacy: id** asks the network to keep that identity from the called party. At the gateway, it becomes the ISUP **<Term t="presentation restriction" />** flag.
+
+| The PBX sends | The SBC passes on | The ISUP IAM | Bob's mobile shows |
+|---|---|---|---|
+| From and PAI with Alice's number | PAI | Presentation allowed | +1 404 555 0101 |
+| Anonymous From, PAI, Privacy: id | PAI and Privacy: id | Presentation restricted | "Withheld" |
+| Anonymous From and PAI, no Privacy | PAI | Presentation allowed | +1 404 555 0101 |
+
+<FlowBuilder kind="trunk" preset={{ trunk: 'ip', callerId: 'withheld' }} eyebrow="Flow builder · a withheld number" />
+
+<RfcQuote id="rfc3398-5.7-privacy" />
+
+<RfcQuote id="rfc3325-9.3-id" />
+
+A withheld number is hidden only from the called party. The carrier still has it in the IAM, for emergency services, for complaints about nuisance calls, and for its own records.
+
+<Note title="For support engineers: STIR/SHAKEN">
+In the USA and Canada, carriers also sign the caller's number with an Identity header (RFC 8224; Module 28). The signature says how sure the carrier is that the caller may use the number. A trunk that sends a number the carrier did not assign gets a weak signature, and many mobile phones then show "Spam risk", or block the call.
+</Note>
+
+## 24.4 Diversion and History-Info for forwarded calls
+
+Carol calls Alice's DID from the PSTN, and Alice has forwarded her calls to her mobile. The PBX makes a new call on the trunk, from Carol's number to the mobile. To the carrier, this looks like a PBX that uses a number it does not own. The forwarding history explains it:
+
+```
+Diversion: <sip:+14045550101@sip.carrier.example;user=phone>;reason=unconditional;counter=1
+
+History-Info: <sip:+14045550101@pbx.atlanta.example;user=phone?Reason=SIP%3Bcause%3D302>;index=1
+History-Info: <sip:+14045550199@sip.carrier.example;user=phone>;index=1.1;mp=1
+```
+
+Both say the same thing: the call was for +1 404 555 0101, and that number forwarded it unconditionally. In History-Info, `cause=302` is the reason, and `mp=1` says that the new target is a different user, "mapped from" entry 1. Set *Forwarded call* in the builder, and compare *With no history*:
+
+<FlowBuilder kind="trunk" preset={{ trunk: 'ip', redirect: 'diversion' }} eyebrow="Flow builder · a forwarded call, with Diversion" />
+
+<RfcQuote id="rfc5806-3-diversion" />
+
+<RfcQuote id="rfc7044-1-history" />
+
+The gateway copies the history into the IAM as the **original called number** and the redirection information. A voicemail system in the PSTN or behind the PBX uses the same history for the same purpose: to find the right mailbox. Many carriers accept only one of the two headers; the trunk guide says which.
+
+## 24.5 Q.850 causes and SIP codes; the Reason header
+
+The gateway translates between two signaling protocols, message by message (RFC 3398):
+
+| ISUP message | Meaning | SIP |
+|---|---|---|
+| <Term t="IAM" /> | Set up a call to this number | INVITE |
+| <Term t="ACM" /> | The number is complete; the phone rings | 180 Ringing, or 183 with SDP for in-band tones |
+| <Term t="ANM" /> | The phone answered; charging starts | 200 OK |
+| <Term t="REL" />, with a cause | End or reject the call | BYE, CANCEL, or a 4xx–6xx response |
+
+<RfcQuote id="rfc3398-7.2.4.1-rel" />
+
+Every REL carries a <Term t="Q.850" /> cause. The gateway maps it to a SIP response, and also copies it into a **Reason** header, so the SIP side keeps the exact cause:
+
+<RfcQuote id="rfc6432-3-reason" />
+
+```
+SIP/2.0 486 Busy Here
+Reason: Q.850;cause=17;text="User busy"
+```
+
+Change *The PSTN* in the builder to see each cause:
+
+<FlowBuilder kind="trunk" preset={{ trunk: 'ip', outcome: 'busy' }} eyebrow="Flow builder · the mobile is busy" />
+
+| Q.850 cause (REL) | → SIP response | SIP response | → Q.850 cause (REL) |
+|---|---|---|---|
+| 1 Unallocated number | 404 | 404 Not Found | 1 |
+| 17 User busy | 486 | 486 Busy Here | 17 |
+| 19 No answer from user | 480 | 480 Temporarily Unavailable | **18** No user responding |
+| 28 Invalid number format | 484 | 484 Address Incomplete | 28 |
+| 34 No circuit available | 503 | 503 Service Unavailable | **41** Temporary failure |
+| 16 Normal call clearing | BYE (not a response) | BYE | 16 |
+
+The mapping is not the same in both directions. A cause that passes through two gateways can therefore change, and many networks change the defaults. When the cause matters, as for billing records or for announcements, read the Reason header, not only the status code. Module 6 has the longer table.
+
+## 24.6 Early media from the PSTN: ringback and announcements in 183
+
+On a SIP call between two phones, the caller's phone makes its own ringback tone when a 180 arrives. On a call to the PSTN, the far exchange often plays the tones, or an announcement such as "The number you have called is not in service". The ACM says so, and the gateway sends **183 Session Progress with SDP**, then sends that audio as <Term t="early media" />:
+
+<RfcQuote id="rfc3398-7.2.6-183" />
+
+<RfcQuote id="rfc3398-5.5-early-media" />
+
+<FlowBuilder kind="trunk" preset={{ trunk: 'ip', outcome: 'unallocated', earlyMedia: true }} eyebrow="Flow builder · an announcement before the 404" />
+
+If the ACM says only that the phone rings, with no in-band information, the gateway sends 180 with no SDP, and the PBX makes the ringback tone itself. Turn off *In-band tones* to compare.
+
+<RfcQuote id="rfc3398-7.2.6-180" />
+
+Early media is free for the caller: the exchanges start charging at the ANM. Some networks limit how long early media can last for this reason, and some phones abuse it to talk before the answer.
+
+<RfcQuote id="rfc3398-7.2.6-billing" />
+
+Three practical points:
+
+- A PBX that plays its own ringback tone on 183 hides the announcement from the caller. Module 21 shows this mistake.
+- Many gateways send the 183 reliably, with `Require: 100rel`, and expect a PRACK (Module 22). A PBX that does not support 100rel may get no early media at all.
+- In IMS networks, the **P-Early-Media** header (RFC 5009) says whether the network allows early media to flow on this call.
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="A number in the wrong format for the carrier">
+    A PBX sends numbers on the trunk as its users dial them. National numbers work, because this carrier adds +1. Local seven-digit numbers fail with 484, and an international call fails as soon as the PBX moves to a carrier in another country.
+
+    <FlowPair a={{ kind: 'trunk', preset: { trunk: 'ip', number: 'local' } }} b={{ kind: 'trunk', preset: { trunk: 'ip', number: 'e164' } }} labels={['Broken: seven digits, as dialled', 'Fixed: E.164']} />
+
+    <p class="fix"><b>Remember:</b> normalise every number to E.164 in the PBX, before the trunk. Use the format the carrier's trunk guide asks for, and test local, national, international, and emergency calls.</p>
+  </Mistake>
+
+  <Mistake title="The original called number is lost on a forwarded call">
+    Calls to Alice that she does not answer go to a voicemail server. The PBX makes the new INVITE with Carol's number in From, but adds no Diversion or History-Info. The voicemail server cannot tell whose mailbox to open, plays its main menu, and Carol hangs up.
+
+    <CompareFlows a="voicemail-no-diversion" b="voicemail-diversion" labels={['Problem: no history', 'Fixed: Diversion names Alice']} />
+
+    <p class="fix"><b>Remember:</b> every element that forwards a call adds Diversion or History-Info, and every B2BUA in the path passes them on. Check which header the voicemail server and the carrier read.</p>
+  </Mistake>
+
+  <Mistake title="Forwarding a call with the caller's number and no history">
+    The same PBX forwards a call from Carol to Alice's mobile, with Carol's number in P-Asserted-Identity and no Diversion. The carrier sees a number that does not belong to the trunk and replaces it with the company's main number, or rejects the call. Alice's mobile never shows who is calling.
+
+    <FlowPair a={{ kind: 'trunk', preset: { trunk: 'ip', redirect: 'lost' } }} b={{ kind: 'trunk', preset: { trunk: 'ip', redirect: 'diversion' } }} labels={['Broken: no history', 'Fixed: Diversion']} />
+
+    <p class="fix"><b>Remember:</b> a forwarded call keeps the original caller's number only if the INVITE shows which of the trunk's numbers forwarded it.</p>
+  </Mistake>
+
+  <Mistake title="Withholding the number in From only">
+    A user asks for their number to be withheld. The PBX writes an anonymous From, but still sends P-Asserted-Identity, and no Privacy header. The network treats the asserted identity as public, and the called phone shows the number.
+
+    <FlowPair a={{ kind: 'trunk', preset: { trunk: 'ip', callerId: 'from-only' } }} b={{ kind: 'trunk', preset: { trunk: 'ip', callerId: 'withheld' } }} labels={['Broken: anonymous From only', 'Fixed: Privacy: id']} />
+
+    <p class="fix"><b>Remember:</b> to withhold a number, send Privacy: id with P-Asserted-Identity, and an anonymous From. Test with a mobile phone, not only with another phone on the same PBX.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A **SIP trunk** connects a PBX to a carrier. A **registration-based** trunk uses REGISTER and digest authentication; an **IP-based** trunk uses a fixed address, and often OPTIONS to check that the PBX is up.
+- Trunks carry numbers in **E.164**: `+`, the country code, and the national number. The PBX **normalises** what users dial. A local number in a URI needs `phone-context`.
+- **P-Asserted-Identity** carries the caller's number that the carrier checks; **Privacy: id** withholds it and becomes ISUP presentation restriction. An anonymous From alone withholds nothing.
+- On a forwarded call, **Diversion** or **History-Info** shows which number forwarded the call. Carriers need it to accept the caller's number, and voicemail needs it to find the mailbox.
+- The gateway maps **IAM, ACM, ANM, and REL** to INVITE, 180 or 183, 200 OK, and BYE or an error. **Reason: Q.850** keeps the exact cause, because the mapping between causes and status codes loses detail.
+- **183 with SDP** carries tones and announcements from the PSTN. Play that media; make a local ringback tone only after a 180 without SDP.

@@ -1,5 +1,5 @@
 /**
- * The flow generators behind the FlowBuilder island (Modules 21 and 22), each
+ * The flow generators behind the FlowBuilder island (Modules 21 to 24), each
  * with the options it shows. One island renders any of them from this table.
  */
 import type { FlowData } from './flow.ts';
@@ -15,6 +15,9 @@ import {
 import {
   allEvents, ANSWERS, applyEvents, buildEvents, DEFAULT_EVENTS, ENDS, EVENTS_QUOTES, eventsInactive, eventsKey, PACKAGES,
 } from './events.ts';
+import {
+  allTrunks, applyTrunk, buildTrunk, CALLER_IDS, DEFAULT_TRUNK, NUMBERS, PSTN_OUTCOMES, REDIRECTS, TRUNK_QUOTES, trunkInactive, trunkKey, TRUNKS,
+} from './trunk.ts';
 
 /** One row of controls: a choice of values for one option, or on/off toggles. */
 export type Row =
@@ -78,6 +81,17 @@ export const GENERATORS = {
       { kind: 'toggles', label: 'What if', items: [['refresh', 'Alice refreshes once'], ['early', 'NOTIFY before the 200 OK']] },
     ],
     defaults: DEFAULT_EVENTS, apply: applyEvents, inactive: eventsInactive, key: eventsKey, build: buildEvents, quotes: EVENTS_QUOTES, all: allEvents,
+  }),
+  trunk: wrap({
+    rows: [
+      { kind: 'choice', label: 'Trunk', key: 'trunk', items: TRUNKS },
+      { kind: 'choice', label: 'Number sent', key: 'number', items: NUMBERS },
+      { kind: 'choice', label: 'Caller ID', key: 'callerId', items: CALLER_IDS },
+      { kind: 'choice', label: 'Forwarded call', key: 'redirect', items: REDIRECTS },
+      { kind: 'choice', label: 'The PSTN', key: 'outcome', items: PSTN_OUTCOMES },
+      { kind: 'toggles', label: 'What if', items: [['earlyMedia', 'In-band tones (183)']] },
+    ],
+    defaults: DEFAULT_TRUNK, apply: applyTrunk, inactive: trunkInactive, key: trunkKey, build: buildTrunk, quotes: TRUNK_QUOTES, all: allTrunks,
   }),
 };
 

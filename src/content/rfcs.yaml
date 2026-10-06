@@ -63,6 +63,8 @@ rfcs:
   - { n: 7044, area: ext, proto: sip, short: History-Info, summary: "The History-Info header records how a request was retargeted.", modules: [7, 24] }
   - { n: 3398, area: ext, proto: sip, short: ISUP mapping, summary: "Maps ISUP messages and cause values from the telephone network to SIP.", modules: [24] }
   - { n: 6432, area: ext, proto: sip, short: Q.850 in responses, summary: "Carries Q.850 cause values in the Reason header of SIP responses.", modules: [24] }
+  - { n: 5806, area: ext, proto: sip, short: Diversion, summary: "The Diversion header: who forwarded a call, and why. Historic, but still common between carriers and PBXs; History-Info replaces it.", modules: [7, 24] }
+  - { n: 6140, area: ext, proto: sip, short: Registering a number block, summary: "How a PBX registers a whole block of E.164 numbers with one REGISTER to its SIP trunk provider.", modules: [24] }
 
   # --- Media --------------------------------------------------------------------
   - { n: 1889, area: media, proto: rtp, short: RTP (first version), summary: "The first RTP specification. RFC 3550 replaced it.", modules: [16] }
@@ -111,7 +113,7 @@ rfcs:
   - { n: 7616, area: sec, short: HTTP Digest, summary: "The current HTTP Digest authentication, with SHA-256.", modules: [13] }
   - { n: 8760, area: sec, proto: sip, short: Digest algorithms for SIP, summary: "Adds SHA-256 and SHA-512/256 to SIP digest authentication.", modules: [13] }
   - { n: 4474, area: sec, proto: sip, short: SIP Identity (old), summary: "The first Identity header. RFC 8224 replaced it.", modules: [28] }
-  - { n: 8224, area: sec, proto: sip, short: Identity header, summary: "The Identity header signs the caller identity of a request.", modules: [14, 28] }
+  - { n: 8224, area: sec, proto: sip, short: Identity header, summary: "The Identity header signs the caller identity of a request.", modules: [14, 28, 24] }
   - { n: 8225, area: sec, short: PASSporT, summary: "The signed token that the Identity header carries.", modules: [28] }
   - { n: 8588, area: sec, short: SHAKEN extension, summary: "The PASSporT extension for SHAKEN attestation levels.", modules: [28] }
   - { n: 5630, area: sec, proto: sip, short: SIPS, summary: "How to use the sips: scheme correctly: TLS on every hop up to the target.", modules: [3, 14, 19] }
@@ -128,12 +130,13 @@ rfcs:
   - { n: 3329, area: mobile, proto: sip, short: Security agreement, summary: "How two hops agree on a security mechanism. IMS uses it to set up IPsec.", modules: [27] }
   - { n: 3455, area: mobile, proto: sip, short: 3GPP P-headers (old), summary: "The first 3GPP P-headers. RFC 7315 replaced it.", modules: [27] }
   - { n: 7315, area: mobile, proto: sip, short: 3GPP P-headers, summary: "Private headers for 3GPP networks, such as P-Access-Network-Info.", modules: [27] }
+  - { n: 5009, area: mobile, proto: sip, short: P-Early-Media, summary: "A header with which a network (such as IMS) says whether early media may flow, so an edge element can open or close the media gate.", modules: [24] }
 
   # --- Guides and examples -----------------------------------------------------------
   - { n: 2119, area: guide, short: Key words, summary: "Defines MUST, SHOULD, MAY, and the other requirement key words.", modules: [1] }
   - { n: 8174, area: guide, short: Key words (update), summary: "The key words have their special meaning only in capital letters.", modules: [1] }
   - { n: 3665, area: guide, proto: sip, short: Basic call flows, summary: "Example message flows for registration and basic calls.", modules: [21] }
-  - { n: 3960, area: guide, proto: rtp, short: Early media, summary: "Early media and ringing tone generation: when the caller's phone plays local ringback, and when it plays the media from the far end.", modules: [21] }
+  - { n: 3960, area: guide, proto: rtp, short: Early media, summary: "Early media and ringing tone generation: when the caller's phone plays local ringback, and when it plays the media from the far end.", modules: [21, 24] }
   - { n: 3725, area: guide, proto: sip, short: Third-party call control, summary: "Best current practices for third-party call control.", modules: [22] }
   - { n: 5589, area: guide, proto: sip, short: Call transfer, summary: "Best current practices for blind and attended call transfer with REFER.", modules: [22] }
   - { n: 4353, area: guide, proto: sip, short: Conferencing framework, summary: "The framework for SIP conferences: focus, mixer, conference URI, and policy.", modules: [22] }

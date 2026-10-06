@@ -1919,3 +1919,16 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
   .cb-opts { gap: 3px; }
   .cb-opts > button:not(.rl-toggle), .cb-group .rl-toggle { height: 28px; padding: 0 7px; font-size: 11.5px; gap: 5px; }
 }
+
+/* ---------- Number normaliser (Module 24.2) ---------- */
+.numnorm { max-width: 1240px; }
+.numnorm .stage-head { flex-wrap: wrap; gap: 12px; }
+.numnorm .seg { flex-wrap: wrap; }
+.nn-plan { margin-top: 12px; font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+.nn-steps { margin: 4px 0 0; padding-left: 20px; font-size: 14px; }
+.nn-steps li + li { margin-top: 3px; }
+.nn-steps code, .nn-out code { color: var(--text); overflow-wrap: anywhere; }
+.nn-out { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 10px 0 0; font-size: 14px; }
+.nn-out dt { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.nn-out dd { margin: 0; min-width: 0; }
+@media (max-width: 560px) { .nn-out { grid-template-columns: minmax(0, 1fr); } .nn-out dd { margin-bottom: 6px; } }

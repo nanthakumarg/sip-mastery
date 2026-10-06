@@ -5219,3 +5219,105 @@
     bytes, unless the UAC has positive knowledge that the message will not
     traverse a congestion-unsafe link at any hop, or that the message size is at
     least 200 bytes less than the lowest MTU value found en route to the UAS.
+
+# --- Module 24: PSTN interworking and SIP trunks -----------------------------
+
+- id: rfc6140-1-blocks
+  rfc: 6140
+  section: "1"
+  title: Introduction
+  text: >-
+    For purposes of efficiency, many of these deployments do not wish to
+    maintain separate registrations for each of the AORs in the block.
+
+- id: rfc3398-12.2-national
+  rfc: 3398
+  section: "12.2"
+  title: tel URL to ISUP format mapping
+  text: >-
+    If the country code is local to the gateway (the gateway has one or more
+    trunks that point to switches which are homed to the country code in
+    question), the gateway SHOULD set the NoA to reflect 'national
+    (significant) number' and strip the country code from the URI before
+    populating the digits field.
+
+- id: rfc3398-12.2-484
+  rfc: 3398
+  section: "12.2"
+  title: tel URL to ISUP format mapping
+  text: >-
+    If the URI is not in international format, the gateway MAY attempt to treat
+    the telephone number within the URI as if it were appropriate to its
+    national or network-specific dialing plan; if doing so gives rise to
+    internal gateway errors or the gateway does not support such procedures,
+    then the gateway SHOULD respond with appropriate SIP status codes to express
+    that the URI could not be understood (if the URI in question is the
+    Request-URI, a 484).
+
+- id: rfc3398-5.7-privacy
+  rfc: 3398
+  section: "5.7"
+  title: Privacy Protection
+  text: >-
+    ISUP has a concept of presentation restriction - a mechanism by which a user
+    can specify that they would not like their telephone number to be displayed
+    to the person they are calling (presumably someone with Caller ID).
+
+- id: rfc3398-5.5-early-media
+  rfc: 3398
+  section: "5.5"
+  title: Early Media
+  text: >-
+    For telephony, establishment of media in the backwards direction is
+    desirable so that tones and announcements can be played, especially when
+    interworking with a network that cannot signal call status out of band
+    (such as a legacy MF network).
+
+- id: rfc3398-7.2.6-180
+  rfc: 3398
+  section: "7.2.6"
+  title: ACM received
+  text: >-
+    If the ACM contains a Backward Call Indicators parameter with a value of
+    'subscriber free', the gateway SHOULD send a '180 Ringing' response.
+
+- id: rfc3398-7.2.6-183
+  rfc: 3398
+  section: "7.2.6"
+  title: ACM received
+  text: >-
+    After early media transmission has been initiated, the gateway SHOULD send a
+    183 Session Progress response code.
+
+- id: rfc3398-7.2.6-billing
+  rfc: 3398
+  section: "7.2.6"
+  title: ACM received
+  text: >-
+    In common ISUP network practice, billing commences when the ANM is received.
+
+- id: rfc3398-7.2.7-anm
+  rfc: 3398
+  section: "7.2.7"
+  title: CON or ANM Received
+  text: >-
+    When an ANM or CON message is received, the call has been answered and thus
+    '200 OK' response SHOULD be sent to the SIP network.
+
+- id: rfc3398-7.2.4.1-rel
+  rfc: 3398
+  section: "7.2.4.1"
+  title: ISDN Cause Code to Status Code Mapping
+  text: >-
+    An REL can be sent to tear down a call that is already in progress (BYE), to
+    cancel a previously sent call setup request that has not yet been completed
+    (CANCEL), or to reject a call setup request (IAM) that has just been
+    received (corresponding to a SIP status code).
+
+- id: rfc6432-3-reason
+  rfc: 6432
+  section: "3"
+  title: Applicability
+  text: >-
+    Any SIP Response message, with the exception of a 100 (Trying), MAY contain
+    a Reason header field with a Q.850 [Q.850] cause code.

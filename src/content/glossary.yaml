@@ -43,6 +43,8 @@
   definition: A server that answers calls for a user who cannot take them, plays a greeting, and records a message. In Module 22, Bob's forwarding target.
 - term: Carrier gateway
   definition: The gateway between SIP and the public telephone network.
+- term: Carrier SBC
+  definition: The SBC at the edge of a carrier's network. It ends its customers' SIP trunks, checks who is calling, and passes calls to the carrier's gateways.
 
 # --- Basics ----------------------------------------------------------------
 - term: SIP
@@ -512,3 +514,32 @@
 - term: certificate
   aliases: [X.509 certificate]
   definition: A file signed by a certificate authority that binds a public key to names, such as the SIP domain of a server.
+
+# --- PSTN interworking (Module 24) -----------------------------------------
+- term: E.164
+  definition: "The ITU-T plan for international telephone numbers: a country code and a national number, at most 15 digits. Written with a leading +, as in +14045550199."
+- term: DID
+  aliases: [direct inward dialling, DDI]
+  definition: A telephone number from the carrier that reaches one user or extension behind a PBX directly.
+- term: number normalisation
+  aliases: [normalisation]
+  definition: Changing a number from the format a user dialled, or a network uses, into another format, usually E.164.
+- term: IAM
+  aliases: [Initial Address Message]
+  definition: The ISUP message that starts a call. It carries the called and calling numbers. A gateway sends it when it receives an INVITE.
+- term: ACM
+  aliases: [Address Complete Message]
+  definition: The ISUP message that says the exchange has the whole number and the phone is ringing. A gateway turns it into 180 or 183.
+- term: ANM
+  aliases: [Answer Message]
+  definition: The ISUP message that says the called phone answered. Charging starts here. A gateway turns it into 200 OK.
+- term: REL
+  aliases: [Release]
+  definition: The ISUP message that ends or rejects a call. It carries a Q.850 cause.
+- term: presentation restriction
+  aliases: [withheld number, CLIR]
+  definition: A request that the called phone does not show the caller's number. The network still knows the number.
+- term: Diversion
+  definition: A SIP header (RFC 5806) that records each time a call was forwarded, with the number that forwarded it and why.
+- term: History-Info
+  definition: A SIP header (RFC 7044) that records each target a request had, in order, and how each one changed. The standard replacement for Diversion.

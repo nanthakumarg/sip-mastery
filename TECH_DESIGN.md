@@ -64,6 +64,8 @@ sip-course/
 │  │  ├─ reinvite.ts             # hold, resume, codec, video, address, session refresh; re-INVITE or UPDATE; glare (Module 22)
 │  │  ├─ transfer.ts             # blind and attended transfer: REFER, NOTIFY with sipfrag, Replaces (Module 22)
 │  │  ├─ events.ts               # SUBSCRIBE/NOTIFY for presence (with PUBLISH), dialog, message-summary, reg (Module 23)
+│  │  ├─ trunk.ts                # a PBX calls the PSTN through a carrier SBC and gateway: ISUP, Q.850, caller ID (Module 24)
+│  │  ├─ numbers.ts              # number normalisation to E.164, tel URI, user=phone (Module 24)
 │  │  ├─ generators.ts           # the generators and their options, for the FlowBuilder island
 │  │  └─ digest.ts               # HA1 / HA2 / response
 │  ├─ net/                       # below SIP: addresses, packets, RTP
