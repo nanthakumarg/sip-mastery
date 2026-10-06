@@ -36,6 +36,13 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
   const wires = useMemo(() => flow.steps.map(s => s.wire), [flow]);
   const prevIndex = useMemo(() => comparableIndex(wires, current), [wires, current]);
   const laneLabel = (id: string) => flow.lanes.find(l => l.id === id)?.label ?? id;
+  // The state of each lane at this step: the last status it was given, in lane order.
+  const state = useMemo(() => {
+    const now = new Map<string, string>();
+    for (const s of flow.steps.slice(0, current + 1)) for (const [lane, v] of Object.entries(s.status ?? {})) now.set(lane, v);
+    const fresh = flow.steps[current]?.status ?? {};
+    return flow.lanes.filter(l => now.has(l.id)).map(l => ({ id: l.id, value: now.get(l.id)!, fresh: l.id in fresh }));
+  }, [flow, current]);
 
   // Keep the current row visible inside the ladder box (without moving the page).
   useEffect(() => {
@@ -89,6 +96,11 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
               {step.warn && <p className="cap-warn"><span aria-hidden="true">⚠</span> {step.warn}</p>}
             </div>
           </div>
+          {state.length > 0 && (
+            <ul className="stage-state" aria-label="State after this step">
+              {state.map(v => <li key={v.id} className={v.fresh ? 'is-fresh' : undefined}><span>{laneLabel(v.id)}</span>{v.value}</li>)}
+            </ul>
+          )}
           <PlayerControls p={p} />
         </div>
         <aside className="stage-inspector">

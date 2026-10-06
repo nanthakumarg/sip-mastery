@@ -5477,3 +5477,119 @@
     it is RECOMMENDED that they also be included in the offer in order to
     maximize the possibility of establishing the session without the need for
     audio transcoding.
+
+# --- Module 27: IMS and VoLTE -------------------------------------------------------
+
+- id: rfc3310-2-xres
+  rfc: 3310
+  section: "2"
+  title: AKA Mechanism Overview
+  text: >-
+    The server compares the authentication response RES with the expected
+    response, XRES. If the two match, the user has been successfully
+    authenticated, and the session keys, IK and CK, can be used for protecting
+    further communications between the client and the server.
+
+- id: rfc3310-3.1-algorithm
+  rfc: 3310
+  section: "3.1"
+  title: Algorithm Directive
+  text: >-
+    In order to direct the client into using AKA for authentication instead of
+    the standard password system, the RFC 2617 defined algorithm directive is
+    overloaded in Digest AKA:
+
+- id: rfc3310-3.2-nonce
+  rfc: 3310
+  section: "3.2"
+  title: Creating a Challenge
+  text: >-
+    A parameter, which is populated with the Base64 [4] encoding of the
+    concatenation of the AKA authentication challenge RAND, the AKA AUTN token,
+    and optionally some server specific data, as in Figure 1.
+
+- id: rfc3310-3.3-res
+  rfc: 3310
+  section: "3.3"
+  title: Client Authentication
+  text: >-
+    The resulting AKA RES parameter is treated as a "password" when calculating
+    the response directive of RFC 2617.
+
+- id: rfc3310-3.4-auts
+  rfc: 3310
+  section: "3.4"
+  title: Synchronization Failure
+  text: >-
+    A valid AUTS parameter is used to re-synchronize the SQN in the AuC. The
+    synchronized SQN is then used to generate a fresh authentication vector AV,
+    with which the client is then re-challenged.
+
+- id: rfc3329-2.1-client-list
+  rfc: 3329
+  section: "2.1"
+  title: Overview of Operation
+  text: >-
+    Step 1: Clients wishing to use this specification can send a list of their
+    supported security mechanisms along the first request to the server.
+
+- id: rfc3329-2.1-verify
+  rfc: 3329
+  section: "2.1"
+  title: Overview of Operation
+  text: >-
+    Step 4: The client contacts the server again, now using the selected
+    security mechanism. The server's list of supported security mechanisms is
+    returned as a response to the challenge. Step 5: The server verifies its own
+    list of security mechanisms in order to ensure that the original list had
+    not been modified.
+
+- id: rfc7315-4.1-associated
+  rfc: 7315
+  section: "4.1"
+  title: The P-Associated-URI Header Field
+  text: >-
+    This extension allows a registrar to return a set of associated URIs for a
+    registered SIP address-of-record.
+
+- id: rfc7315-4.3-visited
+  rfc: 7315
+  section: "4.3"
+  title: The P-Visited-Network-ID Header Field
+  text: >-
+    There is a need to indicate to the home network which network is the
+    visited network that is providing services to the roaming UA.
+
+- id: rfc7315-4.4-access
+  rfc: 7315
+  section: "4.4"
+  title: The P-Access-Network-Info Header Field
+  text: >-
+    For example, a 3GPP UA may use this header field to pass information about
+    the access network such as radio access technology and radio cell identity
+    to its home service provider.
+
+- id: rfc7315-4.6-charging
+  rfc: 7315
+  section: "4.6"
+  title: The P-Charging-Vector Header Field
+  text: >-
+    This requires coordination among the network entities (e.g., SIP proxies),
+    which includes correlating charging records generated from different
+    entities that are related to the same session.
+
+- id: rfc3312-4-segmented
+  rfc: 3312
+  section: "4"
+  title: SDP parameters
+  text: >-
+    The segmented status reflects the status of the access network
+    reservations of both user agents.
+
+- id: rfc3312-5.1.1-local-remote
+  rfc: 3312
+  section: "5.1.1"
+  title: SDP encoding
+  text: >-
+    For the segmented status type, the user agent MUST generate two current
+    status lines: one with the tag "local" and the other with the tag "remote".

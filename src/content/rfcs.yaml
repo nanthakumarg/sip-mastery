@@ -23,7 +23,7 @@ rfcs:
   - { n: 3581, area: core, proto: sip, short: rport, summary: "The rport parameter sends a response back to the source IP address and port of the request. This helps behind NAT.", modules: [10, 20] }
   - { n: 3966, area: core, proto: sip, short: tel URI, summary: "The tel URI for telephone numbers.", modules: [3, 24] }
   - { n: 4320, area: core, proto: sip, short: Non-INVITE fixes, summary: "Fixes problems with non-INVITE transactions. For example, an element no longer sends 408 to a non-INVITE request.", modules: [8] }
-  - { n: 5626, area: core, proto: sip, short: SIP Outbound, summary: "Keeps connections that the user agent opened alive, so it can receive requests behind NAT.", modules: [12, 19, 20] }
+  - { n: 5626, area: core, proto: sip, short: SIP Outbound, summary: "Keeps connections that the user agent opened alive, so it can receive requests behind NAT.", modules: [12, 19, 20, 27] }
   - { n: 5922, area: core, proto: sip, short: Domain certificates, summary: "How a SIP element checks the TLS certificate of a SIP domain.", modules: [14, 19] }
   - { n: 5923, area: core, proto: sip, short: Connection reuse, summary: "Lets a server send requests back over a TLS connection that the client opened.", modules: [19] }
   - { n: 5658, area: core, proto: sip, short: Double Record-Route, summary: "A proxy with two interfaces adds two Record-Route values, one for each side, instead of rewriting Record-Route in responses.", modules: [10] }
@@ -33,16 +33,16 @@ rfcs:
   - { n: 7118, area: core, proto: sip, short: SIP over WebSocket, summary: "Carries SIP over WebSocket so that a browser can be a SIP user agent.", modules: [19, 26] }
 
   # --- SIP extensions -----------------------------------------------------------
-  - { n: 3262, area: ext, proto: sip, short: PRACK, summary: "Reliable provisional responses (100rel) and the PRACK method.", modules: [5, 15, 22] }
+  - { n: 3262, area: ext, proto: sip, short: PRACK, summary: "Reliable provisional responses (100rel) and the PRACK method.", modules: [5, 15, 22, 27] }
   - { n: 3265, area: ext, proto: sip, short: Events (first version), summary: "The first SUBSCRIBE and NOTIFY framework. RFC 6665 replaced it.", modules: [23] }
-  - { n: 3311, area: ext, proto: sip, short: UPDATE, summary: "The UPDATE method changes session parameters before the call is answered.", modules: [5, 15, 22] }
-  - { n: 3312, area: ext, proto: sip, short: Preconditions, summary: "Lets a call wait for network resources, such as reserved bandwidth, before the phone rings.", modules: [5, 22] }
+  - { n: 3311, area: ext, proto: sip, short: UPDATE, summary: "The UPDATE method changes session parameters before the call is answered.", modules: [5, 15, 22, 27] }
+  - { n: 3312, area: ext, proto: sip, short: Preconditions, summary: "Lets a call wait for network resources, such as reserved bandwidth, before the phone rings.", modules: [5, 22, 27] }
   - { n: 4488, area: ext, proto: sip, short: REFER without subscription, summary: "The norefersub option tag: a REFER that does not create an implicit subscription.", modules: [5, 22] }
   - { n: 7647, area: ext, proto: sip, short: REFER clarifications, summary: "Updates REFER for RFC 6665. A REFER is now accepted with 200, never 202.", modules: [5, 22] }
   - { n: 3323, area: ext, proto: sip, short: Privacy, summary: "The Privacy header and how to hide the identity of a caller.", modules: [7, 14, 24] }
   - { n: 3325, area: ext, proto: sip, short: P-Asserted-Identity, summary: "P-Asserted-Identity carries an identity that the network has checked, inside a trust domain.", modules: [7, 14, 24, 25] }
   - { n: 3326, area: ext, proto: sip, short: Reason header, summary: "The Reason header says why a request was sent, for example with a Q.850 cause value.", modules: [6, 24] }
-  - { n: 3327, area: ext, proto: sip, short: Path, summary: "Proxies on the REGISTER path stay in the path of incoming requests.", modules: [12, 20] }
+  - { n: 3327, area: ext, proto: sip, short: Path, summary: "Proxies on the REGISTER path stay in the path of incoming requests.", modules: [12, 20, 27] }
   - { n: 3428, area: ext, proto: sip, short: MESSAGE, summary: "The MESSAGE method for instant messages.", modules: [5, 23] }
   - { n: 3515, area: ext, proto: sip, short: REFER, summary: "The REFER method asks another user agent to contact a third party. Call transfer uses it.", modules: [5, 22] }
   - { n: 3608, area: ext, proto: sip, short: Service-Route, summary: "The registrar tells the user agent which proxies to use for its requests.", modules: [12, 27] }
@@ -53,11 +53,11 @@ rfcs:
   - { n: 4028, area: ext, proto: sip, short: Session timers, summary: "Refreshes a call at intervals so that both sides can detect a dead call.", modules: [5, 9, 22] }
   - { n: 3856, area: ext, proto: sip, short: Presence, summary: "The presence event package: watchers subscribe to the availability of a presentity.", modules: [23] }
   - { n: 3863, area: ext, proto: sip, short: PIDF, summary: "The Presence Information Data Format: the XML body of presence NOTIFY and PUBLISH requests.", modules: [23] }
-  - { n: 3680, area: ext, proto: sip, short: Registration events, summary: "An event package that reports the bindings of an AOR, so a phone learns when its registration ends.", modules: [23] }
+  - { n: 3680, area: ext, proto: sip, short: Registration events, summary: "An event package that reports the bindings of an AOR, so a phone learns when its registration ends.", modules: [23, 27] }
   - { n: 4975, area: ext, proto: sip, short: MSRP, summary: "The Message Session Relay Protocol: instant messages and files as a media stream set up with INVITE.", modules: [23] }
   - { n: 5438, area: ext, proto: sip, short: IMDN, summary: "Instant message delivery and read notifications.", modules: [23] }
   - { n: 4235, area: ext, proto: sip, short: Dialog events, summary: "An event package that reports dialog state. Busy lamp fields use it.", modules: [22, 23] }
-  - { n: 5627, area: ext, proto: sip, short: GRUU, summary: "A globally routable URI that reaches one specific device.", modules: [12] }
+  - { n: 5627, area: ext, proto: sip, short: GRUU, summary: "A globally routable URI that reaches one specific device.", modules: [12, 27] }
   - { n: 6086, area: ext, proto: sip, short: INFO, summary: "The INFO method and Info Packages.", modules: [5, 16] }
   - { n: 6665, area: ext, proto: sip, short: Events, summary: "The SUBSCRIBE and NOTIFY event framework.", modules: [5, 22, 23] }
   - { n: 7044, area: ext, proto: sip, short: History-Info, summary: "The History-Info header records how a request was retargeted.", modules: [7, 24] }
@@ -134,7 +134,8 @@ rfcs:
   - { n: 3329, area: mobile, proto: sip, short: Security agreement, summary: "How two hops agree on a security mechanism. IMS uses it to set up IPsec.", modules: [27] }
   - { n: 3455, area: mobile, proto: sip, short: 3GPP P-headers (old), summary: "The first 3GPP P-headers. RFC 7315 replaced it.", modules: [27] }
   - { n: 7315, area: mobile, proto: sip, short: 3GPP P-headers, summary: "Private headers for 3GPP networks, such as P-Access-Network-Info.", modules: [27] }
-  - { n: 5009, area: mobile, proto: sip, short: P-Early-Media, summary: "A header with which a network (such as IMS) says whether early media may flow, so an edge element can open or close the media gate.", modules: [24] }
+  - { n: 5009, area: mobile, proto: sip, short: P-Early-Media, summary: "A header with which a network (such as IMS) says whether early media may flow, so an edge element can open or close the media gate.", modules: [24, 27] }
+  - { n: 5031, area: mobile, proto: sip, short: Service URNs (sos), summary: "URNs for services such as emergency calls: urn:service:sos, which a phone calls in place of a local emergency number.", modules: [27] }
 
   # --- Guides and examples -----------------------------------------------------------
   - { n: 2119, area: guide, short: Key words, summary: "Defines MUST, SHOULD, MAY, and the other requirement key words.", modules: [1] }

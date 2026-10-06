@@ -599,3 +599,79 @@
 - term: Opus
   definition: An audio codec for speech and music, from 6 to 510 kbit/s, built to hide packet loss. Every WebRTC endpoint has it, but few desk phones do.
 
+# --- IMS and VoLTE (Module 27) --------------------------------------------------
+- term: IMS
+  aliases: [IP Multimedia Subsystem]
+  definition: The 3GPP architecture that mobile operators use for voice and messaging over IP. It is built on SIP, with extra headers, AKA authentication, and QoS control.
+- term: VoLTE
+  aliases: [Voice over LTE]
+  definition: Voice calls over a 4G (LTE) network through the IMS, with a dedicated bearer for the media and AMR-WB or EVS as the codec. VoNR is the same over 5G.
+- term: VoWiFi
+  aliases: [Wi-Fi calling]
+  definition: IMS voice calls over Wi-Fi. The phone reaches the operator through an IPsec tunnel to the ePDG.
+- term: ePDG
+  aliases: [evolved Packet Data Gateway]
+  definition: The operator's gateway for phones on untrusted Wi-Fi. The phone builds an IPsec tunnel to it, and reaches the IMS through the tunnel.
+- term: UE
+  aliases: [user equipment]
+  definition: In 3GPP terms, the phone.
+- term: UE A
+  definition: In Module 27, the calling phone.
+- term: UE B
+  definition: In Module 27, the called phone.
+- term: IMS core
+  definition: In Module 27, the P-CSCFs and S-CSCF of a call, shown as one lane.
+- term: P-CSCF
+  aliases: [Proxy CSCF]
+  definition: The first SIP proxy of the IMS for a phone. It holds the IPsec associations with the phone, asserts its identity, and asks for QoS bearers.
+- term: I-CSCF
+  aliases: [Interrogating CSCF]
+  definition: The IMS proxy at the entry of the home network. It asks the HSS which S-CSCF serves a user.
+- term: S-CSCF
+  aliases: [Serving CSCF]
+  definition: The IMS registrar and main proxy of a user. It authenticates with AKA, and sends calls to application servers by the user profile.
+- term: CSCF
+  aliases: [Call Session Control Function]
+  definition: The SIP servers of the IMS. There are three kinds - P-CSCF, I-CSCF, and S-CSCF.
+- term: HSS
+  aliases: [Home Subscriber Server]
+  definition: The IMS user database. It holds identities, the AKA secret, the user profile, and the name of the user's S-CSCF.
+- term: MMTel AS
+  aliases: [TAS, telephony application server]
+  definition: The IMS application server for telephony services, such as forwarding, call waiting, hold, and conference.
+- term: BGCF
+  definition: The IMS function that chooses where a call leaves for the PSTN.
+- term: MGCF
+  definition: The IMS gateway control to the PSTN. It converts SIP to ISUP, and controls a media gateway.
+- term: IBCF
+  definition: The SBC between two operators' IMS networks.
+- term: Diameter
+  definition: The AAA protocol of mobile networks. The CSCFs use it to query the HSS (the Cx interface), and the P-CSCF to ask the PCRF for QoS (Rx).
+- term: AKA
+  aliases: [Authentication and Key Agreement, AKAv1-MD5, Digest AKA]
+  definition: Authentication with the secret on the SIM. The network sends a challenge (RAND) and a proof of itself (AUTN); the SIM returns RES, used as the digest password (RFC 3310).
+- term: ISIM
+  aliases: [USIM]
+  definition: The application on the SIM card that holds the IMS identities and the AKA secret.
+- term: IMPI
+  aliases: [private user identity]
+  definition: The private identity that the UE authenticates with. It appears only in Authorization and is never routed.
+- term: IMPU
+  aliases: [public user identity]
+  definition: A public identity of an IMS user, as a SIP URI or tel URI. Others call it; it is the AOR that the UE registers.
+- term: IPsec
+  aliases: [IPsec SA, security association]
+  definition: Encryption or integrity protection at the IP layer. IMS phones protect their SIP to the P-CSCF with IPsec keys from AKA.
+- term: sec-agree
+  aliases: [security agreement]
+  definition: The mechanism of RFC 3329 by which a client and server agree on a security mechanism, with Security-Client, Security-Server, and Security-Verify.
+- term: dedicated bearer
+  aliases: [QCI 1, QoS bearer, bearer]
+  definition: A radio and core network path with guaranteed bit rate for one type of traffic. VoLTE voice uses one with QCI 1.
+- term: AMR-WB
+  aliases: [HD voice]
+  definition: The wideband codec of VoLTE (50–7000 Hz, 6.6–23.85 kbit/s).
+- term: EVS
+  aliases: [Enhanced Voice Services]
+  definition: The newer VoLTE codec. It goes up to fullband, works at many bit rates, and hides packet loss better than AMR-WB.
+

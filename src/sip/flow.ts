@@ -43,7 +43,7 @@ export interface FlowStep {
   warn?: string;
   /** For steps without a SIP message (TCP, DNS…): text shown in the inspector, in a monospace font. */
   detail?: string;
-  /** Short state labels shown under nodes on the call map, e.g. { alice: Registered }. They persist until changed. */
+  /** Short state labels, e.g. { alice: Registered }, shown under nodes on the call map and as a strip under the caption of a ladder. They persist until changed. */
   status?: Record<string, string>;
   /** Seconds since the start of the flow, where time matters (registration). Steps without it keep the time of the step before. */
   at?: number;

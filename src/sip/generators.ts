@@ -1,5 +1,5 @@
 /**
- * The flow generators behind the FlowBuilder island (Modules 21 to 26), each
+ * The flow generators behind the FlowBuilder island (Modules 21 to 27), each
  * with the options it shows. One island renders any of them from this table.
  */
 import type { FlowData } from './flow.ts';
@@ -19,6 +19,10 @@ import {
   allTrunks, applyTrunk, buildTrunk, CALLER_IDS, DEFAULT_TRUNK, NUMBERS, PSTN_OUTCOMES, REDIRECTS, TRUNK_QUOTES, trunkInactive, trunkKey, TRUNKS,
 } from './trunk.ts';
 import { allWebrtc, applyWebrtc, buildWebrtc, CODECS, DEFAULT_WEBRTC, NETWORKS, WEBRTC_QUOTES, webrtcInactive, webrtcKey } from './webrtc.ts';
+import {
+  allImsRegs, allVoltes, applyImsReg, applyVolte, AUTHS, buildImsReg, buildVolte, DEFAULT_IMSREG, DEFAULT_VOLTE, IMSREG_QUOTES, imsRegInactive, imsRegKey,
+  VOLTE_CODECS, VOLTE_QUOTES, volteInactive, volteKey,
+} from './ims.ts';
 import { allBalances, applyBalance, BALANCE_QUOTES, balanceInactive, balanceKey, buildBalance, DEFAULT_BALANCE, FAILURES } from './balance.ts';
 
 /** One row of controls: a choice of values for one option, or on/off toggles. */
@@ -109,6 +113,20 @@ export const GENERATORS = {
       { kind: 'toggles', label: 'What if', items: [['turn', 'TURN server'], ['trickle', 'Trickle ICE'], ['convert', 'Gateway converts media']] },
     ],
     defaults: DEFAULT_WEBRTC, apply: applyWebrtc, inactive: webrtcInactive, key: webrtcKey, build: buildWebrtc, quotes: WEBRTC_QUOTES, all: allWebrtc,
+  }),
+  imsreg: wrap({
+    rows: [
+      { kind: 'choice', label: 'Authentication', key: 'auth', items: AUTHS },
+      { kind: 'toggles', label: 'Then', items: [['regEvent', 'Subscribe to the reg event']] },
+    ],
+    defaults: DEFAULT_IMSREG, apply: applyImsReg, inactive: imsRegInactive, key: imsRegKey, build: buildImsReg, quotes: IMSREG_QUOTES, all: allImsRegs,
+  }),
+  volte: wrap({
+    rows: [
+      { kind: 'choice', label: 'Codecs', key: 'codec', items: VOLTE_CODECS },
+      { kind: 'toggles', label: 'What if', items: [['preconditions', 'QoS preconditions']] },
+    ],
+    defaults: DEFAULT_VOLTE, apply: applyVolte, inactive: volteInactive, key: volteKey, build: buildVolte, quotes: VOLTE_QUOTES, all: allVoltes,
   }),
 };
 

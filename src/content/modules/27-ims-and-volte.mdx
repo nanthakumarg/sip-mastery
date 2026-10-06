@@ -1,0 +1,204 @@
+---
+module: 27
+title: IMS and VoLTE
+part: 9
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: "SIP as mobile operators use it: why the IMS exists; its functions (P-CSCF, I-CSCF, S-CSCF, HSS, MMTel AS, BGCF, MGCF, IBCF); IMS registration with AKA and IPsec; the P-headers, Path, and Service-Route; a VoLTE call with QoS preconditions; AMR-WB and EVS; VoWiFi and emergency calls; and where IMS SIP differs from RFC 3261 SIP in daily practice."
+objectives:
+  - Explain why mobile operators built the IMS around SIP, and what they added.
+  - Name each IMS function, and say which one adds or acts on each IMS header.
+  - Follow an IMS registration through the CSCFs and the HSS, with the AKA challenge and the IPsec setup.
+  - Read the segmented precondition lines of a VoLTE call, and say at each step whether the phone may ring.
+  - Compare AMR-WB and EVS, and say where transcoding happens.
+  - List the differences between IMS SIP and RFC 3261 SIP that matter when you read a trace.
+status: draft
+---
+
+## 27.1 Why IMS exists
+
+Mobile operators wanted SIP for voice, but SIP alone does not give them what a phone network needs. The **<Term t="IMS" />** (IP Multimedia Subsystem) is the 3GPP architecture that adds it:
+
+| An operator needs | The IMS uses |
+|---|---|
+| Authentication with the SIM, not a password | <Term t="AKA" /> in digest (RFC 3310) |
+| A protected link from the phone, over the radio | IPsec between the phone and the P-CSCF (RFC 3329) |
+| Guaranteed voice quality on a shared radio network | QoS bearers, and preconditions in SIP (RFC 3312) |
+| Charging for every call, at every network element | P-Charging-Vector and charging functions (RFC 7315) |
+| Roaming, with the services of the home network | The home S-CSCF always serves the user |
+| Emergency calls and lawful interception | Emergency registration, location in SIP, interception points |
+| The PSTN and the old circuit-switched network | MGCF and media gateways |
+
+**<Term t="VoLTE" />** is IMS voice on a 4G network, as GSMA IR.92 profiles it; VoNR is the same on 5G. The SIP rules are in 3GPP TS 24.229, a document of more than a thousand pages, and the architecture in TS 23.228. 3GPP documents are not RFCs, so this module quotes the RFCs that IMS builds on.
+
+## 27.2 Architecture
+
+The SIP servers of the IMS are the **<Term t="CSCF">CSCFs</Term>**: Call Session Control Functions. Click a function on the map to see its job and its headers; pick a path to see which functions a request passes:
+
+<ImsMap />
+
+| Function | Role in SIP terms |
+|---|---|
+| <Term t="P-CSCF" /> | Outbound proxy and edge proxy: the phone's first hop, with IPsec |
+| <Term t="I-CSCF" /> | Proxy at the entry of the home network; asks the HSS where the user is served |
+| <Term t="S-CSCF" /> | Registrar, authenticating proxy, and the proxy that applies the user's services |
+| <Term t="HSS" /> | Not SIP: the database behind the registrar, over <Term t="Diameter" /> |
+| <Term t="MMTel AS" /> | A B2BUA or proxy for the telephony services |
+| <Term t="BGCF" />, <Term t="MGCF" /> | Routing to the PSTN, and the gateway to ISUP (Module 24) |
+| <Term t="IBCF" /> | The SBC between two operators (Module 25) |
+
+## 27.3 IMS registration: AKA and IPsec
+
+Before it can register, the phone must find its P-CSCF. When the phone connects to the IMS APN, the network gives it the P-CSCF addresses in the connection setup itself (or by DHCP and DNS). The phone then registers its public identity (<Term t="IMPU" />), and authenticates with its private one (<Term t="IMPI" />), which lives on the <Term t="ISIM" />.
+
+<FlowBuilder kind="imsreg" preset={{}} eyebrow="Flow builder · an IMS registration" />
+
+Three things in this flow are new compared with Module 12 and Module 13.
+
+**AKA in place of a password.** The S-CSCF gets an authentication vector from the HSS, and puts RAND and AUTN in the nonce. The ISIM checks AUTN, so the phone also authenticates the network, and computes RES, which becomes the digest password:
+
+<RfcQuote id="rfc3310-3.1-algorithm" />
+
+<RfcQuote id="rfc3310-3.3-res" />
+
+If the sequence number in AUTN is out of range, for example after a SIM swap, the phone sends AUTS instead, and the HSS resynchronises. Choose *AKA, SQN out of sync* in the builder:
+
+<RfcQuote id="rfc3310-3.4-auts" />
+
+**Security agreement and IPsec.** The phone lists its IPsec settings in Security-Client; the P-CSCF answers with Security-Server in the 401. Both build IPsec security associations with the IK key from AKA, and the second REGISTER goes over them, with Security-Verify to prove that nobody changed the lists:
+
+<RfcQuote id="rfc3329-2.1-client-list" />
+
+<RfcQuote id="rfc3329-2.1-verify" />
+
+**The HSS behind the registrar.** The I-CSCF asks the HSS which S-CSCF serves the user (UAR), the S-CSCF asks for the AKA vector (MAR), and, after success, for the user profile (SAR). The profile holds the **initial filter criteria**: the rules that send the user's calls to application servers.
+
+<RfcQuote id="rfc3310-2-xres" />
+
+## 27.4 IMS headers
+
+Most IMS headers are P-headers ("private"), defined in RFC 7315 for 3GPP use. These are the ones you will meet in every trace:
+
+| Header | Added by | Says |
+|---|---|---|
+| P-Access-Network-Info | UE (and P-CSCF) | The radio access and the cell: `3GPP-E-UTRAN-FDD; utran-cell-id-3gpp=…` |
+| P-Visited-Network-ID | P-CSCF | Which network the phone is in, when it roams |
+| P-Charging-Vector | P-CSCF, then others | A charging ID (`icid-value`) for the whole call, in every network |
+| P-Asserted-Identity | P-CSCF | The identity the network checked (Module 7) |
+| P-Associated-URI | S-CSCF, in the 200 OK to REGISTER | The user's other identities, such as a tel URI |
+| Path | P-CSCF, in REGISTER | Calls to the user go through this P-CSCF (RFC 3327) |
+| Service-Route | S-CSCF, in the 200 OK to REGISTER | The route for the user's own requests (RFC 3608) |
+| P-Called-Party-ID | S-CSCF, on terminating calls | Which of the user's identities was called |
+
+<RfcQuote id="rfc7315-4.4-access" />
+
+<RfcQuote id="rfc7315-4.3-visited" />
+
+<RfcQuote id="rfc7315-4.6-charging" />
+
+<RfcQuote id="rfc7315-4.1-associated" />
+
+Service-Route is why an IMS phone's requests skip the I-CSCF: the phone puts the P-CSCF and the Service-Route in Route, and every request goes straight to its own S-CSCF. Turn on *Subscribe to the reg event*, and follow the SUBSCRIBE (Module 23):
+
+<FlowBuilder kind="imsreg" preset={{ regEvent: true }} eyebrow="Flow builder · registration, then the reg event along the Service-Route" />
+
+<RfcQuote id="rfc3608-3-service-route" />
+
+## 27.5 A VoLTE call: preconditions and QoS bearers
+
+On LTE, voice gets its own **<Term t="dedicated bearer" />**: a path with QCI 1 and a guaranteed bit rate, from the phone through the radio network to the core. The P-CSCF asks the PCRF for it as soon as it sees the codec in the SDP answer. Module 22 showed preconditions with an end-to-end status. VoLTE uses the **segmented** status: each phone reports its own radio link (`local`) and what it knows about the other one (`remote`):
+
+<RfcQuote id="rfc3312-4-segmented" />
+
+<RfcQuote id="rfc3312-5.1.1-local-remote" />
+
+The strip under the caption shows the state of each phone after each step. UE B must not ring until both segments have QoS:
+
+<FlowBuilder kind="volte" preset={{}} eyebrow="Flow builder · a VoLTE call with segmented preconditions" />
+
+| Step | UE A says | UE B knows | Can UE B ring? |
+|---|---|---|---|
+| INVITE | `curr local none`, `curr remote none`, `des mandatory local` | Nothing is ready | No |
+| 183 (reliable) | — | Asks for a report: `conf:qos remote sendrecv` | No |
+| Bearers set up | Has its own QoS | Has its own QoS | No: UE B does not know about UE A |
+| UPDATE | `curr local sendrecv` | Both segments ready | **Yes** |
+| 180, 200 | — | Rings, then answers | — |
+
+Turn off *QoS preconditions* to see the alternative: UE B rings at once, and the bearers come after the answer. If the radio network cannot give a bearer at that moment, the user has answered a call with no audio:
+
+<RfcQuote id="rfc3312-1-ghost" />
+
+With the precondition lines, the INVITE is over 1300 bytes, so it travels over TCP (Module 19). IMS phones and P-CSCFs switch to TCP for large requests as a matter of routine.
+
+## 27.6 VoLTE codecs: AMR-WB and EVS
+
+| | <Term t="AMR-WB" /> | <Term t="EVS" /> |
+|---|---|---|
+| Audio band | Wideband (50–7000 Hz) | Narrowband to super-wideband, and fullband |
+| Bit rates | 6.6–23.85 kbit/s (9 modes) | 5.9–128 kbit/s |
+| Clock rate in SDP | 16000 | 16000 |
+| Packet loss | Good | Better: channel-aware mode, jitter buffer in the codec |
+| Status | Required in every VoLTE phone | The newer default; falls back to AMR-WB |
+
+A VoLTE phone offers EVS first and AMR-WB as the fallback, both with dynamic payload types and `fmtp` parameters such as `mode-change-capability` and `max-red`. Choose *UE B has AMR-WB only* in the builder to see the fallback. Calls to the PSTN are transcoded to G.711 in the media gateway behind the MGCF; calls to another operator may be transcoded in the IBCF's media gateway, if the two networks do not share a codec.
+
+## 27.7 VoWiFi and emergency calls
+
+**<Term t="VoWiFi" />** (Wi-Fi calling) uses the same IMS, over any Wi-Fi. The phone builds an IPsec tunnel, authenticated with EAP-AKA, to the operator's **<Term t="ePDG" />**, and reaches its P-CSCF through the tunnel. The SIP is the same as on LTE, with three differences: P-Access-Network-Info says `IEEE-802.11`, there is no dedicated bearer on Wi-Fi, so preconditions are met at once on that side, and a call can hand over between Wi-Fi and LTE without a new INVITE.
+
+**Emergency calls** have their own rules, because they must work without a valid subscription, and must carry the caller's location:
+
+- The phone recognises the emergency number, and calls `urn:service:sos` (RFC 5031) through an emergency registration, or with no registration at all.
+- The P-CSCF sends it to the E-CSCF, which finds the right emergency centre (PSAP) for the location.
+- The location travels in P-Access-Network-Info (the cell), and often as a geolocation in the INVITE.
+
+## 27.8 Where IMS SIP differs from RFC 3261 SIP in daily practice
+
+| You expect, from RFC 3261 | In IMS |
+|---|---|
+| Digest with a password; MD5 | AKA (`algorithm=AKAv1-MD5`), RES as the password |
+| TLS or nothing on the first hop | IPsec on protected ports, agreed with Security-Client/Server/Verify |
+| A Route from DNS, or an outbound proxy | P-CSCF, then the Service-Route, in every request |
+| From is the identity | P-Asserted-Identity is the identity; From may say anything, or "anonymous" |
+| AORs are SIP URIs | IMPUs as SIP and tel URIs, IMPI only for authentication |
+| Registration for an hour | Expires: 600000 (about a week), with the reg event to learn of changes |
+| Preconditions and 100rel are rare | Almost every call uses them: reliable 183, PRACK, UPDATE |
+| UDP for most messages | TCP whenever a request is over 1300 bytes, which is often |
+| Feature tags are rare | `+g.3gpp.icsi-ref`, `+sip.instance` with the IMEI, P-Preferred-Service on every call |
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Expecting an MD5 digest">
+    A developer tests a SIP client against an IMS core with a username and password. The S-CSCF challenges with `algorithm=AKAv1-MD5`. The client answers with a normal MD5 digest, the response does not match XRES, and the registration fails with 403.
+
+    <FlowPair a={{ kind: 'imsreg', preset: { auth: 'md5' } }} b={{ kind: 'imsreg', preset: { auth: 'aka' } }} labels={['Broken: MD5 with a password', 'Fixed: AKA with the ISIM']} />
+
+    <p class="fix"><b>Remember:</b> IMS authenticates the SIM, not a password. A client needs an ISIM or USIM (or a test SIM with known keys), AKA, and usually IPsec with the P-CSCF.</p>
+  </Mistake>
+
+  <Mistake title="Ignoring Service-Route on later requests">
+    A phone registers, and then sends its next request with only the P-CSCF in Route. The P-CSCF compares the Route with the Service-Route it stored. Depending on the operator's policy it repairs the Route, or rejects the request with 400.
+
+    <FlowPair a={{ kind: 'imsreg', preset: { regEvent: true, ignoreServiceRoute: true } }} b={{ kind: 'imsreg', preset: { regEvent: true } }} labels={['Broken: Route without the S-CSCF', 'Fixed: P-CSCF, then the Service-Route']} />
+
+    <p class="fix"><b>Remember:</b> store the Service-Route from every successful REGISTER, and put the P-CSCF and the Service-Route in Route on every request outside a dialog, until the next registration.</p>
+  </Mistake>
+
+  <Mistake title="Not answering the precondition steps">
+    A phone accepts the reliable 183, but ignores `a=conf`, and never sends the UPDATE that reports its QoS. UE B waits for that report and never rings. The caller sees "connecting" until they give up.
+
+    <FlowPair a={{ kind: 'volte', preset: { stall: true } }} b={{ kind: 'volte', preset: {} }} labels={['Broken: no UPDATE', 'Fixed: UPDATE when the bearer is up']} />
+
+    <p class="fix"><b>Remember:</b> when the other side asks with `a=conf`, report your QoS as soon as your bearer is up: an UPDATE in the early dialog, with `a=curr:qos local sendrecv`. Answer every UPDATE with the current state of both segments.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- The **IMS** is SIP plus what an operator needs: SIM authentication, IPsec on the radio side, QoS, charging, roaming, emergency calls, and PSTN interworking.
+- **P-CSCF**: the phone's first hop, with IPsec. **I-CSCF**: the entry of the home network. **S-CSCF**: registrar and service proxy. **HSS**: the database, over Diameter.
+- IMS registration: REGISTER, a **401 with AKAv1-MD5**, IPsec set up with IK, then a protected REGISTER with RES as the digest password. The 200 OK carries **Service-Route** and **P-Associated-URI**.
+- Every request outside a dialog follows the **P-CSCF and the Service-Route** to the user's S-CSCF.
+- A **VoLTE call** uses segmented preconditions: a reliable 183, PRACK, an UPDATE when each side has its **QCI 1 bearer**, and only then 180.
+- VoLTE voice is **EVS** or **AMR-WB**; **VoWiFi** reaches the same IMS through an ePDG; emergency calls use `urn:service:sos` and carry the location.

@@ -100,6 +100,10 @@ svg.ladder.lanes-2 { min-width: 0; } /* two lanes always fit; scale instead of s
 .cap-num { font: 500 15px/1.5 var(--mono); color: var(--sip); font-variant-numeric: tabular-nums; flex: none; }
 .cap-num span { color: var(--muted); font-size: 12px; }
 .cap-text { color: var(--text); font-size: 16.5px; line-height: 1.5; }
+.stage-state { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.stage-state li { display: inline-flex; gap: 6px; align-items: baseline; padding: 3px 9px; border: 1px solid var(--line-2); border-radius: 4px; background: var(--panel); font: 400 12px var(--mono); color: var(--dim); }
+.stage-state li span { color: var(--muted); }
+.stage-state li.is-fresh { border-color: var(--sip); color: var(--text); }
 .cap-warn { margin-top: 6px; color: var(--err); font-size: 15px; line-height: 1.45; }
 
 .stage-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -2028,3 +2032,30 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
   .wgw-sip { text-align: left; }
   .wgw-sip::before { content: 'SIP phone: '; color: var(--muted); }
 }
+
+/* ---------- IMS core map (Module 27.2) ---------- */
+.imsmap { max-width: 1300px; }
+.imsmap .stage-head { flex-wrap: wrap; gap: 12px; }
+.imsmap .seg { flex-wrap: wrap; }
+.imsmap-path { margin-top: 12px; font-size: 15px; color: var(--dim); max-width: 90ch; }
+.imsmap-svg { display: block; width: 100%; min-width: 640px; max-width: 1000px; height: auto; margin: 0 auto; }
+.imsmap-svg .zone { fill: none; stroke: var(--line); stroke-dasharray: 4 4; }
+.imsmap-svg .zone-label { fill: var(--muted); font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.imsmap-svg .ln { stroke: var(--line); stroke-width: 1.5; }
+.imsmap-svg .ln.is-diameter { stroke-dasharray: 3 4; }
+.imsmap-svg .ln.is-hot { stroke: var(--sip); stroke-width: 2.5; }
+.imsmap-svg .ln.is-hot.is-diameter { stroke: var(--dns); }
+.imsmap-svg .node rect { fill: var(--panel-2); stroke: var(--line); }
+.imsmap-svg .node.is-on rect { stroke: var(--sip); }
+.imsmap-svg .node.is-sel rect { stroke: var(--text); stroke-width: 2; }
+.imsmap-svg .node text { fill: var(--text); font: 600 14px var(--display); text-anchor: middle; pointer-events: none; }
+.imsmap-svg .node .hit { fill: transparent; stroke: none; cursor: pointer; }
+.imsmap-svg .node .hit:focus-visible { outline: 2px solid var(--sip); }
+.imsmap-svg .ext { fill: var(--muted); font: 400 12px var(--mono); text-anchor: middle; }
+.imsmap-svg .legend-t { fill: var(--muted); font: 400 11px var(--mono); text-anchor: middle; }
+.imsmap-detail { margin-top: 10px; padding: 12px 16px; border-left: 2px solid var(--sip); background: var(--panel); font-size: 15px; color: var(--dim); max-width: 90ch; }
+.imsmap-detail p + p, .imsmap-detail ul + p { margin-top: 6px; }
+.imsmap-name { font: 700 18px var(--display); color: var(--text); }
+.imsmap-name span { font: 400 14px var(--display); color: var(--muted); margin-left: 6px; }
+.imsmap-sub { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.imsmap-detail ul { margin: 4px 0 0; padding-left: 18px; }
