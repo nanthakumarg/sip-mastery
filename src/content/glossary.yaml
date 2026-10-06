@@ -131,6 +131,31 @@
 - term: third-party call control
   aliases: [3PCC]
   definition: Setting up a call between two parties from a third element, the Controller, which passes each party's SDP to the other (RFC 3725).
+- term: subscription
+  aliases: [subscriptions]
+  definition: A request, made with SUBSCRIBE (or implied by REFER), to get NOTIFY requests when the state of a resource changes. It lasts for the time in Expires, unless the subscriber refreshes it.
+- term: subscriber
+  definition: The user agent that sends SUBSCRIBE and receives NOTIFY.
+- term: notifier
+  definition: The user agent that accepts a SUBSCRIBE and sends NOTIFY requests with the state of the resource.
+- term: event package
+  aliases: [event packages]
+  definition: A named use of SUBSCRIBE and NOTIFY, such as presence or dialog, given in the Event header. It defines the body format and when to notify.
+- term: presentity
+  definition: The person or resource whose presence others watch. In Module 23, Bob.
+- term: watcher
+  definition: A subscriber to the presence of a presentity. In Module 23, Alice.
+- term: busy lamp field
+  aliases: [BLF]
+  definition: The lamps on a phone that show whether colleagues are idle, ringing, or busy, usually through the dialog event package.
+- term: message waiting indicator
+  aliases: [MWI]
+  definition: The lamp or icon on a phone that shows new voicemail, through the message-summary event package.
+- term: PIDF
+  definition: "Presence Information Data Format (RFC 3863), the XML document that carries presence: a tuple with a basic status of open or closed."
+- term: entity-tag
+  aliases: [SIP-ETag, SIP-If-Match]
+  definition: The name that a presence server gives to published state, in SIP-ETag. A later PUBLISH names the state it refreshes or changes in SIP-If-Match.
 - term: Q.850
   definition: The ITU-T list of cause values that telephone networks use to say why a call ended, such as 16 (normal clearing) or 17 (user busy).
 - term: location service

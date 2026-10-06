@@ -5022,3 +5022,200 @@
     If the offerer wishes to communicate, but wishes to neither send nor
     receive media at this time, it MUST mark the stream with an "a=inactive"
     attribute.
+
+# Module 23: events, presence, and messaging
+
+- id: rfc6665-1.1-overview
+  rfc: 6665
+  section: "1.1"
+  title: Overview of Operation
+  text: >-
+    The general concept is that entities in the network can subscribe to
+    resource or call state for various resources or calls in the network, and
+    those entities (or entities acting on their behalf) can send notifications
+    when those states change.
+
+- id: rfc6665-3.1.1-expires
+  rfc: 6665
+  section: "3.1.1"
+  title: Subscription Duration
+  text: >-
+    200-class responses to SUBSCRIBE requests also MUST contain an "Expires"
+    header field. The period of time in the response MAY be shorter but MUST NOT
+    be longer than specified in the request.
+
+- id: rfc6665-4.1.2.2-refresh
+  rfc: 6665
+  section: "4.1.2.2"
+  title: Refreshing of Subscriptions
+  text: >-
+    At any time before a subscription expires, the subscriber may refresh the
+    timer on such a subscription by sending another SUBSCRIBE request on the
+    same dialog as the existing subscription.
+
+- id: rfc6665-4.1.2.3-unsubscribe
+  rfc: 6665
+  section: "4.1.2.3"
+  title: Unsubscribing
+  text: >-
+    Unsubscribing is handled in the same way as refreshing of a subscription,
+    with the "Expires" header field set to "0". Note that a successful
+    unsubscription will also trigger a final NOTIFY request.
+
+- id: rfc6665-4.1.2.4-early
+  rfc: 6665
+  section: "4.1.2.4"
+  title: Confirmation of Subscription Creation
+  text: >-
+    Due to the potential for out-of-order messages, packet loss, and forking,
+    the subscriber MUST be prepared to receive NOTIFY requests before the
+    SUBSCRIBE transaction has completed.
+
+- id: rfc6665-4.1.3-pending
+  rfc: 6665
+  section: "4.1.3"
+  title: Receiving and Processing State Information
+  text: >-
+    If the "Subscription-State" value is "pending", the subscription has been
+    received by the notifier, but there is insufficient policy information to
+    grant or deny the subscription yet.
+
+- id: rfc6665-4.1.3-timeout
+  rfc: 6665
+  section: "4.1.3"
+  title: Receiving and Processing State Information
+  text: >-
+    timeout: The subscription has been terminated because it was not refreshed
+    before it expired. Clients MAY re-subscribe immediately.
+
+- id: rfc6665-4.1.3-reasons
+  rfc: 6665
+  section: "4.1.3"
+  title: Receiving and Processing State Information
+  text: >-
+    If the "Subscription-State" value is "terminated", the subscriber MUST
+    consider the subscription terminated.
+
+- id: rfc6665-4.2.1.2-notify
+  rfc: 6665
+  section: "4.2.1.2"
+  title: Confirmation of Subscription Creation/Refreshing
+  text: >-
+    Upon successfully accepting or refreshing a subscription, notifiers MUST
+    send a NOTIFY request immediately to communicate the current resource state
+    to the subscriber.
+
+- id: rfc6665-4.2.1.3-403
+  rfc: 6665
+  section: "4.2.1.3"
+  title: Authentication/Authorization of SUBSCRIBE Requests
+  text: >-
+    If authorization fails based on an access list or some other automated
+    mechanism (i.e., it can be automatically authoritatively determined that
+    the subscriber is not authorized to subscribe), the notifier SHOULD reply to
+    the request with a 403 (Forbidden) or 603 (Decline) response, unless doing
+    so might reveal information that should stay private; see Section 6.2.
+
+- id: rfc3856-6.5-pidf
+  rfc: 3856
+  section: "6.5"
+  title: NOTIFY Bodies
+  text: >-
+    In this event package, the body of the notification contains a presence
+    document. This document describes the presence of the presentity that was
+    subscribed to.
+
+- id: rfc4235-3.7-dialog
+  rfc: 4235
+  section: "3.7"
+  title: Notifier Generation of NOTIFY Requests
+  text: >-
+    Notifications are generated for the dialog package when an INVITE request
+    is sent, when a new dialog comes into existence at a UA, or when the state
+    or characteristics of an existing dialog changes.
+
+- id: rfc3842-3.5-summary
+  rfc: 3842
+  section: "3.5"
+  title: NOTIFY Bodies
+  text: >-
+    The text format begins with a simple status line, and optionally a summary
+    line per message-context-class.
+
+- id: rfc3680-3.1-reauth
+  rfc: 3680
+  section: "3.1"
+  title: Forcing Re-Authentication
+  text: >-
+    To do this, the device subscribes to the registration event package for
+    the address-of-record that it is registering contacts against.
+
+- id: rfc3903-4.2-initial
+  rfc: 3903
+  section: "4.2"
+  title: Creating Initial Publication
+  text: >-
+    An initial PUBLISH request MUST NOT contain a SIP-If-Match header field.
+
+- id: rfc3903-4.3-refresh
+  rfc: 3903
+  section: "4.3"
+  title: Refreshing Event State
+  text: >-
+    To refresh a publication, the EPA MUST create a PUBLISH request that
+    includes in a SIP-If-Match header field the entity-tag of the publication to
+    be refreshed.
+
+- id: rfc3903-4.3-412
+  rfc: 3903
+  section: "4.3"
+  title: Refreshing Event State
+  text: >-
+    If there is no matching event state, e.g., the event state to be refreshed
+    has already expired, the EPA receives a 412 (Conditional Request Failed)
+    response to the PUBLISH request.
+
+- id: rfc3903-4.4-modify
+  rfc: 3903
+  section: "4.4"
+  title: Modifying Event State
+  text: >-
+    To modify event state, the EPA MUST construct a PUBLISH request that
+    includes in a SIP-If-Match header field the entity-tag of the event state
+    publication to be modified.
+
+- id: rfc3428-4-no-dialog
+  rfc: 3428
+  section: "4"
+  title: UAC Processing
+  text: >-
+    MESSAGE requests do not initiate dialogs. User Agents MUST NOT insert
+    Contact header fields into MESSAGE requests.
+
+- id: rfc3428-4-202
+  rfc: 3428
+  section: "4"
+  title: UAC Processing
+  text: >-
+    If the UAC receives a 202 Accepted response, the message has been delivered
+    to a gateway, store and forward server, or some other service that may
+    eventually deliver the message.
+
+- id: rfc3428-4-200
+  rfc: 3428
+  section: "4"
+  title: UAC Processing
+  text: >-
+    If the UAC receives a 200 OK response to a MESSAGE request, it may assume
+    the message has been delivered to the final destination. It MUST NOT assume
+    that the recipient has actually read the instant message.
+
+- id: rfc3428-8-1300
+  rfc: 3428
+  section: "8"
+  title: Congestion Control
+  text: >-
+    The size of MESSAGE requests outside of a media session MUST NOT exceed 1300
+    bytes, unless the UAC has positive knowledge that the message will not
+    traverse a congestion-unsafe link at any hop, or that the message size is at
+    least 200 bytes less than the lowest MTU value found en route to the UAS.

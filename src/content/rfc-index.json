@@ -423,6 +423,18 @@
   "updates": [],
   "updatedBy": []
  },
+ "3680": {
+  "title": "A Session Initiation Protocol (SIP) Event Package for Registrations",
+  "month": "March",
+  "year": 2004,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   6140
+  ]
+ },
  "3711": {
   "title": "The Secure Real-time Transport Protocol (SRTP)",
   "month": "March",
@@ -449,6 +461,28 @@
  },
  "3842": {
   "title": "A Message Summary and Message Waiting Indication Event Package for the Session Initiation Protocol (SIP)",
+  "month": "August",
+  "year": 2004,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
+ "3856": {
+  "title": "A Presence Event Package for the Session Initiation Protocol (SIP)",
+  "month": "August",
+  "year": 2004,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   8996
+  ]
+ },
+ "3863": {
+  "title": "Presence Information Data Format (PIDF)",
   "month": "August",
   "year": 2004,
   "status": "PROPOSED STANDARD",
@@ -680,6 +714,21 @@
   "updates": [],
   "updatedBy": []
  },
+ "4975": {
+  "title": "The Message Session Relay Protocol (MSRP)",
+  "month": "September",
+  "year": 2007,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   7977,
+   8591,
+   8873,
+   8996
+  ]
+ },
  "5104": {
   "title": "Codec Control Messages in the RTP Audio-Visual Profile with Feedback (AVPF)",
   "month": "February",
@@ -737,6 +786,16 @@
    7350,
    8553
   ]
+ },
+ "5438": {
+  "title": "Instant Message Disposition Notification (IMDN)",
+  "month": "February",
+  "year": 2009,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
  },
  "5589": {
   "title": "Session Initiation Protocol (SIP) Call Control - Transfer",

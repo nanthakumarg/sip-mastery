@@ -1,0 +1,74 @@
+id: message-stored
+title: "MESSAGE: stored and forwarded later"
+summary: Bob is offline. Proxy B's IM service answers 202 Accepted, stores the message, and delivers it when Bob's phone comes back.
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: 192.0.2.10
+  - id: proxyB
+    label: Proxy B
+    kind: proxy
+    sub: 203.0.113.10
+  - id: bob
+    label: Bob
+    kind: ua
+    sub: 203.0.113.20
+steps:
+  - from: alice
+    to: proxyB
+    label: MESSAGE
+    caption: Alice sends Bob a message while his phone is off.
+    message: |
+      MESSAGE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=m7a03
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: im-2b8e1@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Type: text/plain
+      Content-Length: {auto}
+
+      Can you call me back?
+  - from: proxyB
+    to: alice
+    label: 202 Accepted
+    caption: "Proxy B's IM service stores the message. 202 means: accepted for later delivery, not delivered."
+    message: |
+      SIP/2.0 202 Accepted
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=m7a03
+      To: Bob <sip:bob@biloxi.example>;tag=st0a1
+      Call-ID: im-2b8e1@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Length: {auto}
+    rfc: rfc3428-4-202
+  - from: proxyB
+    to: bob
+    label: MESSAGE
+    caption: Later, Bob's phone registers again. The IM service sends the stored message, as a new request of its own.
+    message: |
+      MESSAGE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb15b8
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=st0a2
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: im-store-55e1@203.0.113.10
+      CSeq: 1 MESSAGE
+      Content-Type: text/plain
+      Content-Length: {auto}
+
+      Can you call me back?
+  - from: bob
+    to: proxyB
+    label: 200 OK
+    caption: "Bob's phone shows the message. Alice is not told: a 202 gives no delivery report."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb15b8
+      From: Alice <sip:alice@atlanta.example>;tag=st0a2
+      To: Bob <sip:bob@biloxi.example>;tag=b9e22
+      Call-ID: im-store-55e1@203.0.113.10
+      CSeq: 1 MESSAGE
+      Content-Length: {auto}

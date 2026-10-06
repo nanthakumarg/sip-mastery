@@ -51,7 +51,12 @@ rfcs:
   - { n: 3891, area: ext, proto: sip, short: Replaces, summary: "The Replaces header lets a new dialog replace an existing one. Attended transfer uses it.", modules: [5, 22] }
   - { n: 3903, area: ext, proto: sip, short: PUBLISH, summary: "The PUBLISH method publishes event state, such as presence.", modules: [5, 23] }
   - { n: 4028, area: ext, proto: sip, short: Session timers, summary: "Refreshes a call at intervals so that both sides can detect a dead call.", modules: [5, 9, 22] }
-  - { n: 4235, area: ext, proto: sip, short: Dialog events, summary: "An event package that reports dialog state. Busy lamp fields use it.", modules: [23] }
+  - { n: 3856, area: ext, proto: sip, short: Presence, summary: "The presence event package: watchers subscribe to the availability of a presentity.", modules: [23] }
+  - { n: 3863, area: ext, proto: sip, short: PIDF, summary: "The Presence Information Data Format: the XML body of presence NOTIFY and PUBLISH requests.", modules: [23] }
+  - { n: 3680, area: ext, proto: sip, short: Registration events, summary: "An event package that reports the bindings of an AOR, so a phone learns when its registration ends.", modules: [23] }
+  - { n: 4975, area: ext, proto: sip, short: MSRP, summary: "The Message Session Relay Protocol: instant messages and files as a media stream set up with INVITE.", modules: [23] }
+  - { n: 5438, area: ext, proto: sip, short: IMDN, summary: "Instant message delivery and read notifications.", modules: [23] }
+  - { n: 4235, area: ext, proto: sip, short: Dialog events, summary: "An event package that reports dialog state. Busy lamp fields use it.", modules: [22, 23] }
   - { n: 5627, area: ext, proto: sip, short: GRUU, summary: "A globally routable URI that reaches one specific device.", modules: [12] }
   - { n: 6086, area: ext, proto: sip, short: INFO, summary: "The INFO method and Info Packages.", modules: [5, 16] }
   - { n: 6665, area: ext, proto: sip, short: Events, summary: "The SUBSCRIBE and NOTIFY event framework.", modules: [5, 22, 23] }

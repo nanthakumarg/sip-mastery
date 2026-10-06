@@ -1,0 +1,112 @@
+id: message-big-udp
+title: "Broken: a 1.5 KB MESSAGE over UDP"
+summary: A MESSAGE larger than 1300 bytes, sent over UDP. It is fragmented on the way, and one lost fragment loses it.
+broken: true
+breaks:
+  - udp-size
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: 192.0.2.10
+  - id: proxyB
+    label: Proxy B
+    kind: proxy
+    sub: 203.0.113.10
+  - id: bob
+    label: Bob
+    kind: ua
+    sub: 203.0.113.20
+steps:
+  - from: alice
+    to: proxyB
+    label: MESSAGE
+    caption: Alice pastes her meeting notes into a message. Her phone sends all 1.5 KB over UDP.
+    message: |
+      MESSAGE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=m7a09
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: im-big-4a1@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Type: text/plain
+      Content-Length: {auto}
+
+      Meeting notes, Tuesday:
+      1. Item 1: review the SIP trunk failover test and the new dial plan for the branch offices.
+      2. Item 2: review the SIP trunk failover test and the new dial plan for the branch offices.
+      3. Item 3: review the SIP trunk failover test and the new dial plan for the branch offices.
+      4. Item 4: review the SIP trunk failover test and the new dial plan for the branch offices.
+      5. Item 5: review the SIP trunk failover test and the new dial plan for the branch offices.
+      6. Item 6: review the SIP trunk failover test and the new dial plan for the branch offices.
+      7. Item 7: review the SIP trunk failover test and the new dial plan for the branch offices.
+      8. Item 8: review the SIP trunk failover test and the new dial plan for the branch offices.
+      9. Item 9: review the SIP trunk failover test and the new dial plan for the branch offices.
+      10. Item 10: review the SIP trunk failover test and the new dial plan for the branch offices.
+      11. Item 11: review the SIP trunk failover test and the new dial plan for the branch offices.
+      12. Item 12: review the SIP trunk failover test and the new dial plan for the branch offices.
+      13. Item 13: review the SIP trunk failover test and the new dial plan for the branch offices.
+      14. Item 14: review the SIP trunk failover test and the new dial plan for the branch offices.
+      15. Item 15: review the SIP trunk failover test and the new dial plan for the branch offices.
+      16. Item 16: review the SIP trunk failover test and the new dial plan for the branch offices.
+    rfc: rfc3428-8-1300
+    warn: Above 1300 bytes, UDP splits the packet into IP fragments. If the network drops one fragment, the whole message never arrives.
+  - from: proxyB
+    to: bob
+    label: MESSAGE
+    caption: Proxy B forwards it over UDP as well, in fragments.
+    message: |
+      MESSAGE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb15b8
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=m7a09
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: im-big-4a1@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Type: text/plain
+      Content-Length: {auto}
+
+      Meeting notes, Tuesday:
+      1. Item 1: review the SIP trunk failover test and the new dial plan for the branch offices.
+      2. Item 2: review the SIP trunk failover test and the new dial plan for the branch offices.
+      3. Item 3: review the SIP trunk failover test and the new dial plan for the branch offices.
+      4. Item 4: review the SIP trunk failover test and the new dial plan for the branch offices.
+      5. Item 5: review the SIP trunk failover test and the new dial plan for the branch offices.
+      6. Item 6: review the SIP trunk failover test and the new dial plan for the branch offices.
+      7. Item 7: review the SIP trunk failover test and the new dial plan for the branch offices.
+      8. Item 8: review the SIP trunk failover test and the new dial plan for the branch offices.
+      9. Item 9: review the SIP trunk failover test and the new dial plan for the branch offices.
+      10. Item 10: review the SIP trunk failover test and the new dial plan for the branch offices.
+      11. Item 11: review the SIP trunk failover test and the new dial plan for the branch offices.
+      12. Item 12: review the SIP trunk failover test and the new dial plan for the branch offices.
+      13. Item 13: review the SIP trunk failover test and the new dial plan for the branch offices.
+      14. Item 14: review the SIP trunk failover test and the new dial plan for the branch offices.
+      15. Item 15: review the SIP trunk failover test and the new dial plan for the branch offices.
+      16. Item 16: review the SIP trunk failover test and the new dial plan for the branch offices.
+  - from: bob
+    to: proxyB
+    label: 200 OK
+    caption: Bob's phone shows the message.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb15b8
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=m7a09
+      To: Bob <sip:bob@biloxi.example>;tag=b9e23
+      Call-ID: im-big-4a1@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Length: {auto}
+  - from: proxyB
+    to: alice
+    label: 200 OK
+    caption: This time every fragment arrived. On a busy network, many such messages vanish.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=m7a09
+      To: Bob <sip:bob@biloxi.example>;tag=b9e23
+      Call-ID: im-big-4a1@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Length: {auto}

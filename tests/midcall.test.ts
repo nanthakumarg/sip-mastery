@@ -118,3 +118,65 @@ describe('the replaces-match and prack-rack rules', async () => {
     expect(await rules('prack-reliable-180')).toEqual([]);
   });
 });
+
+import { allEvents, buildEvents, EVENTS_QUOTES, eventsKey } from '../src/sip/events.ts';
+
+describe('the event subscription generator', () => {
+  it('every combination passes the protocol and diagram checks', async () => {
+    expect(await problems(allEvents(), buildEvents, eventsKey, EVENTS_QUOTES)).toEqual([]);
+  });
+});
+
+describe('event subscriptions (RFC 6665)', () => {
+  const ev = (change: Record<string, unknown>) => buildEvents({ package: 'presence', answer: 'active', end: 'unsubscribe', refresh: false, early: false, ...change });
+
+  it('SUBSCRIBE, 200 with Expires, an immediate NOTIFY, a change, and Expires: 0 with a final terminated NOTIFY', () => {
+    const f = ev({ package: 'message-summary' });
+    expect(labels(f)).toEqual([
+      'alice>vm SUBSCRIBE', 'vm>alice 200 OK', 'vm>alice NOTIFY (active)', 'alice>vm 200 OK (NOTIFY)', 'vm>alice NOTIFY (active)', 'alice>vm 200 OK (NOTIFY)',
+      'alice>vm SUBSCRIBE (Expires: 0)', 'vm>alice 200 OK', 'vm>alice NOTIFY (terminated)', 'alice>vm 200 OK (NOTIFY)',
+    ]);
+    expect(f.steps[4]!.message).toMatch(/Messages-Waiting: yes/);
+  });
+
+  it('presence: Bob publishes, then changes with SIP-If-Match', () => {
+    const msgs = ev({}).steps.filter(s => s.label === 'PUBLISH').map(s => s.message!);
+    expect(msgs[0]).not.toMatch(/SIP-If-Match/);
+    expect(msgs[1]).toMatch(/SIP-If-Match: dx200xyz/);
+  });
+
+  it('pending, then active; a timeout ends with reason=timeout', () => {
+    const l = labels(ev({ answer: 'pending', end: 'timeout' }));
+    expect(l.filter(x => x.includes('NOTIFY ('))).toEqual(['ps>alice NOTIFY (pending)', 'ps>alice NOTIFY (active)', 'ps>alice NOTIFY (active)', 'ps>alice NOTIFY (terminated)']);
+    expect(ev({ end: 'timeout' }).steps.at(-2)!.message).toMatch(/Subscription-State: terminated;reason=timeout/);
+  });
+
+  it('an early NOTIFY comes before the 200 OK; a 403 ends everything', () => {
+    expect(labels(ev({ package: 'dialog', early: true })).slice(1, 4)).toEqual(['pbx>alice NOTIFY (active)', 'alice>pbx 200 OK (NOTIFY)', 'pbx>alice 200 OK']);
+    expect(labels(ev({ package: 'dialog', answer: 'rejected' }))).toEqual(['alice>pbx SUBSCRIBE', 'pbx>alice 403 Forbidden']);
+  });
+});
+
+describe('the event rules', async () => {
+  const { loadFlow } = await import('../src/lib/data.ts');
+  const lint = async (f: FlowData) => lintFlow(await prepareFlow(f)).map(i => i.rule);
+  it('notify-early flags a 481 to a NOTIFY the subscriber asked for', async () => {
+    expect(lintFlow(await loadFlow('notify-early-481')).map(i => i.rule)).toEqual(['notify-early']);
+  });
+  it('notify-headers and subscribe-expires catch a wrong Event, a missing Expires, and a longer Expires', async () => {
+    const f = buildEvents({ package: 'dialog', answer: 'active', end: 'unsubscribe', refresh: false, early: false });
+    const bad = structuredClone(f);
+    bad.steps[2]!.message = bad.steps[2]!.message!.replace('Event: dialog', 'Event: presence');
+    expect(await lint(bad)).toContain('notify-headers');
+    const noExp = structuredClone(f);
+    noExp.steps[1]!.message = noExp.steps[1]!.message!.replace(/Expires: 3600\n/, '');
+    expect(await lint(noExp)).toContain('subscribe-expires');
+    const longer = structuredClone(f);
+    longer.steps[1]!.message = longer.steps[1]!.message!.replace('Expires: 3600', 'Expires: 7200');
+    expect(await lint(longer)).toContain('subscribe-expires');
+    const notEnded = structuredClone(f);
+    const last = notEnded.steps.findLastIndex(s => s.label.startsWith('NOTIFY'));
+    notEnded.steps[last]!.message = notEnded.steps[last]!.message!.replace('Subscription-State: terminated', 'Subscription-State: active;expires=60');
+    expect(await lint(notEnded)).toContain('notify-headers');
+  });
+});

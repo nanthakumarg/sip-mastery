@@ -1,0 +1,236 @@
+id: publish-412-recover
+title: "Fixed: after a 412, publish the state again"
+summary: Bob's laptop wakes up, and its refresh gets 412. It sends a new initial PUBLISH with its full state, and Alice sees Bob again.
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: 192.0.2.10
+  - id: ps
+    label: Presence server
+    kind: server
+    sub: 203.0.113.15
+  - id: bob
+    label: Bob
+    kind: ua
+    sub: 203.0.113.20
+steps:
+  - from: bob
+    to: ps
+    label: PUBLISH (initial)
+    caption: Bob's laptop publishes his presence for an hour.
+    message: |
+      PUBLISH sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 1 PUBLISH
+      Event: presence
+      Expires: 3600
+      Content-Type: application/pidf+xml
+      Content-Length: {auto}
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <presence xmlns="urn:ietf:params:xml:ns:pidf" entity="pres:bob@biloxi.example">
+        <tuple id="bob-laptop">
+          <status><basic>open</basic></status>
+          <note>Available</note>
+        </tuple>
+      </presence>
+    rfc: rfc3903-4.2-initial
+  - from: ps
+    to: bob
+    label: 200 OK
+    caption: The server stores the state as entity-tag a7f3c1.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>;tag=ps0b1
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 1 PUBLISH
+      SIP-ETag: a7f3c1
+      Expires: 3600
+      Content-Length: {auto}
+  - from: ps
+    to: alice
+    label: NOTIFY (open)
+    caption: Alice watches Bob. Her phone shows him as available.
+    message: |
+      NOTIFY sip:alice@192.0.2.10:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.15:5060;branch=z9hG4bKps1b1f
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=ps7f1a2
+      To: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      Call-ID: sub-presence-7d1e@192.0.2.10
+      CSeq: 1 NOTIFY
+      Contact: <sip:pres@203.0.113.15:5060>
+      Event: presence
+      Subscription-State: active;expires=2700
+      Content-Type: application/pidf+xml
+      Content-Length: {auto}
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <presence xmlns="urn:ietf:params:xml:ns:pidf" entity="pres:bob@biloxi.example">
+        <tuple id="bob-laptop">
+          <status><basic>open</basic></status>
+          <note>Available</note>
+        </tuple>
+      </presence>
+  - from: alice
+    to: ps
+    label: 200 OK (NOTIFY)
+    caption: Alice's phone updates Bob's icon.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.15:5060;branch=z9hG4bKps1b1f
+      From: Bob <sip:bob@biloxi.example>;tag=ps7f1a2
+      To: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      Call-ID: sub-presence-7d1e@192.0.2.10
+      CSeq: 1 NOTIFY
+      Content-Length: {auto}
+  - from: ps
+    to: alice
+    label: NOTIFY (closed)
+    caption: Bob's laptop sleeps for two hours. His publication expires, so the server reports him as offline.
+    message: |
+      NOTIFY sip:alice@192.0.2.10:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.15:5060;branch=z9hG4bKps1df2
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=ps7f1a2
+      To: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      Call-ID: sub-presence-7d1e@192.0.2.10
+      CSeq: 2 NOTIFY
+      Contact: <sip:pres@203.0.113.15:5060>
+      Event: presence
+      Subscription-State: active;expires=2400
+      Content-Type: application/pidf+xml
+      Content-Length: {auto}
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <presence xmlns="urn:ietf:params:xml:ns:pidf" entity="pres:bob@biloxi.example">
+        <tuple id="bob-laptop">
+          <status><basic>closed</basic></status>
+          <note>Offline</note>
+        </tuple>
+      </presence>
+  - from: alice
+    to: ps
+    label: 200 OK (NOTIFY)
+    caption: Alice's phone updates Bob's icon.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.15:5060;branch=z9hG4bKps1df2
+      From: Bob <sip:bob@biloxi.example>;tag=ps7f1a2
+      To: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      Call-ID: sub-presence-7d1e@192.0.2.10
+      CSeq: 2 NOTIFY
+      Content-Length: {auto}
+  - from: bob
+    to: ps
+    label: PUBLISH (refresh)
+    caption: The laptop wakes up and refreshes with its stored entity-tag, which no longer exists.
+    message: |
+      PUBLISH sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb0223e
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 2 PUBLISH
+      Event: presence
+      SIP-If-Match: a7f3c1
+      Expires: 3600
+      Content-Length: {auto}
+    rfc: rfc3903-4.3-refresh
+  - from: ps
+    to: bob
+    label: 412 Conditional Request Failed
+    caption: The server has no state with that entity-tag, so the refresh fails.
+    message: |
+      SIP/2.0 412 Conditional Request Failed
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb0223e
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>;tag=ps0b1
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 2 PUBLISH
+      Content-Length: {auto}
+    rfc: rfc3903-4.3-412
+  - from: bob
+    to: ps
+    label: PUBLISH (initial)
+    caption: The phone drops the old entity-tag and publishes its full state again, as a new initial PUBLISH.
+    message: |
+      PUBLISH sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb02511
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 3 PUBLISH
+      Event: presence
+      Expires: 3600
+      Content-Type: application/pidf+xml
+      Content-Length: {auto}
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <presence xmlns="urn:ietf:params:xml:ns:pidf" entity="pres:bob@biloxi.example">
+        <tuple id="bob-laptop">
+          <status><basic>open</basic></status>
+          <note>Available</note>
+        </tuple>
+      </presence>
+    rfc: rfc3903-4.2-initial
+  - from: ps
+    to: bob
+    label: 200 OK
+    caption: The server stores the state, with a new entity-tag.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb02511
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>;tag=ps0b1
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 3 PUBLISH
+      SIP-ETag: d2e771
+      Expires: 3600
+      Content-Length: {auto}
+  - from: ps
+    to: alice
+    label: NOTIFY (open)
+    caption: Alice's phone shows Bob as available again.
+    message: |
+      NOTIFY sip:alice@192.0.2.10:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.15:5060;branch=z9hG4bKps20c5
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=ps7f1a2
+      To: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      Call-ID: sub-presence-7d1e@192.0.2.10
+      CSeq: 3 NOTIFY
+      Contact: <sip:pres@203.0.113.15:5060>
+      Event: presence
+      Subscription-State: active;expires=2100
+      Content-Type: application/pidf+xml
+      Content-Length: {auto}
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <presence xmlns="urn:ietf:params:xml:ns:pidf" entity="pres:bob@biloxi.example">
+        <tuple id="bob-laptop">
+          <status><basic>open</basic></status>
+          <note>Available</note>
+        </tuple>
+      </presence>
+  - from: alice
+    to: ps
+    label: 200 OK (NOTIFY)
+    caption: Alice's phone updates Bob's icon.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.15:5060;branch=z9hG4bKps20c5
+      From: Bob <sip:bob@biloxi.example>;tag=ps7f1a2
+      To: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      Call-ID: sub-presence-7d1e@192.0.2.10
+      CSeq: 3 NOTIFY
+      Content-Length: {auto}

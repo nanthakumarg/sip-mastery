@@ -12,6 +12,9 @@ import {
 import {
   allTransfers, applyTransfer, buildTransfer, DEFAULT_TRANSFER, HANGUPS, TARGETS, TRANSFER_QUOTES, transferInactive, transferKey, TYPES,
 } from './transfer.ts';
+import {
+  allEvents, ANSWERS, applyEvents, buildEvents, DEFAULT_EVENTS, ENDS, EVENTS_QUOTES, eventsInactive, eventsKey, PACKAGES,
+} from './events.ts';
 
 /** One row of controls: a choice of values for one option, or on/off toggles. */
 export type Row =
@@ -66,6 +69,15 @@ export const GENERATORS = {
       { kind: 'toggles', label: 'What if', items: [['hold', 'Alice holds Bob first']] },
     ],
     defaults: DEFAULT_TRANSFER, apply: applyTransfer, inactive: transferInactive, key: transferKey, build: buildTransfer, quotes: TRANSFER_QUOTES, all: allTransfers,
+  }),
+  events: wrap({
+    rows: [
+      { kind: 'choice', label: 'Package', key: 'package', items: PACKAGES },
+      { kind: 'choice', label: 'Notifier', key: 'answer', items: ANSWERS },
+      { kind: 'choice', label: 'End', key: 'end', items: ENDS },
+      { kind: 'toggles', label: 'What if', items: [['refresh', 'Alice refreshes once'], ['early', 'NOTIFY before the 200 OK']] },
+    ],
+    defaults: DEFAULT_EVENTS, apply: applyEvents, inactive: eventsInactive, key: eventsKey, build: buildEvents, quotes: EVENTS_QUOTES, all: allEvents,
   }),
 };
 

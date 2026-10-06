@@ -85,6 +85,7 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   checkLateOfferAck(flow, msgs, add);
   checkReplaces(flow, add);
   checkPrackRack(msgs, add);
+  checkEvents(msgs, add);
   return issues;
 }
 
@@ -640,6 +641,48 @@ function checkPrackRack(msgs: MsgStep[], add: Add) {
     const want = [getHeader(rel.parsed, 'RSeq')!.trim(), String(c.seq), c.method];
     if (rack.join(' ') !== want.join(' ')) {
       add('prack-rack', p.index, `RAck is "${rack.join(' ')}", but the reliable ${rel.parsed.status} has RSeq ${want[0]} and CSeq ${want[1]} ${want[2]}: RAck must be "${want.join(' ')}"`);
+    }
+  });
+}
+
+/**
+ * Event notification (RFC 6665):
+ * notify-headers (§8.2.1, §4.1.3, §4.1.2.3): a NOTIFY has Event and Subscription-State; in a
+ *   subscription made by SUBSCRIBE, its Event names the same package; after an accepted
+ *   unsubscribe (Expires: 0), the next NOTIFY says terminated.
+ * subscribe-expires (§3.1.1): a 2xx to SUBSCRIBE has Expires, no longer than the request asked.
+ * notify-early (§4.1.2.4): a subscriber does not reject with 481 a NOTIFY for a subscription it asked
+ *   for; the NOTIFY can arrive before the 200 OK to the SUBSCRIBE.
+ */
+function checkEvents(msgs: MsgStep[], add: Add) {
+  const pkg = (v: string | undefined) => v?.split(';')[0]!.trim().toLowerCase();
+  const expires = (m: SipMessage) => { const v = getHeader(m, 'Expires'); return v === undefined ? undefined : Number(v); };
+  msgs.forEach((s, i) => {
+    const m = s.parsed;
+    const cid = callId(m);
+    if (isRequest(m, 'NOTIFY')) {
+      for (const h of ['Event', 'Subscription-State']) if (!getHeader(m, h)) add('notify-headers', s.index, `NOTIFY has no ${h} header`);
+      const sub = msgs.slice(0, i).reverse().find(q => reverseHop(q, s) && isRequest(q.parsed, 'SUBSCRIBE') && callId(q.parsed) === cid);
+      if (!sub) return;
+      if (pkg(getHeader(sub.parsed, 'Event')) !== pkg(getHeader(m, 'Event'))) {
+        add('notify-headers', s.index, `NOTIFY has Event: ${getHeader(m, 'Event')}, but the SUBSCRIBE asked for Event: ${getHeader(sub.parsed, 'Event')}`);
+      }
+      const seq = cseq(sub.parsed)?.seq;
+      const accepted = msgs.slice(msgs.indexOf(sub) + 1, i).some(r => reverseHop(r, sub) && isResponse(r.parsed, 2) && cseq(r.parsed)?.method === 'SUBSCRIBE' && cseq(r.parsed)?.seq === seq);
+      if (expires(sub.parsed) === 0 && accepted && !/^\s*terminated/i.test(getHeader(m, 'Subscription-State') ?? '')) {
+        add('notify-headers', s.index, 'The subscriber unsubscribed (Expires: 0), so this NOTIFY must say Subscription-State: terminated');
+      }
+    } else if (isResponse(m, 2) && cseq(m)?.method === 'SUBSCRIBE') {
+      const req = msgs.slice(0, i).reverse().find(q => reverseHop(q, s) && isRequest(q.parsed, 'SUBSCRIBE') && callId(q.parsed) === cid && cseq(q.parsed)?.seq === cseq(m)?.seq);
+      const got = expires(m);
+      const asked = req ? expires(req.parsed) : undefined;
+      if (got === undefined) add('subscribe-expires', s.index, `${m.status} to SUBSCRIBE has no Expires header; it must say how long the subscription lasts`);
+      else if (asked !== undefined && got > asked) add('subscribe-expires', s.index, `${m.status} to SUBSCRIBE grants ${got} s, but the SUBSCRIBE asked for ${asked} s. A notifier may shorten the duration, never extend it`);
+    } else if (isResponse(m) && m.status === 481 && cseq(m)?.method === 'NOTIFY') {
+      const sub = msgs.slice(0, i).reverse().find(q => q.from === s.from && q.to === s.to && isRequest(q.parsed, 'SUBSCRIBE') && callId(q.parsed) === cid);
+      if (sub && expires(sub.parsed) !== 0) {
+        add('notify-early', s.index, 'The subscriber sent a SUBSCRIBE on this Call-ID and must accept its NOTIFY, even one that arrives before the 200 OK to the SUBSCRIBE');
+      }
     }
   });
 }

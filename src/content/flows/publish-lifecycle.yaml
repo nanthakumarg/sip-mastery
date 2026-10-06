@@ -1,0 +1,152 @@
+id: publish-lifecycle
+title: "PUBLISH: create, refresh, modify, remove"
+summary: Based on RFC 3903. Bob's phone publishes his presence, refreshes it, changes it, and removes it. Each change names the current state by its entity-tag.
+lanes:
+  - id: bob
+    label: Bob
+    kind: ua
+    sub: 203.0.113.20
+  - id: ps
+    label: Presence server
+    kind: server
+    sub: 203.0.113.15
+steps:
+  - from: bob
+    to: ps
+    label: PUBLISH (initial)
+    caption: Bob's phone publishes his presence. An initial PUBLISH has a body and no SIP-If-Match.
+    message: |
+      PUBLISH sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 1 PUBLISH
+      Event: presence
+      Expires: 3600
+      Content-Type: application/pidf+xml
+      Content-Length: {auto}
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <presence xmlns="urn:ietf:params:xml:ns:pidf" entity="pres:bob@biloxi.example">
+        <tuple id="bob-laptop">
+          <status><basic>open</basic></status>
+          <note>Available</note>
+        </tuple>
+      </presence>
+    rfc: rfc3903-4.2-initial
+  - from: ps
+    to: bob
+    label: 200 OK
+    caption: The presence server stores the state for an hour. SIP-ETag names it.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>;tag=ps0b1
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 1 PUBLISH
+      SIP-ETag: a7f3c1
+      Expires: 3600
+      Content-Length: {auto}
+  - from: bob
+    to: ps
+    label: PUBLISH (refresh)
+    caption: Before the hour ends, Bob's phone refreshes. A refresh has SIP-If-Match and no body.
+    message: |
+      PUBLISH sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb0223e
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 2 PUBLISH
+      Event: presence
+      SIP-If-Match: a7f3c1
+      Expires: 3600
+      Content-Length: {auto}
+    rfc: rfc3903-4.3-refresh
+  - from: ps
+    to: bob
+    label: 200 OK
+    caption: The server extends the state, and gives it a new entity-tag. The phone must use the new one next time.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb0223e
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>;tag=ps0b1
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 2 PUBLISH
+      SIP-ETag: b18d22
+      Expires: 3600
+      Content-Length: {auto}
+  - from: bob
+    to: ps
+    label: PUBLISH (modify)
+    caption: Bob starts a call. His phone sends the new state, with SIP-If-Match and a body.
+    message: |
+      PUBLISH sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb02511
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 3 PUBLISH
+      Event: presence
+      SIP-If-Match: b18d22
+      Expires: 3600
+      Content-Type: application/pidf+xml
+      Content-Length: {auto}
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <presence xmlns="urn:ietf:params:xml:ns:pidf" entity="pres:bob@biloxi.example">
+        <tuple id="bob-laptop">
+          <status><basic>open</basic></status>
+          <note>On the phone</note>
+        </tuple>
+      </presence>
+    rfc: rfc3903-4.4-modify
+  - from: ps
+    to: bob
+    label: 200 OK
+    caption: The server replaces the state and notifies every watcher of Bob.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb02511
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>;tag=ps0b1
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 3 PUBLISH
+      SIP-ETag: c90e5f
+      Expires: 3600
+      Content-Length: {auto}
+  - from: bob
+    to: ps
+    label: PUBLISH (remove)
+    caption: "Bob logs out. Expires: 0 removes the published state."
+    message: |
+      PUBLISH sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb027e4
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 4 PUBLISH
+      Event: presence
+      SIP-If-Match: c90e5f
+      Expires: 0
+      Content-Length: {auto}
+  - from: ps
+    to: bob
+    label: 200 OK
+    caption: The server removes the state. Watchers now see what the server composes without it.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb027e4
+      From: Bob <sip:bob@biloxi.example>;tag=pb7e41
+      To: Bob <sip:bob@biloxi.example>;tag=ps0b1
+      Call-ID: pub-81c2a9@203.0.113.20
+      CSeq: 4 PUBLISH
+      Expires: 0
+      Content-Length: {auto}

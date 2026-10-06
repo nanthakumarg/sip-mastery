@@ -74,7 +74,7 @@ All course content lives in `src/content/`.
 <SrtpPacket />  <KeyExchange />                                               SRTP with real AES/HMAC; where the keys travel (src/net/srtp.ts)
 <TransportRace />                                                              one message over UDP (fragments) and TCP (src/net/transport.ts)
 <NatSimulator />  <IceChecker />                                              a call through two NAT routers; ICE candidates and checks (src/net/nat.ts, nat-call.ts, ice.ts)
-<FlowBuilder kind="call" preset={{ outcome: 'busy' }} />                       a flow builder: options above a full ladder; kinds call, reinvite, transfer (src/sip/generators.ts)
+<FlowBuilder kind="call" preset={{ outcome: 'busy' }} />                       a flow builder: options above a full ladder; kinds call, reinvite, transfer, events (src/sip/generators.ts)
 <FlowPair a="flow-id" b={{ kind: 'transfer', preset: {} }} />                  Broken/Fixed where either side is a flow file or a generated flow
 ```
 

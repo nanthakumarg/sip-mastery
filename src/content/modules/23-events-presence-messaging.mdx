@@ -1,0 +1,167 @@
+---
+module: 23
+title: Events, presence, and messaging
+part: 8
+level: [intermediate]
+paths: { noc: core, dev: core }
+summary: "SIP beyond calls: SUBSCRIBE and NOTIFY with Event, Subscription-State, and Expires; the event packages that phones use every day (presence, dialog for busy lamps, message-summary for voicemail, reg, and refer); PUBLISH and presence servers; and instant messages with MESSAGE."
+objectives:
+  - Follow a subscription from SUBSCRIBE to the last NOTIFY, and read Event, Subscription-State, and Expires in each message.
+  - Name the common event packages, what each one reports, and its body format.
+  - Explain how PUBLISH and entity-tags keep a presence server up to date, and what a 412 means.
+  - Send an instant message with MESSAGE, and tell a 200 from a 202.
+  - Recognise a subscription that expires, a NOTIFY rejected too early, and a MESSAGE too big for UDP.
+status: draft
+---
+
+## 23.1 SUBSCRIBE and NOTIFY: Event, Subscription-State, Expires
+
+A call is not the only thing SIP can tell you about. A phone can ask to be told when something changes: whether a colleague is on the phone, whether new voicemail has arrived, whether its own registration is still valid. RFC 6665 defines the mechanism, with two methods:
+
+<RfcQuote id="rfc6665-1.1-overview" />
+
+- The <Term t="subscriber" /> sends **SUBSCRIBE**, with an **Event** header that names the <Term t="event package" />, and **Expires**, the time it wants the <Term t="subscription" /> to last.
+- The <Term t="notifier" /> answers **200 OK**, with the Expires it grants, and at once sends a **NOTIFY** with the full current state. More NOTIFYs follow each time the state changes.
+- Each NOTIFY carries **Subscription-State**: `active`, `pending`, or `terminated`, with the time left in `expires`, or the reason it ended.
+- SUBSCRIBE creates a dialog, like INVITE. Refreshes, the unsubscribe, and every NOTIFY travel inside it.
+
+<FlowBuilder kind="events" preset={{ package: 'message-summary', refresh: true }} eyebrow="Flow builder · a subscription from start to end" />
+
+<RfcQuote id="rfc6665-3.1.1-expires" />
+
+<RfcQuote id="rfc6665-4.2.1.2-notify" />
+
+A subscription is soft state, like a registration: it disappears unless the subscriber refreshes it with another SUBSCRIBE in the same dialog. To end it early, the subscriber sends SUBSCRIBE with **Expires: 0**, and the notifier answers with a last NOTIFY that says `terminated`. Try *End* in the builder:
+
+| Subscription-State | Meaning | What the subscriber does |
+|---|---|---|
+| `active;expires=3600` | Accepted; 3600 s left | Refresh before the time runs out |
+| `pending` | Received, not yet authorised | Wait for the next NOTIFY |
+| `terminated;reason=timeout` | Not refreshed in time | Subscribe again, with a new dialog |
+| `terminated;reason=deactivated` | The notifier is moving or restarting | Subscribe again at once |
+| `terminated;reason=rejected` | No longer authorised | Do not subscribe again |
+| `terminated;reason=noresource` | The resource no longer exists | Do not subscribe again |
+
+<RfcQuote id="rfc6665-4.1.3-timeout" />
+
+One rule surprises many implementers. The first NOTIFY can arrive **before** the 200 OK to the SUBSCRIBE: the 200 OK can be lost or delayed on the way, and the NOTIFY overtakes it. Turn on *NOTIFY before the 200 OK*:
+
+<RfcQuote id="rfc6665-4.1.2.4-early" />
+
+## 23.2 Event packages: presence, dialog (BLF), message-summary (MWI), reg, refer
+
+Each event package defines what its NOTIFY bodies contain and when the notifier sends them. These five cover most real deployments:
+
+| Event | What it reports | Body | Typical use |
+|---|---|---|---|
+| `presence` | Whether a person is available | `application/pidf+xml` (<Term t="PIDF" />) | Buddy lists in softphones and UC clients |
+| `dialog` | The calls of a user: trying, early, confirmed, terminated | `application/dialog-info+xml` | <Term t="busy lamp field" /> keys, call pickup (Module 22) |
+| `message-summary` | New and old voicemail | `application/simple-message-summary` | The <Term t="message waiting indicator" /> lamp |
+| `reg` | The bindings of an AOR | `application/reginfo+xml` | IMS phones learn when the network ends their registration |
+| `refer` | The progress of a REFER | `message/sipfrag` | Call transfer (Module 22); the REFER itself creates the subscription |
+
+Change *Package* in the builder to see each one. The dialog package drives the busy lamps on a receptionist's phone:
+
+<FlowBuilder kind="events" preset={{ package: 'dialog' }} eyebrow="Flow builder · a busy lamp for Bob" />
+
+<RfcQuote id="rfc4235-3.7-dialog" />
+
+The message-summary body is plain text, so even a phone with no display can read it:
+
+<RfcQuote id="rfc3842-3.5-summary" />
+
+The reg package lets a phone learn that the network has shortened or ended its registration, for example to force it to authenticate again:
+
+<RfcQuote id="rfc3680-3.1-reauth" />
+
+A notifier that does not know the package answers **489 Bad Event**. A UA lists the packages it supports in **Allow-Events**. Some voicemail systems send message-summary NOTIFYs with no SUBSCRIBE at all ("unsolicited NOTIFY"). Many phones accept them, but RFC 6665 does not define them; a SUBSCRIBE is the standard way.
+
+## 23.3 PUBLISH and presence servers
+
+Presence has three roles. The <Term t="presentity" /> (Bob) has a state; <Term t="watcher">watchers</Term> (Alice) subscribe to it; the <Term t="Presence server" /> sits between them. Bob's phone does not answer every watcher itself. It **publishes** its state to the presence server, and the server notifies the watchers (RFC 3903):
+
+<RfcQuote id="rfc3856-6.5-pidf" />
+
+<Flow id="publish-lifecycle" eyebrow="Call flow · one publication: create, refresh, modify, remove" />
+
+A publication is soft state too. The server names it with an <Term t="entity-tag" />, returned in **SIP-ETag**. Every later PUBLISH names the state it acts on in **SIP-If-Match**:
+
+| PUBLISH | SIP-If-Match | Body | Effect |
+|---|---|---|---|
+| Initial | None | The full state | Creates new state, and a new entity-tag |
+| Refresh | The current entity-tag | None | Extends the lifetime, and changes the entity-tag |
+| Modify | The current entity-tag | The new state | Replaces the state |
+| Remove | The current entity-tag | None, with Expires: 0 | Deletes the state |
+
+<RfcQuote id="rfc3903-4.4-modify" />
+
+The presence server does more than relay: it **composes** state from several publishers (Bob's desk phone, his mobile, his calendar), and it applies Bob's **authorisation** rules. A watcher that Bob has not yet allowed gets `pending` until he decides:
+
+<FlowBuilder kind="events" preset={{ package: 'presence', answer: 'pending' }} eyebrow="Flow builder · presence, with a pending watcher" />
+
+<RfcQuote id="rfc6665-4.1.3-pending" />
+
+## 23.4 MESSAGE (page-mode instant messages)
+
+**MESSAGE** (RFC 3428) carries an instant message in its body, usually `text/plain`. Each message is a separate transaction, routed like any other request; there is no dialog and no session. This is "page mode": like a pager, one message at a time.
+
+<RfcQuote id="rfc3428-4-no-dialog" />
+
+<Flow id="message-im" eyebrow="Call flow · an instant message and a reply" />
+
+The response says how far the message got. A 200 OK means that the recipient's UA has it, not that a person has read it. A 202 Accepted means that a store-and-forward server has it and will try to deliver it later:
+
+<RfcQuote id="rfc3428-4-202" />
+
+<Flow id="message-stored" eyebrow="Call flow · stored by the IM service, delivered later" />
+
+MESSAGE is for short texts. A longer conversation, file transfer, or anything over 1300 bytes belongs in a session: an INVITE that sets up an MSRP media stream (RFC 4975), which carries messages over TCP. Delivery and read reports for MESSAGE need another extension, IMDN (RFC 5438).
+
+<RfcQuote id="rfc3428-8-1300" />
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Busy lamps that go dark after an hour">
+    A receptionist's phone subscribes to the dialog state of thirty colleagues, with Expires: 3600, and never refreshes. Everything works after a reboot. An hour later, each subscription ends with reason=timeout, and the lamps stay off: the receptionist transfers calls to people who are already on the phone.
+
+    <FlowPair a={{ kind: 'events', preset: { package: 'dialog', end: 'timeout' } }} b={{ kind: 'events', preset: { package: 'dialog', refresh: true } }} labels={['Broken: never refreshes', 'Fixed: refreshes before it expires']} />
+
+    <p class="fix"><b>Remember:</b> refresh every subscription before the Expires in the 200 OK runs out, and earlier if a NOTIFY gives a shorter expires. After `terminated;reason=timeout`, subscribe again with a new SUBSCRIBE.</p>
+  </Mistake>
+
+  <Mistake title="Rejecting a NOTIFY that arrives before the 200 OK">
+    A phone creates the subscription dialog only when the 200 OK to its SUBSCRIBE arrives. On a network with a little packet loss, the first NOTIFY sometimes arrives first. The phone finds no dialog, answers 481, and so ends the subscription it has just created. The fault comes and goes, and nobody can reproduce it in the lab.
+
+    <FlowPair a="notify-early-481" b={{ kind: 'events', preset: { package: 'dialog', early: true } }} />
+
+    <p class="fix"><b>Remember:</b> a subscriber must accept a NOTIFY that matches a SUBSCRIBE it has sent (same Call-ID, its own tag, same Event), even before the 200 OK. The course's checker calls this rule notify-early.</p>
+  </Mistake>
+
+  <Mistake title="Treating a 412 to PUBLISH as a passing error">
+    A softphone refreshes its presence with the stored entity-tag. After a laptop sleeps for longer than the publication lasted, the server has forgotten that state and answers 412 Conditional Request Failed. The softphone keeps refreshing the same entity-tag, gets 412 each time, and the user looks offline all day.
+
+    <CompareFlows a="publish-412-stuck" b="publish-412-recover" labels={['Problem: refreshes the old state', 'Fixed: publishes again']} />
+
+    <RfcQuote id="rfc3903-4.3-412" />
+
+    <p class="fix"><b>Remember:</b> after a 412, drop the entity-tag and send a new initial PUBLISH with the full state.</p>
+  </Mistake>
+
+  <Mistake title="A large MESSAGE over UDP">
+    A chat client sends long messages, such as pasted logs, as MESSAGE over UDP. Above about 1500 bytes the IP layer fragments them. On a network that drops fragments, as many firewalls and NAT routers do, those messages simply never arrive, and the sender gets no error.
+
+    <BrokenFixedFlow broken="message-big-udp" fixed="message-big-tcp" />
+
+    <p class="fix"><b>Remember:</b> keep MESSAGE under 1300 bytes, send it over TCP or TLS, or use an MSRP session for long content. The course's checker calls this rule udp-size (Module 19).</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- **SUBSCRIBE** asks for notifications; **NOTIFY** carries the state. Event names the package, Expires sets the duration, and Subscription-State says active, pending, or terminated, with a reason.
+- The notifier sends a NOTIFY at once after accepting a subscription, and after every change. The first NOTIFY can arrive before the 200 OK.
+- Subscriptions are soft state: refresh before Expires, unsubscribe with Expires: 0.
+- Common packages: **presence** (PIDF), **dialog** (busy lamps, pickup), **message-summary** (voicemail lamp), **reg** (registration state), and **refer** (transfer progress).
+- **PUBLISH** sends state to a presence server; **SIP-ETag** and **SIP-If-Match** name the state to refresh, change, or remove. A 412 means: publish the full state again.
+- **MESSAGE** sends one instant message, with no dialog. 200 means delivered to the UA; 202 means stored for later. Keep it under 1300 bytes, or use MSRP.

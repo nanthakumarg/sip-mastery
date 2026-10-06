@@ -1,0 +1,83 @@
+id: notify-early-481
+title: "Broken: the first NOTIFY gets 481"
+summary: The NOTIFY overtakes the 200 OK to the SUBSCRIBE. Alice's phone rejects it with 481, which ends the subscription, so her busy lamp for Bob never works.
+broken: true
+breaks:
+  - notify-early
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: 192.0.2.10
+  - id: pbx
+    label: PBX
+    kind: server
+    sub: 203.0.113.5
+steps:
+  - from: alice
+    to: pbx
+    label: SUBSCRIBE
+    caption: Alice's phone subscribes to Bob's state. Event names the package; Expires asks for an hour.
+    message: |
+      SUBSCRIBE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: sub-dialog-7d1e@192.0.2.10
+      CSeq: 1 SUBSCRIBE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Event: dialog
+      Accept: application/dialog-info+xml
+      Expires: 3600
+      Content-Length: {auto}
+    rfc: rfc6665-3.1.1-expires
+  - from: pbx
+    to: alice
+    label: NOTIFY (active)
+    caption: The first NOTIFY overtakes the 200 OK, which a packet loss delays.
+    message: |
+      NOTIFY sip:alice@192.0.2.10:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKpx227f
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=pbx4c2e1
+      To: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      Call-ID: sub-dialog-7d1e@192.0.2.10
+      CSeq: 1 NOTIFY
+      Contact: <sip:blf@203.0.113.5:5060>
+      Event: dialog
+      Subscription-State: active;expires=3600
+      Content-Type: application/dialog-info+xml
+      Content-Length: {auto}
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <dialog-info xmlns="urn:ietf:params:xml:ns:dialog-info" version="0" state="full" entity="sip:bob@biloxi.example">
+      </dialog-info>
+    rfc: rfc6665-4.1.2.4-early
+  - from: alice
+    to: pbx
+    label: 481 Call/Transaction Does Not Exist
+    caption: Alice's phone has no dialog yet, so it rejects the NOTIFY with 481.
+    message: |
+      SIP/2.0 481 Call/Transaction Does Not Exist
+      Via: SIP/2.0/UDP 203.0.113.5:5060;branch=z9hG4bKpx227f
+      From: Bob <sip:bob@biloxi.example>;tag=pbx4c2e1
+      To: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      Call-ID: sub-dialog-7d1e@192.0.2.10
+      CSeq: 1 NOTIFY
+      Content-Length: {auto}
+    warn: A subscriber must accept a NOTIFY that arrives before the 200 OK. The 481 ends the subscription.
+  - from: pbx
+    to: alice
+    label: 200 OK
+    caption: "The notifier accepts the subscription. The 200 OK must carry Expires: the duration that counts."
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=sb44e0a
+      To: Bob <sip:bob@biloxi.example>;tag=pbx4c2e1
+      Call-ID: sub-dialog-7d1e@192.0.2.10
+      CSeq: 1 SUBSCRIBE
+      Contact: <sip:blf@203.0.113.5:5060>
+      Expires: 3600
+      Content-Length: {auto}

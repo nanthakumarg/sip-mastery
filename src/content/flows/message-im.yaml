@@ -1,0 +1,105 @@
+id: message-im
+title: "MESSAGE: an instant message and a reply"
+summary: Alice sends Bob a MESSAGE through Proxy B, and Bob replies with a MESSAGE of his own. Each one is a separate transaction, with no dialog.
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: 192.0.2.10
+  - id: proxyB
+    label: Proxy B
+    kind: proxy
+    sub: 203.0.113.10
+  - id: bob
+    label: Bob
+    kind: ua
+    sub: 203.0.113.20
+steps:
+  - from: alice
+    to: proxyB
+    label: MESSAGE
+    caption: "Alice sends Bob an instant message. A MESSAGE has a text/plain body, and no Contact: it makes no dialog."
+    message: |
+      MESSAGE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=m7a01
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: im-1f02a@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Type: text/plain
+      Content-Length: {auto}
+
+      Lunch at noon?
+    rfc: rfc3428-4-no-dialog
+  - from: proxyB
+    to: bob
+    label: MESSAGE
+    caption: Proxy B finds Bob's Contact and forwards the MESSAGE, like any request.
+    message: |
+      MESSAGE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb15b8
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=m7a01
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: im-1f02a@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Type: text/plain
+      Content-Length: {auto}
+
+      Lunch at noon?
+  - from: bob
+    to: proxyB
+    label: 200 OK
+    caption: Bob's phone shows the message and answers 200 OK.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.10:5060;branch=z9hG4bKpb15b8
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=m7a01
+      To: Bob <sip:bob@biloxi.example>;tag=b9e21
+      Call-ID: im-1f02a@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Length: {auto}
+  - from: proxyB
+    to: alice
+    label: 200 OK
+    caption: Alice's phone knows that the message arrived, not that Bob has read it.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=m7a01
+      To: Bob <sip:bob@biloxi.example>;tag=b9e21
+      Call-ID: im-1f02a@192.0.2.10
+      CSeq: 1 MESSAGE
+      Content-Length: {auto}
+    rfc: rfc3428-4-200
+  - from: bob
+    to: alice
+    label: MESSAGE
+    caption: "Bob replies. The reply is a new request, with a new Call-ID: there is no conversation in SIP itself."
+    message: |
+      MESSAGE sip:alice@atlanta.example SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=m7b02
+      To: Alice <sip:alice@atlanta.example>
+      Call-ID: im-77c3e@203.0.113.20
+      CSeq: 1 MESSAGE
+      Content-Type: text/plain
+      Content-Length: {auto}
+
+      Yes, see you there.
+  - from: alice
+    to: bob
+    label: 200 OK
+    caption: Alice's phone confirms.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      From: Bob <sip:bob@biloxi.example>;tag=m7b02
+      To: Alice <sip:alice@atlanta.example>;tag=a3c55
+      Call-ID: im-77c3e@203.0.113.20
+      CSeq: 1 MESSAGE
+      Content-Length: {auto}

@@ -63,6 +63,7 @@ sip-course/
 │  │  ├─ callflow.ts             # basic calls of RFC 3665, with "what if" options and call forwarding (Modules 21, 22)
 │  │  ├─ reinvite.ts             # hold, resume, codec, video, address, session refresh; re-INVITE or UPDATE; glare (Module 22)
 │  │  ├─ transfer.ts             # blind and attended transfer: REFER, NOTIFY with sipfrag, Replaces (Module 22)
+│  │  ├─ events.ts               # SUBSCRIBE/NOTIFY for presence (with PUBLISH), dialog, message-summary, reg (Module 23)
 │  │  ├─ generators.ts           # the generators and their options, for the FlowBuilder island
 │  │  └─ digest.ts               # HA1 / HA2 / response
 │  ├─ net/                       # below SIP: addresses, packets, RTP
@@ -249,6 +250,9 @@ Rendering choices:
 | `sip-alg` | A message that leaves a NAT lane is the message that entered it: a NAT router rewrites IP and UDP headers, not SIP (RFC 4787 §7, RFC 6314 §3) |
 | `replaces-match` | The Replaces header of an INVITE names a dialog of the receiver: to-tag is the receiver's own tag; an early dialog only at the UA that created it (RFC 3891 §3) |
 | `prack-rack` | A PRACK's RAck holds the RSeq, CSeq number, and method of a reliable provisional response on its hop (RFC 3262 §7.2) |
+| `notify-headers` | A NOTIFY has Event and Subscription-State; its Event matches the SUBSCRIBE; after an accepted unsubscribe, the next NOTIFY is terminated (RFC 6665) |
+| `subscribe-expires` | A 2xx to SUBSCRIBE has Expires, no longer than the request asked (RFC 6665 §3.1.1) |
+| `notify-early` | A subscriber does not answer 481 to a NOTIFY for a subscription it asked for, even before the 200 OK (RFC 6665 §4.1.2.4) |
 | `late-offer-ack` | When the INVITE has no SDP, the 2xx carries the offer, and the ACK for it carries the answer (RFC 3261 §13.2.2.4, RFC 3264 §4) |
 | `dtls-setup` | A DTLS-SRTP offer says `a=setup:actpass`; the answer says `active` or `passive`, the opposite of a fixed role in the offer (RFC 8842 §5.2, RFC 4145 §4.1) |
 
