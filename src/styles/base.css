@@ -16,7 +16,7 @@ a { color: var(--sip); text-underline-offset: 3px; text-decoration-thickness: 1p
 a:hover { text-decoration-thickness: 2px; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--sip); outline-offset: 2px; border-radius: 2px; }
-::selection { background: rgba(255, 176, 0, .3); }
+::selection { background: color-mix(in srgb, var(--sip) 30%, transparent); }
 
 code, kbd, .mono { font-family: var(--mono); font-size: .8em; letter-spacing: -.01em; }
 :not(pre) > code { color: var(--text); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 4px; padding: .08em .38em; white-space: nowrap; }

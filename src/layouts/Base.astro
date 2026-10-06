@@ -22,13 +22,22 @@ const path = Astro.url.pathname;
 const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#0E1013" />
+    <meta name="theme-color" content="#F7F5F0" />
+    <script is:inline>
+      // Apply the saved theme before the first paint. Light is the default.
+      try {
+        if (localStorage.getItem('theme') === 'dark') {
+          delete document.documentElement.dataset.theme;
+          document.querySelector('meta[name=theme-color]').content = '#0E1013';
+        }
+      } catch {}
+    </script>
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
@@ -45,6 +54,10 @@ const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
           {repoUrl && <a href={repoUrl} rel="noopener">Source</a>}
         </nav>
         <SiteSearch client:idle />
+        <button class="theme-btn" type="button" id="theme-btn" aria-label="Switch to dark theme" title="Switch to dark theme">
+          <svg class="i-sun" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.5" /><path d="M8 1.2v1.8M8 13v1.8M1.2 8H3M13 8h1.8M3.2 3.2l1.3 1.3M11.5 11.5l1.3 1.3M3.2 12.8l1.3-1.3M11.5 4.5l1.3-1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg>
+          <svg class="i-moon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M13.5 9.8A5.8 5.8 0 0 1 6.2 2.5a5.8 5.8 0 1 0 7.3 7.3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
+        </button>
         {withSidebar && <button class="menu-btn" type="button" aria-expanded="false" aria-controls="sidebar" id="menu-btn">Modules</button>}
       </div>
     </header>
@@ -54,6 +67,23 @@ const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
       <p>RFC excerpts are quoted from IETF documents under the IETF Trust Legal Provisions, with links to <a href="https://www.rfc-editor.org/" rel="noopener">rfc-editor.org</a>.</p>
     </footer>
     <script>
+      const root = document.documentElement;
+      const themeBtn = document.getElementById('theme-btn')!;
+      const showTheme = () => {
+        const label = root.dataset.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme';
+        themeBtn.setAttribute('aria-label', label);
+        themeBtn.title = label;
+        document.querySelector<HTMLMetaElement>('meta[name=theme-color]')!.content = root.dataset.theme === 'light' ? '#F7F5F0' : '#0E1013';
+      };
+      showTheme();
+      themeBtn.addEventListener('click', () => {
+        const light = root.dataset.theme !== 'light';
+        if (light) root.dataset.theme = 'light';
+        else delete root.dataset.theme;
+        try { localStorage.setItem('theme', light ? 'light' : 'dark'); } catch {}
+        showTheme();
+      });
+
       const btn = document.getElementById('menu-btn');
       btn?.addEventListener('click', () => {
         const open = document.body.classList.toggle('nav-open');
