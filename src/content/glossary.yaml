@@ -675,3 +675,43 @@
   aliases: [Enhanced Voice Services]
   definition: The newer VoLTE codec. It goes up to fullband, works at many bit rates, and hides packet loss better than AMR-WB.
 
+# --- Caller identity: STIR/SHAKEN (Module 28) -------------------------------------
+- term: STIR
+  aliases: [Secure Telephone Identity Revisited]
+  definition: The IETF work that signs caller identities in SIP - PASSporT (RFC 8225), the Identity header (RFC 8224), and certificates for telephone numbers (RFC 8226).
+- term: SHAKEN
+  aliases: [STIR/SHAKEN]
+  definition: How carriers in the USA and Canada deploy STIR - who signs, the attestation levels, the certificate authorities, and what phones show (ATIS-1000074).
+- term: PASSporT
+  aliases: [Personal Assertion Token]
+  definition: A signed JSON Web Token about a call - who calls (orig), who is called (dest), and when (iat) - signed with the carrier's certificate (RFC 8225).
+- term: attestation
+  aliases: [attest]
+  definition: "How sure the signing carrier is of the caller's number: A (full) - its customer, its number; B (partial) - its customer, number not checked; C (gateway) - the call came from elsewhere."
+- term: verstat
+  definition: A parameter that the terminating carrier adds to the caller's number in From or P-Asserted-Identity, to tell the phone the result of verification.
+- term: robocall
+  definition: An automated call to many numbers at once, often with a spoofed caller ID, for sales or fraud.
+- term: STI-AS
+  aliases: [signing service, authentication service]
+  definition: The originating carrier's service that decides the attestation and signs the PASSporT.
+- term: STI-VS
+  aliases: [verification service, verifier]
+  definition: The terminating carrier's service that fetches the certificate and checks the PASSporT.
+- term: STI-PA
+  aliases: [Policy Administrator]
+  definition: The body that decides which carriers may get STIR/SHAKEN certificates, and which certificate authorities may issue them.
+- term: STI-CA
+  definition: A certificate authority approved by the STI-PA to issue certificates to carriers.
+- term: Originating carrier
+  definition: In Module 28, the caller's carrier. It signs the call.
+- term: Transit carrier
+  definition: In Module 28, a carrier between the originating and terminating carriers.
+- term: Terminating carrier
+  definition: In Module 28, Bob's carrier. It verifies the signature.
+- term: Certificate repository
+  aliases: [STI-CR]
+  definition: A web server where a carrier publishes its STIR/SHAKEN certificates, at the URL in x5u.
+- term: HTTPS
+  definition: HTTP over TLS. Verifiers use it to fetch STIR certificates.
+

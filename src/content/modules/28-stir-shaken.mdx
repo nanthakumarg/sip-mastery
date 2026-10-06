@@ -1,0 +1,170 @@
+---
+module: 28
+title: "Caller identity: STIR/SHAKEN"
+part: 9
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: "How carriers sign the caller's number so that the called network can check it: why caller ID is easy to spoof; the PASSporT token and the Identity header; attestation levels A, B, and C; the signing and verification services; the certificates and who issues them; diverted calls; and what the called phone shows."
+objectives:
+  - Explain why From and P-Asserted-Identity cannot stop spoofed caller ID between carriers.
+  - Decode a PASSporT, and say what each header parameter and claim means.
+  - Choose the right attestation level for a call, and say what each level promises.
+  - Follow a call from the signing service to the verification service, and name the check that fails in each failure case.
+  - Describe the certificate chain from the STI-PA to the signing carrier.
+  - Read verstat, and predict what the called phone shows.
+status: draft
+---
+
+## 28.1 The problem: spoofed caller ID and robocalls
+
+Anyone with a SIP trunk can write any number in From. Module 14 showed the defence inside one network: P-Asserted-Identity, trusted only from members of the trust domain. Between carriers, that trust is transitive and weak: a carrier that accepts PAI from a peer accepts whatever the peer accepted. Spoofed numbers make <Term t="robocall">robocalls</Term> look local, and make fraud calls look like a bank or the tax office.
+
+<RfcQuote id="rfc8224-1-from" />
+
+**<Term t="STIR" />** adds a signature: the caller's carrier signs a token that names the caller's number, and the called carrier checks the signature. **<Term t="SHAKEN" />** is how carriers in the USA and Canada deploy it, where regulators made it mandatory; other countries are following.
+
+## 28.2 PASSporT: a signed token about the call
+
+A **<Term t="PASSporT" />** is a JSON Web Token with three parts: a header, a payload of claims, and a signature over both. Pick an example, then change a claim or the verifier's clock: the browser checks the real ES256 signature each time, with the public key of this course's example certificate.
+
+<PassportDecoder />
+
+The payload makes three claims: who calls (`orig`), who is called (`dest`), and when (`iat`). SHAKEN adds `attest` and `origid`. The time stops an attacker from recording a signed call and replaying it later:
+
+<RfcQuote id="rfc8225-5.1.1-iat" />
+
+The signature covers the exact bytes of the header and payload, so both sides must write the JSON in exactly the same way:
+
+<RfcQuote id="rfc8225-9-order" />
+
+## 28.3 The Identity header
+
+The signing carrier puts the PASSporT in an **Identity** header (RFC 8224), with three parameters:
+
+```
+Date: Tue, 06 Oct 2026 14:00:00 GMT
+Identity: eyJhbGciOiJFUzI1NiIs….eyJhdHRlc3QiOiJBIiwi….Jx4HXnS0…;
+  info=<https://cr.carrier-a.example/sti/2026/passport.pem>;alg=ES256;ppt=shaken
+```
+
+- The value is the PASSporT, in its **full form**: header, payload, and signature, separated by dots. RFC 8225 also defines a compact form without the header and payload, which the verifier must rebuild from the SIP message; SHAKEN does not use it.
+- `info` names the certificate, the same URL as `x5u` in the header.
+- `alg` names the algorithm, and `ppt` the PASSporT extension.
+- The **Date** header gives the time of signing. The verifier checks it, as well as `iat`.
+
+The Identity header travels end to end. Proxies, SBCs, and transit carriers must pass it on unchanged, and must not change the numbers or the Date that it signs.
+
+## 28.4 Attestation levels A, B, and C
+
+The **<Term t="attestation" />** says how sure the signing carrier is of the caller's number:
+
+<RfcQuote id="rfc8588-3-levels" />
+
+| Level | The carrier knows | Example |
+|---|---|---|
+| **A**: full | The caller is its customer, authenticated, and has the right to use this number | A mobile subscriber, a SIP trunk customer calling from one of its own DIDs |
+| **B**: partial | The caller is its customer, authenticated, but not that the number belongs to them | A call centre on a SIP trunk that sends its client's toll-free number |
+| **C**: gateway | Nothing about the caller: the call came from somewhere else | A call from abroad, or from the PSTN through a gateway |
+
+Attestation is a statement by the carrier, not about the caller's honesty. A call with B or C attestation can be perfectly legitimate; it means only that the signer could not check the number. Whatever the level, `origid` lets carriers trace a call back to the source that sent it:
+
+<RfcQuote id="rfc8588-3-origid" />
+
+## 28.5 The signing and verification path
+
+The originating carrier's **<Term t="STI-AS" />** (signing service) decides the attestation and signs. The terminating carrier's **<Term t="STI-VS" />** (verification service) fetches the certificate, checks the PASSporT, and passes the result to the called phone. Follow a call, then change the options:
+
+<FlowBuilder kind="stir" preset={{}} eyebrow="Flow builder · signing, transit, and verification" />
+
+The verifier follows the steps of RFC 8224 §6.2: check the `ppt`, find the originating identity, fetch the credential, check the time, and check the signature:
+
+<RfcQuote id="rfc8224-6.2-info" />
+
+<RfcQuote id="rfc8224-6.2-fresh" />
+
+<RfcQuote id="rfc8224-6.2-invalid" />
+
+What happens after a failure is local policy. Most SHAKEN networks let the call through and mark it, so that the phone or an analytics service can decide. A verifier that rejects uses the response codes of RFC 8224: 438 for an invalid header, 403 "Stale Date" for an old one, and 428 when it requires an Identity header and gets none. Set *Verifier policy* to *Reject failures* to see them:
+
+<RfcQuote id="rfc8224-6.2.2-438" />
+
+<RfcQuote id="rfc8224-6.2.2-stale" />
+
+## 28.6 Certificates: STI-PA, STI-CA, and certificate repositories
+
+The signature proves only that the holder of a key signed. The certificate says who that is, and whether they may sign for telephone numbers:
+
+| Role | Who | Job |
+|---|---|---|
+| Governance authority (STI-GA) | Industry body, set up under the regulator | Sets the rules |
+| <Term t="STI-PA" /> | Policy administrator | Decides which carriers get certificates, issues them a token with their Service Provider Code (SPC), and approves the CAs |
+| <Term t="STI-CA" /> | Certificate authority | Issues each carrier its certificate, with its SPC in the TN Authorization List |
+| <Term t="Certificate repository" /> (STI-CR) | Each carrier, on a web server | Publishes the certificate at the URL in `x5u` |
+
+<RfcQuote id="rfc8226-3-tnauthlist" />
+
+In SHAKEN, the TN Authorization List names the carrier (its SPC), not single numbers: a certificate lets a carrier sign for any number. The attestation level, and the traceback through `origid`, keep carriers honest. A verifier caches certificates, checks that they chain to an approved STI-CA, and checks the revocation list of the STI-PA.
+
+## 28.7 Diverted calls and other extensions
+
+When Bob forwards a call to Carol, the call's `dest` no longer matches the new target, and verification at Carol's carrier would fail. Bob's carrier therefore adds a second PASSporT, of type `div`, signed with its own certificate. Pick *div* in the decoder above:
+
+<RfcQuote id="rfc8946-3-div" />
+
+The call now carries two Identity headers: the original one, which proves who called Bob, and the `div` one, which proves that Bob's carrier sent the call on to Carol. Other extensions add **Rich Call Data** (`rcd`: the caller's name, a logo, a reason for the call) and attestation for calls that cross a TDM network, where SIP headers cannot travel (out-of-band SHAKEN).
+
+## 28.8 What the called user sees
+
+The verification service passes its result in a **<Term t="verstat" />** parameter on the caller's number, in From and P-Asserted-Identity:
+
+```
+P-Asserted-Identity: <tel:+14045550101;verstat=TN-Validation-Passed>
+```
+
+| verstat | Attestation | Typical display |
+|---|---|---|
+| `TN-Validation-Passed` | A | The number with a ✓ or "Verified" mark |
+| `TN-Validation-Passed` | B or C | The number, no mark |
+| `TN-Validation-Failed` | any | "Spam risk", "Unverified", or the call is blocked by the carrier or an app |
+| `No-TN-Validation` | none | The number, no mark |
+
+What the phone shows depends on the carrier, the phone, and any call-analytics service: STIR/SHAKEN gives them facts, and they decide. A verified number is not a promise that the call is wanted; it is only a promise that the number is real.
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="A attestation for a number the caller is not proven to own">
+    A carrier gives A to every call from its SIP trunk customers, without checking which numbers they send. A call centre on one of those trunks sends any number it likes, and every call shows as verified. Traceback leads straight to the carrier.
+
+    <FlowPair a={{ kind: 'stir', preset: { caller: 'B', overAttest: true } }} b={{ kind: 'stir', preset: { caller: 'B' } }} labels={['Broken: A for an unchecked number', 'Fixed: B']} />
+
+    <p class="fix"><b>Remember:</b> give A only when you authenticated the caller and assigned the number to them, or checked that they may use it. Otherwise give B.</p>
+  </Mistake>
+
+  <Mistake title="Removing or changing the Identity header in transit">
+    An SBC in a transit network removes headers it does not know, or rewrites the caller's number, or the Date header. The terminating carrier gets no signature, or one that no longer matches. Honest calls lose their verified mark.
+
+    <FlowPair a={{ kind: 'stir', preset: { transit: 'strips' } }} b={{ kind: 'stir', preset: {} }} labels={['Broken: Identity removed', 'Fixed: passed on unchanged']} />
+
+    <RfcQuote id="rfc8224-6.2.2-transit" />
+
+    <p class="fix"><b>Remember:</b> pass Identity, Date, From, P-Asserted-Identity, and the Request-URI unchanged. If you must change the number, you are a new originator: sign again, with your own certificate and an honest attestation.</p>
+  </Mistake>
+
+  <Mistake title="A clock difference that makes iat too old">
+    The signing server's clock drifts five minutes slow: NTP stopped working after a firewall change. Every PASSporT it signs is already five minutes old. Verifiers mark every call as failed, or reject them with 403 Stale Date.
+
+    <FlowPair a={{ kind: 'stir', preset: { clock: 'slow', policy: 'reject' } }} b={{ kind: 'stir', preset: {} }} labels={['Broken: signer 5 min slow', 'Fixed: clocks in sync']} />
+
+    <p class="fix"><b>Remember:</b> keep the signer's and the verifier's clocks in sync with NTP, and monitor them. Freshness allows only 60 seconds.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- From and P-Asserted-Identity prove nothing between carriers. **STIR/SHAKEN** adds a signature that any carrier can check.
+- A **PASSporT** is a JWT: a header (`alg`, `ppt`, `typ`, `x5u`), claims (`orig`, `dest`, `iat`, and for SHAKEN `attest` and `origid`), and an ES256 signature over both.
+- The **Identity** header carries the full PASSporT, with `info`, `alg`, and `ppt`. It must pass through every network unchanged, with Date.
+- **Attestation** A means "our customer, our number"; B "our customer, unchecked number"; C "we know nothing about the caller".
+- The **verification service** fetches the certificate, checks the time (60 s), the signature, and both numbers, and sends **verstat** to the phone.
+- Certificates come from an **STI-CA** approved by the **STI-PA**, and live at the **x5u** URL. A **div** PASSporT re-signs a forwarded call.

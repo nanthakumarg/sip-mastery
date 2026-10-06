@@ -1,5 +1,5 @@
 /**
- * The flow generators behind the FlowBuilder island (Modules 21 to 27), each
+ * The flow generators behind the FlowBuilder island (Modules 21 to 28), each
  * with the options it shows. One island renders any of them from this table.
  */
 import type { FlowData } from './flow.ts';
@@ -23,6 +23,7 @@ import {
   allImsRegs, allVoltes, applyImsReg, applyVolte, AUTHS, buildImsReg, buildVolte, DEFAULT_IMSREG, DEFAULT_VOLTE, IMSREG_QUOTES, imsRegInactive, imsRegKey,
   VOLTE_CODECS, VOLTE_QUOTES, volteInactive, volteKey,
 } from './ims.ts';
+import { allStirs, applyStir, buildStir, CLOCKS, DEFAULT_STIR, POLICIES, STIR_CALLERS, STIR_QUOTES, stirInactive, stirKey, TRANSITS } from './stir-flow.ts';
 import { allBalances, applyBalance, BALANCE_QUOTES, balanceInactive, balanceKey, buildBalance, DEFAULT_BALANCE, FAILURES } from './balance.ts';
 
 /** One row of controls: a choice of values for one option, or on/off toggles. */
@@ -127,6 +128,15 @@ export const GENERATORS = {
       { kind: 'toggles', label: 'What if', items: [['preconditions', 'QoS preconditions']] },
     ],
     defaults: DEFAULT_VOLTE, apply: applyVolte, inactive: volteInactive, key: volteKey, build: buildVolte, quotes: VOLTE_QUOTES, all: allVoltes,
+  }),
+  stir: wrap({
+    rows: [
+      { kind: 'choice', label: 'Caller', key: 'caller', items: STIR_CALLERS },
+      { kind: 'choice', label: 'Transit carrier', key: 'transit', items: TRANSITS },
+      { kind: 'choice', label: 'Signer clock', key: 'clock', items: CLOCKS },
+      { kind: 'choice', label: 'Verifier policy', key: 'policy', items: POLICIES },
+    ],
+    defaults: DEFAULT_STIR, apply: applyStir, inactive: stirInactive, key: stirKey, build: buildStir, quotes: STIR_QUOTES, all: allStirs,
   }),
 };
 

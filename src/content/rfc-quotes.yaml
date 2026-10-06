@@ -5593,3 +5593,129 @@
   text: >-
     For the segmented status type, the user agent MUST generate two current
     status lines: one with the tag "local" and the other with the tag "remote".
+
+# --- Module 28: Caller identity: STIR/SHAKEN ------------------------------------------
+
+- id: rfc8224-1-from
+  rfc: 8224
+  section: "1"
+  title: Introduction
+  text: >-
+    However, in the absence of some sort of cryptographic authentication
+    mechanism, the recipient of a SIP request has no way to verify that the
+    From header field has been populated appropriately.
+
+- id: rfc8224-6.2-info
+  rfc: 8224
+  section: "6.2"
+  title: Verifier Behavior
+  text: >-
+    The verifier must ensure that it has access to the proper keying material
+    to validate the signature in the Identity header field; this usually
+    involves dereferencing a URI in the "info" parameter of the Identity header
+    field.
+
+- id: rfc8224-6.2-fresh
+  rfc: 8224
+  section: "6.2"
+  title: Verifier Behavior
+  text: >-
+    The verifier furthermore ensures that the value of the Date header field of
+    the request meets local policy for freshness (sixty seconds is RECOMMENDED)
+    and that it falls within the validity period of the credential used to sign
+    the Identity header field.
+
+- id: rfc8224-6.2-invalid
+  rfc: 8224
+  section: "6.2"
+  title: Verifier Behavior
+  text: >-
+    If a verifier determines that the signature in the Identity header field
+    does not correspond to the reconstructed signed-identity-digest, then the
+    Identity header field should be considered invalid.
+
+- id: rfc8224-6.2.2-438
+  rfc: 8224
+  section: "6.2.2"
+  title: Failure Response Codes Sent by a Verification Service
+  text: >-
+    The 438 "Invalid Identity Header" response indicates that of the set of
+    Identity header fields in a request, no header field with a valid and
+    supported PASSporT object has been received.
+
+- id: rfc8224-6.2.2-transit
+  rfc: 8224
+  section: "6.2.2"
+  title: Failure Response Codes Sent by a Verification Service
+  text: >-
+    Note that in some cases, an Identity header field may be broken for other
+    reasons than that an originator is attempting to spoof an identity: for
+    example, when a transit network alters the Date header field of the
+    request.
+
+- id: rfc8224-6.2.2-stale
+  rfc: 8224
+  section: "6.2.2"
+  title: Failure Response Codes Sent by a Verification Service
+  text: >-
+    Finally, a 403 response may be sent when the verification service receives
+    a request with a Date header field value that is older than the local
+    policy for freshness permits.
+
+- id: rfc8225-5.1.1-iat
+  rfc: 8225
+  section: "5.1.1"
+  title: '"iat" (Issued At) Claim'
+  text: >-
+    This is included for securing the token against replay and cut-and-paste
+    attacks, as explained further in Section 10 ("Security Considerations").
+
+- id: rfc8225-9-order
+  rfc: 8225
+  section: "9"
+  title: Deterministic JSON Serialization
+  text: >-
+    JSON objects MUST have the keys ordered lexicographically by the Unicode
+    [UNICODE] code points of the member names.
+
+- id: rfc8588-3-levels
+  rfc: 8588
+  section: "3"
+  title: Overview of "shaken" PASSporT Extension
+  text: >-
+    This provides three levels of attestation: a full attestation when the
+    service provider can fully attest to the calling identity, a partial
+    attestation when the service provider originated a telephone call but
+    cannot fully attest to the calling identity, and a gateway attestation,
+    which is the lowest level of attestation and represents the service
+    provider receiving a call from a telephone gateway that does not support
+    PASSporT or STI.
+
+- id: rfc8588-3-origid
+  rfc: 8588
+  section: "3"
+  title: Overview of "shaken" PASSporT Extension
+  text: >-
+    The second claim is a unique origination identifier that should be used by
+    the service provider to identify different sources of telephone calls to
+    support a traceback mechanism that can be used for enforcement and
+    identification of a source of illegitimate calls.
+
+- id: rfc8946-3-div
+  rfc: 8946
+  section: "3"
+  title: The "div" PASSporT Type and Claim
+  text: >-
+    When a retargeting entity receives a call signed with a PASSporT, it may act
+    as an authentication service and create a new PASSporT containing the "div"
+    claim to attach to the call.
+
+- id: rfc8226-3-tnauthlist
+  rfc: 8226
+  section: "3"
+  title: Authority for Telephone Numbers in Certificates
+  text: >-
+    The second approach is to extend the syntax of certificates to include a
+    new attribute, defined here as the TN Authorization List, which contains a
+    list of telephone numbers defining the scope of authority of the
+    certificate.

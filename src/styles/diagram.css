@@ -2059,3 +2059,43 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 .imsmap-name span { font: 400 14px var(--display); color: var(--muted); margin-left: 6px; }
 .imsmap-sub { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .imsmap-detail ul { margin: 4px 0 0; padding-left: 18px; }
+
+/* ---------- PASSporT decoder (Module 28) ---------- */
+.ppd { max-width: 1400px; }
+.ppd .stage-head { flex-wrap: wrap; gap: 12px; }
+.ppd .seg { flex-wrap: wrap; }
+.ppd-raw { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); font: 400 12px/1.6 var(--mono); color: var(--dim); overflow-wrap: anywhere; }
+.ppd-k { color: var(--muted); }
+.ppd-h { color: var(--dns); }
+.ppd-p { color: var(--sip); }
+.ppd-p.is-edited { color: var(--err); text-decoration: underline dotted; }
+.ppd-s { color: var(--rtcp); }
+.ppd-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, .9fr); gap: 12px; margin-top: 12px; }
+@media (max-width: 1000px) { .ppd-cols { grid-template-columns: minmax(0, 1fr); } }
+.ppd-box { min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-top: 3px solid var(--line); border-radius: 6px; background: var(--panel); font-size: 14px; color: var(--dim); }
+.ppd-box.is-h { border-top-color: var(--dns); }
+.ppd-box.is-p { border-top-color: var(--sip); }
+.ppd-box.is-s { border-top-color: var(--rtcp); }
+.ppd-box dl { margin: 6px 0 0; display: grid; gap: 8px; }
+.ppd-box dl > div { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+.ppd-box dt { font: 500 12px var(--mono); color: var(--text); }
+.ppd-box dd { margin: 0; min-width: 0; }
+.ppd-box dd code, .ppd-box p code { color: var(--text); white-space: normal; word-break: break-all; }
+.ppd-box dd span { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.ppd-note { margin-top: 6px; font-size: 13px; color: var(--muted); }
+.ppd-edit { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: end; margin-top: 14px; }
+.ppd-edit label { display: grid; gap: 4px; font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ppd-edit input, .ppd-edit select { height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--text); font: 400 14px var(--mono); text-transform: none; letter-spacing: 0; }
+.ppd-edit .ppd-age { min-width: min(320px, 100%); flex: 1; }
+.ppd-edit .ppd-age input { padding: 0; accent-color: var(--sip); }
+.ppd-sign { height: 34px; padding: 0 12px; border: 1px solid var(--sip); border-radius: 5px; color: var(--sip); font: 500 12.5px var(--mono); }
+.ppd-sign:disabled { border-color: var(--line); color: var(--muted); cursor: default; }
+.ppd-result { margin-top: 14px; padding: 12px 16px; border-left: 3px solid var(--muted); background: var(--panel); font-size: 15px; color: var(--dim); }
+.ppd-result.v-TN-Validation-Passed { border-left-color: var(--rtcp); }
+.ppd-result.v-TN-Validation-Failed { border-left-color: var(--err); }
+.ppd-verdict { font: 600 15px var(--mono); color: var(--text); }
+.ppd-result.v-TN-Validation-Failed .ppd-verdict { color: var(--err); }
+.ppd-result ul { margin: 8px 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 14px; }
+.ppd-result li.is-bad b { color: var(--err); }
+.ppd-result li.is-ok b { color: var(--text); }
+.ppd-hint { margin-top: 6px; color: var(--sip); font-size: 14px; }

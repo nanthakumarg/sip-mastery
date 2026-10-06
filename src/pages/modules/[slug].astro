@@ -71,6 +71,7 @@ import SbcExplorer from '../../components/SbcExplorer.astro';
 import SdpCompare from '../../components/SdpCompare.astro';
 import WebrtcGateway from '../../components/WebrtcGateway.astro';
 import ImsMap from '../../components/ImsMap.astro';
+import PassportDecoder from '../../components/PassportDecoder.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { url } from '../../lib/url.ts';
 
@@ -106,7 +107,7 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   AttackMap, CertCheck, OfferAnswer, SdpLinter, HoldPlayer,
   RtpHeader, JitterBuffer, BandwidthCalc,
   RtcpExplorer, RttTimeline, MosCalc,
-  SrtpPacket, KeyExchange, TransportRace, NatSimulator, IceChecker, FlowBuilder, FlowPair, NumberNormaliser, ElementCompare, SbcExplorer, SdpCompare, WebrtcGateway, ImsMap };
+  SrtpPacket, KeyExchange, TransportRace, NatSimulator, IceChecker, FlowBuilder, FlowPair, NumberNormaliser, ElementCompare, SbcExplorer, SdpCompare, WebrtcGateway, ImsMap, PassportDecoder };
 ---
 <Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
   <div class="shell">

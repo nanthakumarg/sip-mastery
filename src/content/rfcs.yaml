@@ -118,6 +118,7 @@ rfcs:
   - { n: 8588, area: sec, short: SHAKEN extension, summary: "The PASSporT extension for SHAKEN attestation levels.", modules: [28] }
   - { n: 5630, area: sec, proto: sip, short: SIPS, summary: "How to use the sips: scheme correctly: TLS on every hop up to the target.", modules: [3, 14, 19] }
   - { n: 8946, area: sec, short: Diverted calls, summary: "A PASSporT extension for calls that were diverted.", modules: [28] }
+  - { n: 8226, area: sec, short: STIR certificates, summary: "Certificates for signing telephone numbers, with the TN Authorization List that says which numbers or carrier a certificate covers.", modules: [28] }
 
   # --- WebRTC and IMS ---------------------------------------------------------------
   - { n: 8825, area: mobile, short: WebRTC overview, summary: "An overview of real-time communication in web browsers.", modules: [26] }
