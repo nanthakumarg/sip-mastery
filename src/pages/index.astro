@@ -4,14 +4,20 @@ import Base from '../layouts/Base.astro';
 import HeroLadder from '../diagrams/HeroLadder.tsx';
 import { flowBundle } from '../lib/bundle.ts';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../lib/outline.ts';
+import { courseJsonLd, HOME_DESCRIPTION, HOME_TITLE } from '../lib/seo.ts';
 import { url } from '../lib/url.ts';
 
 const live = new Map((await getCollection('modules')).map(m => [m.data.module, m.id]));
+const home = new URL(url(), Astro.site).href;
+const seoModules = (await getCollection('modules')).sort((a, b) => a.data.module - b.data.module).map(m => ({
+  n: m.data.module, title: m.data.title, description: m.data.description, url: new URL(url(`modules/${m.id}/`), Astro.site).href,
+  level: m.data.level, objectives: m.data.objectives, part: OUTLINE.find(p => p.n === m.data.part)!,
+}));
 const [hero] = await flowBundle('invite-407');
 const heroFlow = { ...hero!.flow, steps: hero!.flow.steps.slice(0, 14) };
 const total = OUTLINE.reduce((n, p) => n + p.modules.length, 0);
 ---
-<Base title="SIP Mastery" description="A free, interactive course on the Session Initiation Protocol: messages, transactions, dialogs, authentication, SDP, RTP, NAT, and real call flows.">
+<Base title={HOME_TITLE} description={HOME_DESCRIPTION} image="og/home.png" imageAlt="SIP Mastery: learn SIP by watching it work" jsonLd={courseJsonLd(home, seoModules)}>
   <main id="content" class="home">
     <section class="hero">
       <div class="hero-text">

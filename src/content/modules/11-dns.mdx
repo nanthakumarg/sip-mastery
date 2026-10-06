@@ -5,6 +5,7 @@ part: 3
 level: [advanced]
 paths: { noc: optional, dev: core }
 summary: How a client turns sip:bob@biloxi.example into an address, a port, and a transport — NAPTR for the transport, SRV for the servers, A and AAAA for the addresses — and how SRV priority and weight give failover and load sharing.
+description: "How a SIP client finds a server with DNS (RFC 3263): NAPTR for the transport, SRV for servers, A/AAAA for addresses, and SRV failover and weights."
 objectives:
   - Say which URI a client resolves, and what each of NAPTR, SRV, and A/AAAA records tells it.
   - Order a set of SRV records by priority and weight, as RFC 2782 does.

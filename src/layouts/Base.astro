@@ -11,14 +11,25 @@ import SiteSearch from '../diagrams/SiteSearch.tsx';
 import { url } from '../lib/url.ts';
 
 interface Props {
+  /** The full page title, as search results show it */
   title: string;
+  /** 70–160 characters, for search results and link previews */
   description: string;
   /** Show the course sidebar toggle in the header */
   withSidebar?: boolean;
+  /** Social preview image, a path under the site (e.g. "og/home.png") */
+  image?: string;
+  /** Alt text for the preview image */
+  imageAlt?: string;
+  /** Structured data (schema.org JSON-LD) */
+  jsonLd?: object | object[];
+  /** Keep this page out of search results (the 404 page) */
+  noindex?: boolean;
 }
-const { title, description, withSidebar = false } = Astro.props;
-const pageTitle = title === 'SIP Mastery' ? title : `${title} · SIP Mastery`;
+const { title: pageTitle, description, withSidebar = false, image = 'og/home.png', imageAlt, jsonLd, noindex = false } = Astro.props;
 const path = Astro.url.pathname;
+const canonical = new URL(path, Astro.site).href;
+const imageUrl = new URL(url(image), Astro.site).href;
 const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
 ---
 <!doctype html>
@@ -38,11 +49,28 @@ const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
         }
       } catch {}
     </script>
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SIP Mastery" />
+    <meta property="og:locale" content="en" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={imageAlt ?? pageTitle} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
     <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
-    <link rel="canonical" href={new URL(path, Astro.site)} />
+    <link rel="icon" href={url('icon-512.png')} type="image/png" sizes="512x512" />
+    <link rel="apple-touch-icon" href={url('apple-touch-icon.png')} />
+    {!noindex && <link rel="canonical" href={canonical} />}
+    <link rel="sitemap" type="application/xml" href={url('sitemap.xml')} />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')} />}
   </head>
   <body>
     <a class="sr-only" href="#content">Skip to content</a>

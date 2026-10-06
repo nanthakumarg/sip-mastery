@@ -5,6 +5,7 @@ part: 3
 level: [advanced]
 paths: { noc: core, dev: core }
 summary: How a SIP message finds its next hop — responses follow the Via headers back, requests follow Route and the Request-URI, and Record-Route decides which proxies see the rest of the call. Also NAT and rport, strict routing, outbound proxies, loops, and proxies with two interfaces.
+description: "How SIP routes messages: Via for responses, Route and the Request-URI for requests, Record-Route, rport and NAT, loose and strict routing, and loops."
 objectives:
   - Say which headers decide where a request goes, and which decide where a response goes.
   - Follow the Via stack through a call, and find where each response is sent, with received and rport.

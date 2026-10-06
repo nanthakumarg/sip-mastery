@@ -49,6 +49,9 @@ jobs:
           BASE: /
           PUBLIC_REPO_URL: https://github.com/${{ github.repository }}
 
+      - name: Check SEO metadata
+        run: npm run check:seo
+
       - uses: actions/upload-pages-artifact@v4
         if: github.event_name != 'pull_request'
         with:

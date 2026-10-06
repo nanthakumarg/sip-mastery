@@ -1,0 +1,26 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/url.ts';
+---
+<Base title="Page not found · SIP Mastery" description="This page does not exist. Go to the SIP Mastery course map, or search the course." noindex>
+  <main id="content" class="nf">
+    <p class="eyebrow">404 · Not Found</p>
+    <h1>This page is not here</h1>
+    <p class="lede">The link may be old, or the address may have a typo. Start from the course map, or search: press <kbd>/</kbd> or use Search at the top.</p>
+    <p class="nf-links">
+      <a class="nf-btn primary" href={url()}>Go to the course map</a>
+      <a class="nf-btn" href={url('modules/00-anatomy-of-a-call/')}>Start with Module 0</a>
+    </p>
+  </main>
+</Base>
+
+<style>
+  .nf { max-width: var(--measure); margin: 0 auto; padding: 96px var(--gutter) 160px; }
+  .nf h1 { margin-top: 14px; font-size: clamp(36px, 5vw, 60px); line-height: 1.05; }
+  .nf .lede { margin-top: 18px; }
+  .nf kbd { font: 400 13px var(--mono); border: 1px solid var(--line); border-radius: 3px; padding: 1px 6px; }
+  .nf-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+  .nf-btn { display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border: 1px solid var(--line); border-radius: 6px; color: var(--text); text-decoration: none; font-weight: 600; }
+  .nf-btn:hover { border-color: var(--muted); }
+  .nf-btn.primary { background: var(--sip); border-color: var(--sip); color: var(--bg); }
+</style>

@@ -14,6 +14,8 @@ const modules = defineCollection({
       dev: z.enum(['core', 'optional']),
     }),
     summary: z.string(),
+    /** For search results and link previews only: 70–160 characters, keywords first */
+    description: z.string().min(70).max(160),
     objectives: z.array(z.string()).min(1),
     status: z.enum(['draft', 'review', 'published']).default('draft'),
   }),

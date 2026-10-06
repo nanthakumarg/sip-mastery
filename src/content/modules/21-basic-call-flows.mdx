@@ -5,6 +5,7 @@ part: 8
 level: [basic, intermediate]
 paths: { noc: core, dev: core }
 summary: "The basic call flows of RFC 3665, message by message: registration with and without a challenge, a direct call, calls through one and two proxies, a 407 challenge, busy, no answer, no response, declined and not found, CANCEL, early media, late offer, a redirect, and parallel and sequential forking. One call flow builder covers every combination, with \"what if\" options."
+description: "The basic SIP call flows of RFC 3665: registration, calls through proxies, busy, no answer, CANCEL, early media, redirect, forking, with a flow builder."
 objectives:
   - Follow a registration and a basic call, direct and through proxies, and say which element sends each message.
   - Tell which messages go hop by hop (100 Trying, CANCEL, the ACK for a failure response) and which go end to end (the 2xx, its ACK, BYE).

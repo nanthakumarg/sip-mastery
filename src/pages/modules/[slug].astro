@@ -75,6 +75,7 @@ import PassportDecoder from '../../components/PassportDecoder.astro';
 import QualityBudget from '../../components/QualityBudget.astro';
 import DscpExplorer from '../../components/DscpExplorer.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
+import { moduleJsonLd, moduleTitle } from '../../lib/seo.ts';
 import { url } from '../../lib/url.ts';
 
 export async function getStaticPaths() {
@@ -94,6 +95,11 @@ const prev = all[i - 1];
 const next = all[i + 1];
 const flat = OUTLINE.flatMap(p => p.modules);
 const nextPlanned = flat.find(m => m.n === d.module + 1);
+const home = new URL(url(), Astro.site).href;
+const jsonLd = moduleJsonLd(home, {
+  n: d.module, title: d.title, description: d.description, url: new URL(url(`modules/${entry.id}/`), Astro.site).href,
+  level: d.level, objectives: d.objectives, part,
+});
 
 const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mistakes, Mistake, Term, Stats, Stat, Digest, CallPlayer, TwoPaths, ProtocolStack, ColourKey,
   CircuitVsPacket, ProtocolCompare, HttpVsSip, RfcMap, Landscape,
@@ -111,7 +117,7 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
   RtcpExplorer, RttTimeline, MosCalc,
   SrtpPacket, KeyExchange, TransportRace, NatSimulator, IceChecker, FlowBuilder, FlowPair, NumberNormaliser, ElementCompare, SbcExplorer, SdpCompare, WebrtcGateway, ImsMap, PassportDecoder, QualityBudget, DscpExplorer };
 ---
-<Base title={`${pad2(d.module)} ${d.title}`} description={d.summary} withSidebar>
+<Base title={moduleTitle(d.module, d.title)} description={d.description} image={`og/${entry.id}.png`} imageAlt={`Module ${pad2(d.module)}: ${d.title}. SIP Mastery`} jsonLd={jsonLd} withSidebar>
   <div class="shell">
     <Sidebar current={d.module} />
     <main class="main" id="content">

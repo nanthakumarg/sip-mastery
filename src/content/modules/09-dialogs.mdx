@@ -5,6 +5,7 @@ part: 3
 level: [intermediate, advanced]
 paths: { noc: optional, dev: core }
 summary: The relationship between two user agents that lasts for a whole call — how a dialog starts, what state each side keeps, how requests inside it are built, and what happens when an INVITE forks, when re-INVITEs cross, and when nobody refreshes the session.
+description: "SIP dialogs: how a dialog starts, its Call-ID, tags, and CSeq state, in-dialog requests, forked INVITEs, glare between re-INVITEs, and session timers."
 objectives:
   - Build the dialog ID from Call-ID and tags, from both sides of the call.
   - Tell an early dialog from a confirmed dialog, and say what ends each one.

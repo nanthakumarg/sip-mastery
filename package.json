@@ -16,6 +16,7 @@
     "test": "vitest run",
     "check:content": "node scripts/check-content.ts",
     "verify:rfc": "node scripts/verify-rfc-quotes.ts",
+    "check:seo": "node scripts/check-seo.ts",
     "prebuild": "npm run check:content",
     "verify": "npm run check:content && npm run verify:rfc && npm test",
     "sync:rfc-index": "node scripts/sync-rfc-index.ts",
@@ -34,10 +35,13 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@fontsource/bricolage-grotesque": "^5.3.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^24.19.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/spark-md5": "^3.0.5",
+    "satori": "^0.35.0",
     "typescript": "^6.0.3",
     "vitest": "^5.0.3"
   }
