@@ -35,8 +35,8 @@ Both paths use the same pages. A path only changes the order and which lessons i
 |---|---|---|
 | Goal | Read a trace and find the fault fast | Build or debug SIP software that follows the RFCs |
 | Focus | Symptoms → causes, header meaning, call flows, NAT, media faults | State machines, matching rules, message construction, timers |
-| Core modules | 0, 2–7, 10, 12–13, 15–16, 19–24, 30–32 | 0–29 (all), then 31–32 |
-| Diagram emphasis | Trace viewer, broken/fixed toggles, symptom map | Transaction and dialog state machines, step-by-step header changes |
+| Core modules | 0, 2–7, 10, 12–13, 15–16, 19–24 | 0–29 (all) |
+| Diagram emphasis | Broken/fixed toggles, call flow builders | Transaction and dialog state machines, step-by-step header changes |
 
 Each module page shows a badge: `NOC core`, `DEV core`, or `optional for this path`.
 
@@ -58,8 +58,6 @@ Each module page shows a badge: `NOC core`, `DEV core`, or `optional for this pa
 | 7 | NAT traversal | 20 | 🔴 |
 | 8 | Call flow library | 21–24 | 🟡→🔴 |
 | 9 | SIP in the real world: SBCs, WebRTC, IMS/VoLTE, STIR/SHAKEN, quality | 25–29 | 🔴 |
-| 10 | Troubleshooting | 30–31 | 🔴 |
-| 11 | Case files | 32 | 🔴 |
 
 ### Module page template
 Every module uses the same layout:
@@ -628,59 +626,6 @@ The flows follow RFC 3665 (basic call flows) and RFC 5359 (service examples).
 
 ---
 
-## Part 10: Troubleshooting
-
-### Module 30: Reading traces 🟡→🔴
-Everything runs in the browser. There are no tools to install. Real tools are named so the reader can find them later.
-- 30.1 Trace formats: what a sngrep, Wireshark, or HOMER view shows
-- 30.2 Reading a ladder fast: find the Call-ID, the final response, and the first odd message
-- 30.3 Filter thinking: by Call-ID, by user, by code
-- 30.4 Reading RTP stream statistics: loss, jitter, sequence errors
-- 30.5 Logs and traces together
-
-**Diagrams:** 🖥 *In-browser trace viewer*: a sngrep-like view of prepared example traces, with a call list, a ladder, and a message pane. 📊 *RTP stream panel*: a graph of loss and jitter per stream.
-
-### Module 31: Troubleshooting playbook 🔴
-A symptom map. Click a symptom to see the decision tree and the example trace.
-
-| Symptom | Usual causes |
-|---|---|
-| One-way or no audio | NAT, private IP in SDP, SIP ALG, firewall RTP range, direction attribute stuck |
-| Call drops at about 32 s | ACK not received: wrong Contact, NAT, missing Record-Route |
-| Call drops at a fixed time (e.g. 15 or 30 min) | Session timer refresh fails; NAT or firewall timeout |
-| Registration fails or flaps | Auth or realm, NAT timeout and expiry, ALG, DNS |
-| 401/407 loop | Wrong credentials or realm, wrong digest `uri`, stale nonce |
-| 488 Not Acceptable Here | Codec mismatch, SRTP profile mismatch |
-| 481 on BYE or re-INVITE | Dialog state lost, wrong tags |
-| 408 or 503 | DNS, transport, overload, failover |
-| Large INVITE is lost | UDP fragmentation; use TCP |
-| DTMF fails | Payload type mismatch; in-band vs RFC 4733 vs INFO |
-| Wrong caller ID | From, PAI, and Privacy handling; trunk number format |
-| Incoming calls fail, outgoing calls work | NAT binding expired, Contact unreachable, no keepalive |
-| STIR/SHAKEN shows "not verified" | Identity header removed, certificate failure, attestation level |
-| WebRTC call connects but has no audio | ICE failure, no TURN, DTLS role mismatch |
-
-**Diagrams:** 🌲 *Symptom decision tree*: answer "yes/no" at each node to reach the cause and an example trace. (This is a guided tree, not a quiz. There is no score.)
-
-## Part 11: Case files
-
-### Module 32: Case files 🔴
-Ten guided investigations. Each case has a short story ("the customer reports…"), a prepared trace in the trace viewer, hints that open one at a time, and a final explanation with the fix shown as a Broken/Fixed diagram. There is no score.
-
-Example cases:
-1. Remote workers lose incoming calls after 5 minutes
-2. Every call to one carrier drops at 32 seconds
-3. Audio only in one direction for home users
-4. Transfers fail on one model of phone
-5. Calls from the WebRTC client have no audio on hotel Wi-Fi
-6. Calls are "Spam likely" after a carrier change (STIR/SHAKEN)
-7. VoLTE calls stay at "connecting" (preconditions)
-8. 401 loop after a password change
-9. Large INVITEs disappear after video is turned on
-10. BYE never reaches the gateway in an HA pair
-
----
-
 ## 4. Visual design direction (from `presentations/`)
 
 The course uses the same visual language as both decks. This is a direction, not the final technical design.
@@ -726,8 +671,6 @@ A small set of reusable diagram types used across all modules. Each one is drive
 | **Timeline** | Timers, expiry, session timers, NAT timeout | Drag time; see events fire |
 | **Broken/Fixed toggle** | Every common mistake | One toggle switches the diagram between the two states |
 | **Calculator** | Digest, bandwidth, MOS | Live inputs; each step of the result is shown |
-| **Trace viewer** | Modules 30–32 | Call list, ladder, message pane, RTP stats |
-| **Decision tree** | Troubleshooting playbook | Choose a branch; reach the cause |
 
 ### RFC quote block
 Every rule that matters gets one of these:
@@ -749,7 +692,7 @@ ASD-STE100 (Simplified Technical English) controls words: one word has one meani
 
 ### 5.1 Controlled vocabulary (labels)
 - Labels use **glossary terms only**. One term for one concept, everywhere: always "UAC", never also "client" or "caller side" for the same thing.
-- Element names never change: "Proxy A" in Module 3 is "Proxy A" in Module 31.
+- Element names never change: "Proxy A" in Module 3 is "Proxy A" in Module 25.
 - Arrow labels show the **method or status code** plus at most one key detail: `INVITE`, `407 Proxy Auth`, `ACK (new branch)`. Maximum 5 words.
 - Node labels: maximum 3 words for the name and 2 short lines for the subtitle.
 - No synonyms, slang, or decorative words in a diagram.
@@ -817,8 +760,8 @@ The lesson prose that explains each diagram has no fixed style rules. It should 
 
 1. **Phase 1: core story.** Modules 0, 3–6, 12, 13, 21. A reader can follow a registration and a basic call with authentication. This phase also builds the Ladder, Message inspector, and Broken/Fixed components.
 2. **Phase 2: mechanics.** Modules 7–10, 15–16, 19–20, 22. Adds the State machine, Topology, NAT simulator, and SDP negotiator.
-3. **Phase 3: depth.** Modules 11, 14, 17–18, 23–24, 30–31. Adds the Trace viewer, Bit map, and Decision tree.
-4. **Phase 4: real world.** Modules 1–2, 25–29, 32.
+3. **Phase 3: depth.** Modules 11, 14, 17–18, 23–24. Adds the Bit map.
+4. **Phase 4: real world.** Modules 1–2, 25–29.
 
 ## 7. Key RFC index
 
