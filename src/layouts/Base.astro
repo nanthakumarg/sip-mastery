@@ -46,6 +46,7 @@ const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
   </head>
   <body>
     <a class="sr-only" href="#content">Skip to content</a>
+    <div class="nav-loader" aria-hidden="true"><div class="nav-bar"></div><div class="nav-chip"><span class="nav-spin"></span>Loading…</div></div>
     <header class="site-head">
       <a class="brand" href={url()}><BrandMark />SIP <em>Mastery</em></a>
       <div class="head-tools">
@@ -83,6 +84,27 @@ const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
         try { localStorage.setItem('theme', light ? 'light' : 'dark'); } catch {}
         showTheme();
       });
+
+      // Page loader: some module pages are large, so show that the next page is on its way.
+      // The bar and chip appear only if the page takes more than a moment (CSS delays).
+      let navTimer: number | undefined;
+      const startNav = () => {
+        root.classList.add('is-navigating');
+        clearTimeout(navTimer);
+        navTimer = window.setTimeout(() => root.classList.remove('is-navigating'), 20000);
+      };
+      document.addEventListener('click', e => {
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+        if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+        const to = new URL(a.href, location.href);
+        if (!/^https?:$/.test(to.protocol)) return;
+        if (to.pathname === location.pathname && to.search === location.search) return; // same page or #anchor
+        startNav();
+      });
+      document.addEventListener('sip:navigate', startNav);
+      // Back/forward from the page cache: the old page comes back, so hide the loader
+      window.addEventListener('pageshow', () => root.classList.remove('is-navigating'));
 
       const btn = document.getElementById('menu-btn');
       btn?.addEventListener('click', () => {

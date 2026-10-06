@@ -19,7 +19,7 @@ const total = OUTLINE.reduce((n, p) => n + p.modules.length, 0);
         <h1>Learn SIP by <em>watching it work</em></h1>
         <p class="lede">From the first REGISTER to one-way audio behind NAT. Every concept is an interactive call flow you can step through, message by message, with the RFC sentence that defines it.</p>
         <div class="hero-cta">
-          {live.has(0) && <a class="btn primary" href={url(`modules/${live.get(0)}/`)}>Start with Module 0 →</a>}
+          {live.has(0) && <a class="btn primary" href={url(`modules/${live.get(0)}/`)} data-astro-prefetch>Start with Module 0 →</a>}
           <a class="btn" href="#map">See the course map</a>
         </div>
         <ul class="legend hero-legend" aria-label="Colour key">

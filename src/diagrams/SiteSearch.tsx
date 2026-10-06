@@ -55,6 +55,7 @@ export default function SiteSearch() {
   const go = (doc: SearchDoc | undefined) => {
     if (!doc?.u) return;
     dialog.current?.close();
+    document.dispatchEvent(new Event('sip:navigate'));
     window.location.href = doc.u;
   };
 
@@ -107,7 +108,7 @@ export default function SiteSearch() {
                     className={`search-hit k-${doc.k}${doc.u ? '' : ' no-link'}`} onMouseMove={() => setSel(i)} onClick={() => go(doc)}>
                     <p className="search-hit-head">
                       <span className="search-kind">{KIND_LABEL[doc.k]}</span>
-                      {doc.u ? <a href={doc.u} onClick={e => e.stopPropagation()} tabIndex={-1}>{doc.t}</a> : <b>{doc.t}</b>}
+                      {doc.u ? <a href={doc.u} onClick={e => { e.stopPropagation(); document.dispatchEvent(new Event('sip:navigate')); }} tabIndex={-1}>{doc.t}</a> : <b>{doc.t}</b>}
                       <span className="search-where">{doc.s}</span>
                     </p>
                     <p className="search-snip">{snippet(doc.x, q, doc.u ? 160 : 400).map((s, j) => s.mark ? <mark key={j}>{s.t}</mark> : <span key={j}>{s.t}</span>)}</p>

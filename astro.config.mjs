@@ -9,5 +9,7 @@ export default defineConfig({
   site: process.env.SITE ?? 'https://sip.nanthakumar.com',
   base: process.env.BASE ?? '/',
   trailingSlash: 'ignore',
+  // Opt-in prefetch: only links marked data-astro-prefetch (next/previous module, Start)
+  prefetch: true,
   integrations: [mdx(), react()],
 });

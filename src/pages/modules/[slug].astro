@@ -123,7 +123,6 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
           {d.level.map(l => <span class="badge">{LEVEL_LABEL[l]}</span>)}
           <span class={`badge ${d.paths.noc}`}>NOC {d.paths.noc}</span>
           <span class={`badge ${d.paths.dev}`}>DEV {d.paths.dev}</span>
-          {d.status !== 'published' && <span class="badge draft">{d.status}</span>}
         </div>
         <section class="objectives" aria-label="Objectives">
           <p class="eyebrow">After this module, you can</p>
@@ -136,9 +135,9 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
       </article>
 
       <nav class="mod-foot" aria-label="Module navigation">
-        {prev && <a href={url(`modules/${prev.id}/`)}><small>← Module {pad2(prev.data.module)}</small><span>{prev.data.title}</span></a>}
+        {prev && <a href={url(`modules/${prev.id}/`)} data-astro-prefetch><small>← Module {pad2(prev.data.module)}</small><span>{prev.data.title}</span></a>}
         {next
-          ? <a class="next" href={url(`modules/${next.id}/`)}><small>Module {pad2(next.data.module)} →</small><span>{next.data.title}</span></a>
+          ? <a class="next" href={url(`modules/${next.id}/`)} data-astro-prefetch="viewport"><small>Module {pad2(next.data.module)} →</small><span>{next.data.title}</span></a>
           : nextPlanned && <a class="next soon" aria-disabled="true"><small>Module {pad2(nextPlanned.n)} · coming soon</small><span>{nextPlanned.title}</span></a>}
       </nav>
     </main>

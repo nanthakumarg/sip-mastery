@@ -14,6 +14,23 @@
 .head-tools { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .head-tools .site-nav { margin-right: 8px; }
 
+/* ---------- Page loader ---------- */
+.nav-loader { position: fixed; inset: 0 0 auto; z-index: 100; pointer-events: none; }
+.nav-bar { height: 3px; background: var(--sip); transform: scaleX(0); transform-origin: 0 50%; opacity: 0; }
+.nav-chip { position: absolute; top: 76px; left: 50%; display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 11px; font: 400 12.5px var(--mono); color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 6px 24px var(--shadow-soft); opacity: 0; transform: translate(-50%, -6px); }
+.nav-spin { width: 13px; height: 13px; border: 2px solid var(--line); border-top-color: var(--sip); border-radius: 50%; animation: nav-spin .8s linear infinite; }
+html.is-navigating, html.is-navigating a { cursor: progress; }
+html.is-navigating .nav-bar { animation: nav-bar 12s cubic-bezier(.08, .8, .2, 1) .15s forwards; }
+html.is-navigating .nav-chip { animation: nav-chip .25s var(--ease) .5s forwards; }
+@keyframes nav-bar { from { opacity: 1; transform: scaleX(.04); } to { opacity: 1; transform: scaleX(.94); } }
+@keyframes nav-chip { to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes nav-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  html.is-navigating .nav-bar { animation: none; opacity: 1; transform: scaleX(1); }
+  html.is-navigating .nav-chip { animation: none; opacity: 1; transform: translate(-50%, 0); }
+  .nav-spin { animation-duration: 2s; }
+}
+
 /* ---------- Theme toggle ---------- */
 .theme-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; color: var(--dim); background: var(--panel); border: 1px solid var(--line); border-radius: 5px; cursor: pointer; }
 .theme-btn:hover { color: var(--text); border-color: var(--muted); }
@@ -98,7 +115,6 @@
 .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 .badge { font: 500 11.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 6px 9px 5px; border-radius: 3px; border: 1px solid var(--line); color: var(--dim); }
 .badge.core { border-color: color-mix(in srgb, var(--text) 50%, transparent); color: var(--text); }
-.badge.draft { border-style: dashed; color: var(--muted); }
 .objectives { margin-top: 28px; padding: 18px 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
 .objectives .eyebrow { margin-bottom: 8px; }
 .objectives ul { list-style: none; display: grid; gap: 6px; }
