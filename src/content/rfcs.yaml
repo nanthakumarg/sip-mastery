@@ -17,7 +17,7 @@ areas:
 rfcs:
   # --- SIP core ---------------------------------------------------------------
   - { n: 2543, area: core, proto: sip, short: SIP (first version), summary: "The first SIP specification. In 2002, RFC 3261 and four companion RFCs (3262 to 3265) replaced it.", modules: [1] }
-  - { n: 3261, area: core, proto: sip, short: SIP, summary: "The core of SIP: messages, transactions, dialogs, proxies, registration, and authentication.", modules: [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 19] }
+  - { n: 3261, area: core, proto: sip, short: SIP, summary: "The core of SIP: messages, transactions, dialogs, proxies, registration, and authentication.", modules: [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 19, 21] }
   - { n: 3263, area: core, proto: dns, short: Locating SIP servers, summary: "How a client uses DNS (NAPTR, SRV, A and AAAA records) to find a SIP server.", modules: [11] }
   - { n: 2782, area: core, proto: dns, short: DNS SRV, summary: "The SRV record: which servers offer a service in a domain, at which port, with priority for failover and weight for load sharing.", modules: [11] }
   - { n: 3581, area: core, proto: sip, short: rport, summary: "The rport parameter sends a response back to the source IP address and port of the request. This helps behind NAT.", modules: [10, 20] }
@@ -65,7 +65,7 @@ rfcs:
   - { n: 2327, area: media, proto: sdp, short: SDP (first version), summary: "The first SDP specification.", modules: [15] }
   - { n: 4566, area: media, proto: sdp, short: SDP (second version), summary: "The second SDP specification. RFC 8866 replaced it.", modules: [15] }
   - { n: 8866, area: media, proto: sdp, short: SDP, summary: "The Session Description Protocol format.", modules: [15] }
-  - { n: 3264, area: media, proto: sdp, short: Offer/answer, summary: "The offer/answer model for negotiating media with SDP.", modules: [15] }
+  - { n: 3264, area: media, proto: sdp, short: Offer/answer, summary: "The offer/answer model for negotiating media with SDP.", modules: [15, 21] }
   - { n: 3389, area: media, proto: rtp, short: Comfort noise, summary: "The comfort noise (CN) payload: the level of the background noise during silence.", modules: [16] }
   - { n: 4961, area: media, proto: rtp, short: Symmetric RTP, summary: "Send RTP and RTCP from the port where you receive them. NAT and SBCs need it.", modules: [16, 20] }
   - { n: 6716, area: media, proto: rtp, short: Opus, summary: "The Opus audio codec, from narrowband speech to fullband music.", modules: [16] }
@@ -127,6 +127,7 @@ rfcs:
   - { n: 2119, area: guide, short: Key words, summary: "Defines MUST, SHOULD, MAY, and the other requirement key words.", modules: [1] }
   - { n: 8174, area: guide, short: Key words (update), summary: "The key words have their special meaning only in capital letters.", modules: [1] }
   - { n: 3665, area: guide, proto: sip, short: Basic call flows, summary: "Example message flows for registration and basic calls.", modules: [21] }
+  - { n: 3960, area: guide, proto: rtp, short: Early media, summary: "Early media and ringing tone generation: when the caller's phone plays local ringback, and when it plays the media from the far end.", modules: [21] }
   - { n: 3725, area: guide, proto: sip, short: Third-party call control, summary: "Best current practices for third-party call control.", modules: [22] }
   - { n: 5359, area: guide, proto: sip, short: Service examples, summary: "Example flows for services such as hold, transfer, and call forwarding.", modules: [22] }
   - { n: 6141, area: guide, proto: sip, short: re-INVITE handling, summary: "How to handle re-INVITEs and their failures correctly.", modules: [9, 22] }

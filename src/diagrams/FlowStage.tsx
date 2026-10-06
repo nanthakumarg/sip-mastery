@@ -3,7 +3,7 @@
  * Controls are the same in every diagram (COURSE_STRUCTURE §5.5):
  * ⏮ first · ◀ back · ▶ play / ❚❚ pause · ▶| next · ↺ reset; ←/→ and Space on the stage.
  */
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import Inspector from './Inspector.tsx';
 import Ladder, { ladderWidth, usedProtocols } from './Ladder.tsx';
 import { comparableIndex } from './diff.ts';
@@ -15,11 +15,19 @@ interface Props extends FlowBundle {
   eyebrow?: string;
   /** Milliseconds per step while playing. */
   speed?: number;
+  /** Controls shown between the header and the ladder (the call flow builder's options). */
+  toolbar?: ReactNode;
 }
 
-export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow', speed = 2400 }: Props) {
+export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow', speed = 2400, toolbar }: Props) {
   const p = usePlayer(flow.steps.length, speed);
-  const { current, go } = p;
+  const { go } = p;
+  // A new flow (the call flow builder) starts again at step 1.
+  const current = Math.min(p.current, flow.steps.length - 1);
+  const shown = useRef(flow.id);
+  useEffect(() => {
+    if (shown.current !== flow.id) { shown.current = flow.id; go(0); }
+  }, [flow.id]);
   const figureRef = useRef<HTMLElement>(null);
   const x = useExpand(figureRef);
   const ladderBox = useRef<HTMLDivElement>(null);
@@ -67,6 +75,7 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
         </ul>
         <ExpandButton x={x} />
       </header>
+      {toolbar}
 
       <div className="stage-main">
         <div className="stage-left">
@@ -84,7 +93,7 @@ export default function FlowStage({ flow, quotes, refData, eyebrow = 'Call flow'
         </div>
         <aside className="stage-inspector">
           <Inspector
-            key={current}
+            key={`${flow.id}:${current}`}
             step={step}
             prev={prevIndex >= 0 ? flow.steps[prevIndex] : undefined}
             laneLabel={laneLabel}

@@ -1897,3 +1897,25 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 .ice-trig { margin: 0 6px; padding: 0 5px; border: 1px solid var(--line); border-radius: 3px; font: 400 10.5px var(--mono); color: var(--muted); }
 @media (max-width: 800px) { .ice-cols { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 420px) { .natsim-seg button { padding: 4px 8px; font-size: 12px; } .natsim-p { grid-template-columns: 18px minmax(0, 1fr); padding-right: 8px; } }
+
+/* Call flow builder (Module 21) */
+.cb-controls { display: grid; gap: 8px; margin-top: 14px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; }
+.cb-group { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 4px 0; min-width: 0; }
+.cb-opts { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.cb-label { font: 500 11.5px var(--mono); color: var(--muted); }
+.cb-opts > button:not(.rl-toggle) { height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--dim); font: 400 12.5px var(--mono); }
+.cb-opts > button:not(.rl-toggle):hover { color: var(--text); }
+.cb-opts > button[aria-pressed=true]:not(.rl-toggle) { background: var(--text); color: var(--bg); font-weight: 500; }
+.cb-group .rl-toggle { height: 32px; }
+.cb-group button:disabled { opacity: .45; cursor: not-allowed; }
+.cb-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.cb-foot:not(:has(button)):has(.cb-notes:empty) { display: none; }
+.cb-notes { font: 400 12.5px var(--mono); color: var(--sdp); }
+.cb-reset { margin-left: auto; height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--dim); font: 400 12px var(--mono); }
+.cb-reset:hover { color: var(--text); }
+@media (max-width: 640px) {
+  .cb-controls { padding: 10px; gap: 6px; }
+  .cb-group { grid-template-columns: minmax(0, 1fr); gap: 3px 0; }
+  .cb-opts { gap: 3px; }
+  .cb-opts > button:not(.rl-toggle), .cb-group .rl-toggle { height: 28px; padding: 0 7px; font-size: 11.5px; gap: 5px; }
+}

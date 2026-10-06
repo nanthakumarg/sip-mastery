@@ -1,0 +1,223 @@
+id: early-media-local-ringback
+title: "Problem: the phone plays its own ringback over early media"
+summary: The carrier gateway answers 183 with SDP and sends the far network's tones as RTP. Alice's phone ignores the RTP and plays its own ringback tone.
+lanes:
+  - { id: alice, label: Alice, kind: ua, sub: 192.0.2.10 }
+  - { id: proxyA, label: Proxy A, kind: proxy, sub: 198.51.100.10 }
+  - { id: gw, label: Carrier gateway, kind: server, sub: 198.51.100.80 }
+steps:
+  - from: alice
+    to: proxyA
+    label: INVITE
+    caption: Alice's phone calls a phone number in the public telephone network.
+    message: |
+      INVITE sip:+12025550123@atlanta.example;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6a1
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: proxyA
+    to: alice
+    label: 100 Trying
+    caption: Proxy A answers 100 Trying on its hop. Alice's phone stops retransmitting.
+    rfc: rfc3261-21.1.1-100
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6a1
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: gw
+    label: INVITE
+    caption: Proxy A routes the number to the Carrier gateway.
+    message: |
+      INVITE sip:+12025550123@198.51.100.80;user=phone SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa91c2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6a1
+      Max-Forwards: 69
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0 8
+      a=rtpmap:0 PCMU/8000
+      a=rtpmap:8 PCMA/8000
+
+  - from: gw
+    to: proxyA
+    label: 100 Trying
+    caption: The gateway answers 100 Trying to Proxy A. Proxy A does not forward it.
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa91c2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6a1
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 INVITE
+      Content-Length: {auto}
+
+  - from: gw
+    to: proxyA
+    label: 183 Session Progress
+    caption: The far exchange starts to alert the callee. The gateway sends 183 with SDP for early media.
+    rfc: rfc3261-21.1.5-183
+    message: |
+      SIP/2.0 183 Session Progress
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa91c2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6a1
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=gw77a1
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:+12025550123@198.51.100.80>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=gw 4711 4711 IN IP4 198.51.100.80
+      s=-
+      c=IN IP4 198.51.100.80
+      t=0 0
+      m=audio 30000 RTP/AVP 8
+      a=rtpmap:8 PCMA/8000
+
+  - from: proxyA
+    to: alice
+    label: 183 Session Progress
+    caption: Proxy A forwards the 183. Alice's phone treats it like a 180 and starts its own ringback tone.
+    message: |
+      SIP/2.0 183 Session Progress
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6a1
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=gw77a1
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:+12025550123@198.51.100.80>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=gw 4711 4711 IN IP4 198.51.100.80
+      s=-
+      c=IN IP4 198.51.100.80
+      t=0 0
+      m=audio 30000 RTP/AVP 8
+      a=rtpmap:8 PCMA/8000
+
+  - from: gw
+    to: alice
+    kind: media
+    label: RTP early media
+    caption: The far network sends its ringback tone, or an announcement, as RTP. Alice's phone does not play it.
+    warn: Alice hears her phone's local tone instead. She misses any announcement from the network.
+
+  - from: gw
+    to: proxyA
+    label: 200 OK
+    caption: The callee answers. The gateway sends 200 OK.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa91c2
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6a1
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=gw77a1
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:+12025550123@198.51.100.80>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=gw 4711 4711 IN IP4 198.51.100.80
+      s=-
+      c=IN IP4 198.51.100.80
+      t=0 0
+      m=audio 30000 RTP/AVP 8
+      a=rtpmap:8 PCMA/8000
+
+  - from: proxyA
+    to: alice
+    label: 200 OK
+    caption: Proxy A forwards the 200 OK. The same media stream now carries the conversation.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6a1
+      Record-Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=gw77a1
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 INVITE
+      Contact: <sip:+12025550123@198.51.100.80>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=gw 4711 4711 IN IP4 198.51.100.80
+      s=-
+      c=IN IP4 198.51.100.80
+      t=0 0
+      m=audio 30000 RTP/AVP 8
+      a=rtpmap:8 PCMA/8000
+
+  - from: alice
+    to: proxyA
+    label: ACK
+    caption: Alice's phone confirms the 200 OK. Proxy A record-routed, so the ACK passes through it.
+    message: |
+      ACK sip:+12025550123@198.51.100.80 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6b7
+      Max-Forwards: 70
+      Route: <sip:proxy.atlanta.example;lr>
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=gw77a1
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}
+
+  - from: proxyA
+    to: gw
+    label: ACK
+    caption: Proxy A forwards the ACK to the gateway. The call is up.
+    message: |
+      ACK sip:+12025550123@198.51.100.80 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.10:5060;branch=z9hG4bKpa91c3
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK3e6b7
+      Max-Forwards: 69
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: <sip:+12025550123@atlanta.example;user=phone>;tag=gw77a1
+      Call-ID: 5c1f8e2d9a@192.0.2.10
+      CSeq: 1 ACK
+      Content-Length: {auto}

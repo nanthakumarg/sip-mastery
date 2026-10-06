@@ -59,6 +59,7 @@ sip-course/
 │  │  ├─ attacks.ts              # attacks and the defences that close them (Module 14)
 │  │  ├─ cert.ts                 # RFC 5922 §7 server certificate check (Module 14)
 │  │  ├─ sdp.ts                  # SDP parser and linter, RFC 3264 offer/answer, hold (Module 15)
+│  │  ├─ callflow.ts             # call flow generator: every basic call of RFC 3665 from a few options (Module 21)
 │  │  └─ digest.ts               # HA1 / HA2 / response
 │  ├─ net/                       # below SIP: addresses, packets, RTP
 │  │  ├─ address.ts              # address classes (Module 2)
@@ -85,10 +86,10 @@ sip-course/
 │  │  ├─ Mistake.astro
 │  │  └─ ModuleHeader.astro …
 │  ├─ layouts/
-│  ├─ pages/
+│  ├─ pages/                     # also call-builder.json: quotes and header notes shared by every call flow builder
 │  └─ styles/tokens.css, base.css, diagram.css
 ├─ scripts/
-│  ├─ check-content.ts           # runs both linters over every flow
+│  ├─ check-content.ts           # runs both linters over every flow, and every call flow generator combination
 │  └─ verify-rfc-quotes.ts       # verifies quotes against rfc-editor.org text
 ├─ tests/                        # Vitest
 ├─ presentations/                # original decks (design reference)
@@ -242,6 +243,7 @@ Rendering choices:
 | `sdes-over-tls` | An SDP with an SDES key (`a=crypto` with `inline:`) travels only on a TLS (or WSS) hop, from the top Via (RFC 4568 §8.3) |
 | `udp-size` | A request over 1300 bytes is not sent over UDP (top Via), at any hop (RFC 3261 §18.1.1) |
 | `sip-alg` | A message that leaves a NAT lane is the message that entered it: a NAT router rewrites IP and UDP headers, not SIP (RFC 4787 §7, RFC 6314 §3) |
+| `late-offer-ack` | When the INVITE has no SDP, the 2xx carries the offer, and the ACK for it carries the answer (RFC 3261 §13.2.2.4, RFC 3264 §4) |
 | `dtls-setup` | A DTLS-SRTP offer says `a=setup:actpass`; the answer says `active` or `passive`, the opposite of a fixed role in the offer (RFC 8842 §5.2, RFC 4145 §4.1) |
 
 ### 6.2 Diagram language checks (`lint-diagram.ts`)

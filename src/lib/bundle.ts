@@ -1,7 +1,8 @@
 /**
  * Builds the props for diagram islands from the data files (build time only).
  */
-import type { ClientFlow, ClientQuote, ClientRef, ClientRefEntry, FlowBundle } from '../diagrams/types.ts';
+import type { ClientQuote, ClientRef, ClientRefEntry, FlowBundle } from '../diagrams/types.ts';
+import { toClientFlow } from '../diagrams/client-flow.ts';
 import { loadFlow, loadHeaderRef, loadQuotes, rfcUrl, type RefEntry } from './data.ts';
 
 const toRef = (e: RefEntry): ClientRefEntry => ({
@@ -26,14 +27,7 @@ export async function flowBundle(...ids: string[]): Promise<FlowBundle[]> {
   const allQuotes = loadQuotes();
   return Promise.all(ids.map(async id => {
     const f = await loadFlow(id);
-    const flow: ClientFlow = {
-      id: f.id, title: f.title, summary: f.summary, broken: f.broken, lanes: f.lanes,
-      phases: f.phases, map: f.map, registrar: f.registrar,
-      steps: f.steps.map(s => ({
-        index: s.index, kind: s.kind, from: s.from, to: s.to, proto: s.proto, label: s.label,
-        caption: s.caption, warn: s.warn, lost: s.lost, oneway: s.oneway, rfc: s.rfc, wire: s.wire, status: s.status, detail: s.detail, at: s.at,
-      })),
-    };
+    const flow = toClientFlow(f);
     const quotes: Record<string, ClientQuote> = {};
     for (const s of f.steps) {
       const q = s.rfc ? allQuotes.find(x => x.id === s.rfc) : undefined;

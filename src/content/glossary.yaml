@@ -104,6 +104,9 @@
   definition: A request sent inside an existing dialog. It carries both tags and follows the dialog's route set.
 - term: early media
   definition: Audio sent before the call is answered, such as a ringback tone or an announcement from the far network.
+- term: ringback tone
+  aliases: [ringback, local ringback]
+  definition: The tone the caller hears while the callee's phone rings. The caller's phone makes it locally after a 180, unless early media arrives from the far end.
 - term: Q.850
   definition: The ITU-T list of cause values that telephone networks use to say why a call ended, such as 16 (normal clearing) or 17 (user busy).
 - term: location service
@@ -255,6 +258,8 @@
   definition: Resends an INVITE over UDP. It starts at T1 and doubles each time.
 - term: Timer B
   definition: Ends an INVITE client transaction that has no response after 64×T1 (32 seconds).
+- term: Timer C
+  definition: A proxy's timer for an INVITE that has received a provisional response but no final one (longer than 3 minutes). When it fires, the proxy cancels that branch.
 - term: Timer D
   definition: Keeps an INVITE client transaction in Completed (32 s on UDP) to absorb copies of a 300–699 response.
 - term: Timer E

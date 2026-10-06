@@ -4545,3 +4545,164 @@
     The RECOMMENDED values for type preferences are 126 for host candidates, 110
     for peer-reflexive candidates, 100 for server-reflexive candidates, and 0
     for relayed candidates.
+
+# Module 21: basic call flows
+
+- id: rfc3665-1.3-not-copied
+  rfc: 3665
+  section: "1.3"
+  title: SIP Protocol Assumptions
+  text: >-
+    IMPORTANT: The exact flows here must not be copied as is by an implementer
+    due to specific incorrect characteristics that were introduced into the
+    document for convenience and are listed below.
+
+- id: rfc3665-3.2-record-route
+  rfc: 3665
+  section: "3.2"
+  title: Session Establishment Through Two Proxies
+  text: >-
+    Proxy 1 inserts a Record-Route header into the INVITE message to ensure that
+    it is present in all subsequent message exchanges.
+
+- id: rfc3665-3.9-hop-by-hop
+  rfc: 3665
+  section: "3.9"
+  title: Unsuccessful Busy
+  text: >-
+    Note that the non-2xx response is acknowledged on a hop-by-hop basis instead
+    of end-to-end.
+
+- id: rfc3665-3.8-crossed
+  rfc: 3665
+  section: "3.8"
+  title: Unsuccessful No Answer
+  text: >-
+    If a 200 OK to the INVITE had crossed with the CANCEL, Alice would have sent
+    an ACK then a BYE to Bob in order to properly terminate the call.
+
+- id: rfc3665-3.10-no-response
+  rfc: 3665
+  section: "3.10"
+  title: Unsuccessful No Response from User Agent
+  text: >-
+    In this example, there is no response from Bob to Alice's INVITE messages
+    being re-transmitted by Proxy 2. After the sixth re-transmission, Proxy 2
+    gives up and sends a 480 No Response to Alice.
+
+- id: rfc3261-21.4.24-486
+  rfc: 3261
+  section: "21.4.24"
+  title: 486 Busy Here
+  text: >-
+    The callee's end system was contacted successfully, but the callee is
+    currently not willing or able to take additional calls at this end system.
+
+- id: rfc3261-21.4.18-480
+  rfc: 3261
+  section: "21.4.18"
+  title: 480 Temporarily Unavailable
+  text: >-
+    The callee's end system was contacted successfully but the callee is
+    currently unavailable (for example, is not logged in, logged in but in a
+    state that precludes communication with the callee, or has activated the
+    "do not disturb" feature).
+
+- id: rfc3261-21.6.2-603
+  rfc: 3261
+  section: "21.6.2"
+  title: 603 Decline
+  text: >-
+    The callee's machine was successfully contacted but the user explicitly does
+    not wish to or cannot participate.
+
+- id: rfc3261-21.4.5-404
+  rfc: 3261
+  section: "21.4.5"
+  title: 404 Not Found
+  text: >-
+    The server has definitive information that the user does not exist at the
+    domain specified in the Request-URI.
+
+- id: rfc3261-21.4.9-408
+  rfc: 3261
+  section: "21.4.9"
+  title: 408 Request Timeout
+  text: >-
+    The server could not produce a response within a suitable amount of time,
+    for example, if it could not determine the location of the user in time.
+
+- id: rfc3261-21.3.3-302
+  rfc: 3261
+  section: "21.3.3"
+  title: 302 Moved Temporarily
+  text: >-
+    The requesting client SHOULD retry the request at the new address(es) given
+    by the Contact header field (Section 20.10). The Request-URI of the new
+    request uses the value of the Contact header field in the response.
+
+- id: rfc3261-16.6-parallel-sequential
+  rfc: 3261
+  section: "16.6"
+  title: Request Forwarding
+  text: >-
+    A stateful proxy MAY process the set in any order. It MAY process multiple
+    targets serially, allowing each client transaction to complete before
+    starting the next. It MAY start client transactions with every target in
+    parallel.
+
+- id: rfc3261-16.7-cancel-branches
+  rfc: 3261
+  section: "16.7"
+  title: Response Processing
+  text: >-
+    If the forwarded response was a final response, the proxy MUST generate a
+    CANCEL request for all pending client transactions associated with this
+    response context.
+
+- id: rfc3261-16.7-6xx
+  rfc: 3261
+  section: "16.7"
+  title: Response Processing
+  text: >-
+    If a 6xx response is received, it is not immediately forwarded, but the
+    stateful proxy SHOULD cancel all client pending transactions as described
+    in Section 10, and it MUST NOT create any new branches in this context.
+
+- id: rfc3261-16.8-timer-c
+  rfc: 3261
+  section: "16.8"
+  title: Processing Timer C
+  text: >-
+    If the client transaction has received a provisional response, the proxy
+    MUST generate a CANCEL request matching that transaction. If the client
+    transaction has not received a provisional response, the proxy MUST behave
+    as if the transaction received a 408 (Request Timeout) response.
+
+- id: rfc3261-13.3.1.1-progress
+  rfc: 3261
+  section: "13.3.1.1"
+  title: Progress
+  text: >-
+    This is accomplished with a provisional response between 101 and 199. These
+    provisional responses establish early dialogs and therefore follow the
+    procedures of Section 12.1.1 in addition to those of Section 8.2.6.
+
+- id: rfc3960-3.2-play-early-media
+  rfc: 3960
+  section: "3.2"
+  title: Ringing Tone Generation
+  text: >-
+    Such a UAC is supposed to generate ringing tones locally for its user as
+    long as no early media is received from the UAS. If the UAS generates early
+    media (e.g., an announcement or a special ringing tone), the UAC is supposed
+    to play it rather than generate the ringing tone locally.
+
+- id: rfc3960-3.2-check-media
+  rfc: 3960
+  section: "3.2"
+  title: Ringing Tone Generation
+  text: >-
+    Therefore, by only looking at the SIP signalling, a UAC cannot be sure
+    whether or not there will be early media for a particular session. The UAC
+    needs to check if media packets are arriving at a given moment.

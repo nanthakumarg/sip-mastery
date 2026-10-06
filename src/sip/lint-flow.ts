@@ -82,6 +82,7 @@ export function lintFlow(flow: PreparedFlow): LintIssue[] {
   checkSdp(flow, msgs, add);
   checkUdpSize(msgs, add);
   checkNatUnchanged(flow, msgs, add);
+  checkLateOfferAck(flow, msgs, add);
   return issues;
 }
 
@@ -570,5 +571,25 @@ function checkNatUnchanged(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
     const changed = b.filter((l, k) => l !== a[k]).length + Math.max(0, a.length - b.length);
     const k = b.findIndex((l, j) => l !== a[j]);
     add('sip-alg', s.index, `The NAT router changed ${changed} line${changed === 1 ? '' : 's'} of the SIP message, first "${a[k] ?? ''}" to "${b[k] ?? ''}". A NAT rewrites IP and UDP headers; a router that rewrites SIP is a SIP ALG`);
+  });
+}
+
+/**
+ * late-offer-ack (RFC 3261 §13.2.2.4, RFC 3264 §4): when the INVITE has no
+ * SDP, the 2xx carries the offer, and the UA that sent the INVITE must put its
+ * answer in the ACK. An ACK without SDP leaves the offer unanswered.
+ */
+function checkLateOfferAck(flow: PreparedFlow, msgs: MsgStep[], add: Add) {
+  const uas = new Set(flow.lanes.filter(l => l.kind === 'ua').map(l => l.id));
+  const hasSdp = (m: SipMessage) => !!sdpOf(getHeader(m, 'Content-Type'), m.body);
+  msgs.forEach((r, i) => {
+    const c = cseq(r.parsed);
+    if (!isResponse(r.parsed, 2) || c?.method !== 'INVITE' || !uas.has(r.to) || !hasSdp(r.parsed)) return;
+    const invite = msgs.slice(0, i).reverse().find(q => reverseHop(q, r) && isRequest(q.parsed, 'INVITE') && callId(q.parsed) === callId(r.parsed) && cseq(q.parsed)?.seq === c.seq);
+    if (!invite || hasSdp(invite.parsed)) return;
+    const ack = msgs.slice(i + 1).find(a => a.from === r.to && isRequest(a.parsed, 'ACK') && callId(a.parsed) === callId(r.parsed) && cseq(a.parsed)?.seq === c.seq);
+    if (ack && !hasSdp(ack.parsed)) {
+      add('late-offer-ack', ack.index, 'The INVITE had no SDP, so the 200 OK carried the offer. This ACK must carry the answer, but it has no SDP');
+    }
   });
 }
