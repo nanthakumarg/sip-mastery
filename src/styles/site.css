@@ -86,7 +86,7 @@ html.is-navigating .nav-chip { animation: nav-chip .25s var(--ease) .5s forwards
 .sidebar .part:first-child { margin-top: 0; }
 .sidebar .part-title { font: 500 11px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .sidebar ul { list-style: none; }
-.sidebar li a, .sidebar li span { display: flex; gap: 10px; padding: 5px 8px; border-radius: 4px; font-size: 14.5px; line-height: 1.35; text-decoration: none; }
+.sidebar li a, .sidebar li > span { display: flex; align-items: baseline; gap: 10px; padding: 5px 8px; border-radius: 4px; font-size: 14.5px; line-height: 1.35; text-decoration: none; }
 .sidebar li a { color: var(--dim); }
 .sidebar li a:hover { color: var(--text); background: var(--panel); }
 .sidebar li a[aria-current=page] { color: var(--text); background: var(--panel-2); box-shadow: inset 2px 0 0 var(--sip); }
