@@ -35,7 +35,7 @@ Both paths use the same pages. A path only changes the order and which lessons i
 |---|---|---|
 | Goal | Read a trace and find the fault fast | Build or debug SIP software that follows the RFCs |
 | Focus | Symptoms → causes, header meaning, call flows, NAT, media faults | State machines, matching rules, message construction, timers |
-| Core modules | 0, 2–7, 10, 12–13, 15–16, 19–24 | 0–29 (all) |
+| Core modules | 0, 2–7, 10, 12–13, 15–16, 19–24, 30 | 0–29 (all), 30 optional |
 | Diagram emphasis | Broken/fixed toggles, call flow builders | Transaction and dialog state machines, step-by-step header changes |
 
 Each module page shows a badge: `NOC core`, `DEV core`, or `optional for this path`.
@@ -58,6 +58,7 @@ Each module page shows a badge: `NOC core`, `DEV core`, or `optional for this pa
 | 7 | NAT traversal | 20 | 🔴 |
 | 8 | Call flow library | 21–24 | 🟡→🔴 |
 | 9 | SIP in the real world: SBCs, WebRTC, IMS/VoLTE, STIR/SHAKEN, quality | 25–29 | 🔴 |
+| 10 | Troubleshooting | 30 | 🟡→🔴 |
 
 ### Module page template
 Every module uses the same layout:
@@ -623,6 +624,25 @@ The flows follow RFC 3665 (basic call flows) and RFC 5359 (service examples).
 - 29.5 MOS and R-factor in practice
 
 **Diagrams:** 🎚 *Quality slider*: change delay, jitter, and loss, and see the MOS change.
+
+---
+
+## Part 10: Troubleshooting
+
+### Module 30: Tracing and troubleshooting tools 🟡→🔴
+A good-to-know reference. The earlier modules already explain the protocol, so this module has **no diagrams**: only tools, commands, and filters that the reader can use as they are.
+- 30.1 Where to capture: both sides of a B2BUA, SIP and RTP, TLS and SRTP
+- 30.2 The tools: tcpdump, sngrep, Wireshark and tshark, HOMER and HEP, sipgrep, SIPp, server logs
+- 30.3 Capturing with tcpdump: filters, full packets, ring buffers
+- 30.4 Following calls with sngrep
+- 30.5 Wireshark and tshark: display filters for SIP, SDP, RTP, and RTCP; VoIP Calls and RTP Streams; tshark one-liners
+- 30.6 HOMER, HEP, and server logs (Asterisk, FreeSWITCH, Kamailio, OpenSIPS, rtpengine)
+- 30.7 A short method, and a symptom table that points to the modules that explain each cause
+
+**Common mistakes**
+- Capturing only port 5060 when the fault is in the media.
+- Capturing only one side of an SBC.
+- Missing SIP over TLS, WebSocket, or an unusual port.
 
 ---
 

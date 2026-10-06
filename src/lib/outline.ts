@@ -63,6 +63,7 @@ export const OUTLINE: OutlinePart[] = [
     { n: 28, title: 'Caller identity: STIR/SHAKEN', levels: [A] },
     { n: 29, title: 'Voice quality', levels: [A] },
   ] },
+  { n: 10, title: 'Troubleshooting', modules: [{ n: 30, title: 'Tracing and troubleshooting tools', levels: [I, A] }] },
 ];
 
 export const LEVEL_LABEL: Record<Level, string> = { basic: 'Basic', intermediate: 'Intermediate', advanced: 'Advanced' };

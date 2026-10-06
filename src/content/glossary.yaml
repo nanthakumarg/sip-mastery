@@ -731,3 +731,21 @@
 - term: talker echo
   definition: Hearing your own voice back from the far end. It becomes annoying as the delay grows, so VoIP needs much better echo control than a local call.
 
+# --- Tracing and troubleshooting (Module 30) ----------------------------------------
+- term: pcap
+  aliases: [packet capture, pcapng]
+  definition: A file of captured packets, as tcpdump writes it and Wireshark reads it.
+- term: tcpdump
+  definition: A command-line tool that captures packets on an interface, usually into a pcap file. It is on almost every Linux server.
+- term: Wireshark
+  aliases: [tshark]
+  definition: The most common tool for reading packet captures. It decodes SIP, SDP, RTP, and RTCP, draws call flows, and analyses and plays RTP streams. tshark is its command-line version.
+- term: sngrep
+  definition: A terminal tool that captures SIP live, or reads a pcap, and shows a call list and a ladder for each call.
+- term: HEP
+  aliases: [Homer Encapsulation Protocol, EEP]
+  definition: A protocol that SIP servers and capture agents use to send copies of the packets they see, with timestamps and addresses, to a central collector.
+- term: HOMER
+  aliases: [sipcapture]
+  definition: An open-source collector and web interface that stores the SIP received over HEP, and lets you search for calls by number, Call-ID, or time.
+

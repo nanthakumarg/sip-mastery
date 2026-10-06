@@ -1,0 +1,240 @@
+---
+module: 30
+title: Tracing and troubleshooting tools
+part: 10
+level: [intermediate, advanced]
+paths: { noc: core, dev: optional }
+summary: "Good-to-know tools and habits for SIP troubleshooting: where to capture, tcpdump, sngrep, Wireshark and tshark, HOMER and HEP, the logs of common SIP servers, display filters for SIP, SDP, RTP, and RTCP, and a short method for finding the fault in a trace."
+objectives:
+  - Choose where to capture a call, and capture SIP and RTP with tcpdump.
+  - Follow calls live with sngrep, and save them for later.
+  - Filter SIP, SDP, RTP, and RTCP in Wireshark, and use its VoIP call and RTP stream tools.
+  - Explain what HOMER and HEP add to captures on single servers.
+  - Find the module of this course that explains a symptom.
+status: draft
+---
+
+The earlier modules explain what correct SIP looks like. This module is a toolbox: the tools that engineers use to see the real messages, and the filters that find the one call that matters among thousands. There are no diagrams here; every example is a command or a filter that you can use as it is.
+
+## 30.1 Where to capture
+
+A trace is only as good as the place where it was taken. Before you capture, decide which hops you need to see:
+
+| Situation | Capture |
+|---|---|
+| A phone or softphone misbehaves | On the phone's network (a mirror port, or the PC itself), and on the first server |
+| A call fails between two networks | On both sides of the SBC or B2BUA: each side is a different dialog (Module 25) |
+| One-way or no audio | Signaling **and** RTP, on the media relay or SBC, in both directions (Module 20) |
+| Intermittent failures | A long-running capture with a ring buffer, or a central HEP collector (30.5) |
+
+Three practical rules:
+
+- **Capture RTP too, not only port 5060.** Many faults are in the SDP and the media: an address in the SDP that the RTP never reaches is only visible when you have both.
+- **Encrypted signaling needs a capture point inside.** SIP over TLS (Module 19) and WebSocket (Module 26) cannot be read on the wire without the keys. Capture on the server that ends the TLS connection, use its own trace or HEP output, or log the TLS keys of a client you control (`SSLKEYLOGFILE`).
+- **Encrypted media has the same problem.** You can see SRTP packets, their sequence numbers, and their timing, but not hear them. Capture on the side of the SBC where the media is plain RTP (Module 18).
+
+Every message of one call carries the same Call-ID, so it is the first thing to find and the key to every filter:
+
+<RfcQuote id="rfc3261-8.1.1.4-group" />
+
+## 30.2 The tools
+
+| Tool | Use it to | Where |
+|---|---|---|
+| <Term t="tcpdump" /> | Capture packets on a server into a <Term t="pcap" /> file | Almost every Linux server |
+| <Term t="sngrep" /> | Watch SIP calls live in a terminal, as a call list and a ladder | The SIP server itself, over SSH |
+| <Term t="Wireshark" /> | Analyse a capture: decode, filter, draw flows, analyse and play RTP | Your own computer |
+| tshark | Wireshark's filters and statistics from the command line | Servers, scripts |
+| <Term t="HOMER" /> with <Term t="HEP" /> | Collect SIP from every server in one place, and search it later | A central server |
+| sipgrep, ngrep | Match SIP by text in a live capture | Quick checks on a server |
+| SIPp | Generate test calls and registrations from scenario files | Load tests, reproducing faults |
+| Server logs | See what the server decided, and why | Each SIP server (30.6) |
+
+## 30.3 Capturing with tcpdump
+
+`tcpdump` writes packets to a file that Wireshark and sngrep can read. Always write to a file (`-w`), so that you can analyse the capture later.
+
+```bash
+# All SIP on the usual ports, on every interface, full packets
+tcpdump -i any -n -s 0 -w /tmp/sip.pcap 'port 5060 or port 5061'
+
+# SIP and the RTP port range of this server
+tcpdump -i any -n -s 0 -w /tmp/call.pcap 'port 5060 or udp portrange 10000-20000'
+
+# Only the traffic of one phone or carrier
+tcpdump -i any -n -s 0 -w /tmp/carrier.pcap 'host 198.51.100.50'
+
+# A long capture: 10 files of 100 MB, the oldest overwritten
+tcpdump -i any -n -s 0 -C 100 -W 10 -w /tmp/ring.pcap 'port 5060'
+```
+
+- `-s 0` captures whole packets; a short snapshot length cuts SIP messages and their SDP.
+- `-i any` sees every interface, which matters on servers with a private and a public side.
+- Check the RTP port range in the server's configuration (for example, `rtp.conf` in Asterisk, or the rtpengine port range).
+- A capture of every RTP packet grows fast: a G.711 call is 50 packets per second in each direction, about 1.3 MB per minute in the pcap file. Filter by host, or keep the capture short.
+
+## 30.4 Following calls with sngrep
+
+`sngrep` shows SIP the way this course draws it: a list of calls, and a ladder for each one. It can capture live, or read a pcap file.
+
+```bash
+# Capture live on every interface
+sngrep -d any
+
+# Only dialogs that start with INVITE (calls, not REGISTER or OPTIONS)
+sngrep -c
+
+# Live, with a capture filter, and save everything to a file as well
+sngrep -d any -O /tmp/sngrep.pcap 'port 5060 and host 198.51.100.50'
+
+# Open a pcap file from tcpdump
+sngrep -I /tmp/call.pcap
+
+# Also capture RTP, to see the media streams of each call
+sngrep -r
+```
+
+In the call list, select a call and press **Enter** for its ladder; select a message to see it in full. The function keys shown at the bottom of the screen search, filter, and save the selected calls to a pcap file. **F4** (extended flow) shows the related dialogs of a call next to each other, which helps with B2BUAs and SBCs.
+
+sngrep is the fastest way to answer "is the call reaching this server, and what does it answer?" while someone repeats the test call. For deeper analysis, save the call and open it in Wireshark.
+
+## 30.5 Wireshark and tshark
+
+### Display filters for SIP
+
+Display filters show only the matching packets of a capture. Type them in the filter bar at the top.
+
+| Filter | Shows |
+|---|---|
+| `sip` | All SIP |
+| `sip.Method == "INVITE"` | INVITE requests |
+| `sip.Method == "REGISTER"` | REGISTER requests |
+| `sip.Status-Code >= 400` | Every error response |
+| `sip.Status-Code == 401 or sip.Status-Code == 407` | Authentication challenges |
+| `sip.CSeq.method == "INVITE"` | INVITE requests and all their responses |
+| `sip.Call-ID == "a84b4c76e66710@pc33.atlanta.example"` | One call, every message |
+| `sip.from.user == "1001"` | Calls and registrations from extension 1001 |
+| `sip.to.user contains "4045550199"` | Calls to a number |
+| `sip.r-uri.user == "+14045550199"` | Requests by Request-URI |
+| `sip.User-Agent contains "Yealink"` | Requests from one phone model |
+| `sip contains "Reason: Q.850"` | Messages with a Q.850 cause (Module 24) |
+| `sip and ip.addr == 198.51.100.50` | SIP to or from one carrier |
+
+### Display filters for SDP, RTP, and RTCP
+
+| Filter | Shows |
+|---|---|
+| `sdp` | Every message with an SDP body |
+| `sdp.connection_info.address == 10.1.1.20` | SDP that gives a private address (Module 20) |
+| `sdp.media.port == 0` | Rejected or removed streams |
+| `rtp` | RTP packets that Wireshark recognised |
+| `rtp.ssrc == 0x3a5f12c4` | One RTP stream |
+| `rtp.p_type == 0` | RTP with payload type 0 (PCMU) |
+| `rtp.marker == 1` | The first packet of each talkspurt |
+| `rtpevent` | RFC 4733 DTMF events (Module 16) |
+| `rtcp` | RTCP reports (Module 17) |
+| `rtcp.pt == 200` | RTCP sender reports |
+
+Combine filters with `and`, `or`, and `not`, and with brackets: `sip.Method == "INVITE" and not ip.addr == 10.0.0.0/8`.
+
+### Tips that save time
+
+- **Find the call first, then filter on it.** Filter `sip.Method == "INVITE"`, find the call by number and time, right-click its Call-ID, and choose *Apply as Filter*.
+- **Telephony → VoIP Calls** lists every call in the capture. Select one and choose *Flow Sequence* for a ladder, or *Play Streams* to listen to its RTP.
+- **Telephony → RTP → RTP Streams** lists every RTP stream, with its packets, lost packets, maximum delta, and jitter. *Analyze* shows the details of one stream, packet by packet. Look at **both** directions of a call.
+- **Wireshark finds RTP through the SDP.** If the capture has no SIP (it started after the call, or the signaling was encrypted), RTP shows as plain UDP. Enable the heuristic `rtp_udp` in *Analyze → Enabled Protocols*, or use *Decode As* on the port.
+- **SIP on an unusual port** (for example 5080) also needs *Decode As → SIP*.
+- **Use time references.** *View → Time Display Format → Seconds Since Previous Displayed Packet* shows the gaps: 32 seconds before a CANCEL or BYE points to Timer B or a missing ACK (Module 8).
+- **Add columns** for `sip.Call-ID`, `sip.CSeq`, and `sip.Status-Code`, so that the packet list reads like a ladder.
+
+### tshark on a server
+
+```bash
+# One line per INVITE: time, Call-ID, caller, callee
+tshark -r call.pcap -Y 'sip.Method == "INVITE"' \
+  -T fields -e frame.time -e sip.Call-ID -e sip.from.user -e sip.to.user
+
+# SIP statistics: requests and responses by method and code
+tshark -r call.pcap -q -z sip,stat
+
+# Every RTP stream, with loss and jitter
+tshark -r call.pcap -q -z rtp,streams
+
+# Live: print every error response as it happens
+tshark -i any -Y 'sip.Status-Code >= 400' -T fields -e ip.src -e sip.Status-Line
+```
+
+## 30.6 HOMER, HEP, and server logs
+
+A capture on one server shows one hop. **HOMER** collects SIP from every server of a network in one database: each proxy, SBC, or media server sends a copy of every message it sends and receives, over **HEP**, with its own timestamps and addresses. You can then search for a call by number, Call-ID, or time, and see all its hops and legs in one ladder, hours or days later.
+
+- **Sources of HEP:** Kamailio and OpenSIPS (their siptrace or tracer modules), FreeSWITCH and Asterisk (built-in HEP support), rtpengine (RTCP and media statistics), and capture agents such as heplify or captagent on servers that cannot send HEP themselves.
+- **Why it beats captures on single servers:** it sees the signaling that a server decrypted from TLS, it keeps history, and it can link the two legs of a B2BUA by a correlation header.
+- **Cost:** a collector and its database to run, and a retention policy: HOMER stores personal data (numbers, sometimes names).
+
+Server logs tell you what a capture cannot: why the server decided what it did. Most SIP servers can also print or trace the SIP they handle:
+
+| Server | SIP trace | Useful next |
+|---|---|---|
+| Asterisk (PJSIP) | `pjsip set logger on` in the CLI | `rtp set debug on` for media |
+| FreeSWITCH | `sofia global siptrace on` in fs_cli | `sofia loglevel all 9` for the SIP stack |
+| Kamailio, OpenSIPS | `xlog` lines in the routing script, the siptrace or tracer module | The dialog and usrloc tables, through their control tools |
+| rtpengine | Its log, and its per-call statistics | Packets, loss, and jitter per stream |
+
+Turn high log levels off again when you are done: on a busy server they slow it down and fill the disk.
+
+## 30.7 A short method
+
+When a call fails, the same few steps find the fault in most traces:
+
+1. **Find the call.** Use the number and the time to find the INVITE, then filter on its Call-ID.
+2. **Find the final response, and who sent it.** The status code and the Reason, Warning, Server, or User-Agent headers say which element ended the call (Module 6).
+3. **Follow the call across every B2BUA and SBC.** Each side has its own Call-ID. Match the sides by time and numbers (Module 25).
+4. **Compare the SDP with the RTP.** Is the RTP going to the addresses and ports that the SDP gave, in both directions (Modules 15, 20)?
+5. **Check the timing.** Retransmissions, a 32-second gap, or a call that ends at a round number of minutes each point to a known cause.
+
+| Symptom | Read first |
+|---|---|
+| One-way or no audio | Module 20 (NAT), Module 15 (SDP) |
+| The call drops after about 32 seconds | Module 8 (transactions), Module 9 (dialogs): the ACK |
+| The call drops after a fixed time | Module 9 (session timers), Module 20 (NAT timeouts) |
+| Registration fails or comes and goes | Module 12, Module 13, Module 20 |
+| 401 or 407 again and again | Module 13 (digest) |
+| 488 Not Acceptable Here | Module 15 (codecs), Module 18 (SRTP profiles) |
+| 481 on BYE or re-INVITE | Module 9 (dialog state), Module 25 (failover) |
+| Large INVITEs are lost | Module 19 (UDP and fragmentation) |
+| DTMF does not work | Module 16 |
+| Wrong or missing caller ID | Module 7, Module 24, Module 28 |
+| Browser calls connect with no audio | Module 26 (ICE, TURN, DTLS) |
+| VoLTE calls stay at "connecting" | Module 27 (preconditions) |
+| Choppy or delayed audio, echo | Module 29 |
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Capturing only port 5060">
+    A capture filter of `port 5060` shows the signaling of a call with no audio, and everything in it looks correct. The fault is in the media: the RTP goes to an address in the SDP that nobody listens on. Without the RTP in the capture, there is nothing to compare.
+
+    <p class="fix"><b>Remember:</b> for media problems, capture SIP and the RTP port range together, on the element that relays the media.</p>
+  </Mistake>
+
+  <Mistake title="Capturing only one side of an SBC">
+    A capture on the outside of an SBC shows a carrier that sends 503. The inside capture would have shown that the SBC never received an answer from the PBX, and sent the 503 itself.
+
+    <p class="fix"><b>Remember:</b> on a B2BUA or SBC, capture or trace both sides, and match the two dialogs before you decide who failed.</p>
+  </Mistake>
+
+  <Mistake title="Missing SIP that is not on port 5060">
+    A filter on port 5060 misses SIP over TLS on 5061, WebSocket on 443, and carriers that use 5080. The capture looks empty, and the call is blamed on the network.
+
+    <p class="fix"><b>Remember:</b> check the transports and ports in the server's configuration first, and capture on all of them. For TLS and WebSocket, use the server's own trace or HEP.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- Capture **where the fault can be seen**: both sides of every B2BUA, and RTP as well as SIP for media problems. For TLS and SRTP, capture inside the element that ends the encryption.
+- **tcpdump** writes pcap files on servers; **sngrep** shows calls live as ladders; **Wireshark** and **tshark** filter, draw flows, and analyse RTP; **HOMER** with **HEP** keeps every hop of every call in one place.
+- Start every investigation from the **Call-ID**. Filters such as `sip.Method`, `sip.Status-Code`, `sip.Call-ID`, `sip.from.user`, `rtp.ssrc`, and `sdp.connection_info.address` find the call and its media fast.
+- Use **Telephony → VoIP Calls** and **RTP Streams** in Wireshark to see the flow, listen to the call, and measure loss and jitter in both directions.
+- Then follow the method: find the call, the final response and its sender, every leg, the SDP against the RTP, and the timing, and read the module that matches the symptom.

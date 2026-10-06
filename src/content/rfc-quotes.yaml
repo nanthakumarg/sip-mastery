@@ -5779,3 +5779,14 @@
     Packet flow marking (DSCP setting) from untrusted sources (end user devices)
     SHOULD be verified at ingress to DiffServ network using Multifield (MF)
     Classification methods defined in [RFC2475].
+
+# --- Module 30: Tracing and troubleshooting tools -----------------------------------
+
+- id: rfc3261-8.1.1.4-group
+  rfc: 3261
+  section: "8.1.1.4"
+  title: Call-ID
+  text: >-
+    The Call-ID header field acts as a unique identifier to group together a
+    series of messages. It MUST be the same for all requests and responses sent
+    by either UA in a dialog.
