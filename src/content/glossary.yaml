@@ -575,3 +575,27 @@
   aliases: [CAC]
   definition: A limit on the number of calls, or the bandwidth, that an SBC accepts on a trunk or from a site. Calls over the limit get an error at once.
 
+# --- WebRTC and SIP (Module 26) -------------------------------------------------
+- term: WebRTC
+  aliases: [Web Real-Time Communication]
+  definition: Audio, video, and data in the browser, with no plugin. A JavaScript API in the browser, and a set of protocols underneath it (RFC 8825).
+- term: Browser
+  definition: In Module 26, a web browser running a SIP web app. It sends SIP over WebSocket, and media with WebRTC.
+- term: WebRTC gateway
+  aliases: [WebRTC SBC]
+  definition: A B2BUA between WebRTC clients and classic SIP. It converts WebSocket to UDP or TCP, ends ICE and DTLS-SRTP, splits BUNDLE, and transcodes if needed.
+- term: JSEP
+  aliases: [JavaScript Session Establishment Protocol]
+  definition: How a browser creates and applies SDP offers and answers through the RTCPeerConnection API (RFC 9429). The web app carries them in any signaling it likes, such as SIP.
+- term: BUNDLE
+  definition: An SDP grouping (RFC 9143) that sends several media streams, such as audio and video, over one transport address and port.
+- term: rtcp-mux
+  definition: An SDP attribute (RFC 5761) that sends RTCP on the same port as RTP. WebRTC requires it.
+- term: trickle ICE
+  definition: ICE in which candidates are sent as they are found, not all at once in the offer (RFC 8838). With SIP, the later candidates travel in INFO requests (RFC 8840).
+- term: ICE lite
+  aliases: [ice-lite]
+  definition: A simple form of ICE for servers with a public address. A lite agent offers only its host candidate and answers connectivity checks, but sends none.
+- term: Opus
+  definition: An audio codec for speech and music, from 6 to 510 kbit/s, built to hide packet loss. Every WebRTC endpoint has it, but few desk phones do.
+

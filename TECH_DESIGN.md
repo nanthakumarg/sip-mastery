@@ -69,6 +69,7 @@ sip-course/
 │  │  ├─ elements.ts             # the same call through a proxy and a B2BUA, paired message by message (Module 25)
 │  │  ├─ sbc.ts                  # SBC functions on one INVITE: topology hiding, normalisation, media, transcoding, security, CAC (Module 25)
 │  │  ├─ balance.ts              # a load balancer with OPTIONS health checks and failover (Module 25)
+│  │  ├─ webrtc.ts               # a browser calls a SIP phone through a WebRTC gateway; WebRTC SDP; gateway layers (Module 26)
 │  │  ├─ generators.ts           # the generators and their options, for the FlowBuilder island
 │  │  └─ digest.ts               # HA1 / HA2 / response
 │  ├─ net/                       # below SIP: addresses, packets, RTP

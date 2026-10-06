@@ -1983,3 +1983,48 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 .sbcx-checks li.is-bad b { color: var(--err); }
 .sbcx-checks li.is-ok b, .sbcx-attacks li.is-ok b { color: var(--text); }
 .sbcx-attacks li.is-bad b { color: var(--err); }
+
+/* ---------- SDP comparison (Module 26.2) ---------- */
+.sdpc { max-width: 1400px; }
+.sdpc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.sdpc-chips button { height: 32px; padding: 0 11px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--dim); font: 400 12.5px var(--mono); }
+.sdpc-chips button[aria-pressed=true] { border-color: var(--sdp); color: var(--bg); background: var(--sdp); font-weight: 500; }
+.sdpc-explain { margin-top: 12px; font-size: 15px; color: var(--dim); max-width: 90ch; }
+.sdpc-explain p + p { margin-top: 4px; }
+.sdpc-explain b { color: var(--text); }
+.sdpc-lines .insp-line { cursor: default; }
+.sdpc-lines .insp-line.is-diff { cursor: pointer; }
+.sdpc-lines .insp-line.is-diff .insp-text { color: var(--dim); }
+.sdpc-lines .insp-line:not(.is-diff):not(.is-hit) .insp-text { color: var(--muted); }
+.sdpc-lines .insp-line.is-hit { background: rgba(227,214,184,.12); border-left-color: var(--sdp); }
+.sdpc-lines .insp-line.is-hit .insp-text { color: var(--text); }
+.sdpc-lines .insp-line.is-hit .insp-glyph { color: var(--sdp); }
+.sdpc-lines .insp-text { overflow-wrap: anywhere; }
+.sdpc .insp-msg { max-height: min(70vh, 720px); }
+
+/* ---------- WebRTC gateway view (Module 26.5) ---------- */
+.wgw { max-width: 1300px; }
+.wgw-grid { margin-top: 14px; display: grid; gap: 6px; }
+.wgw-head, .wgw-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .7fr) minmax(0, 1fr); gap: 12px; align-items: center; }
+.wgw-head { padding: 0 12px; font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.wgw-head span:nth-child(2) { text-align: center; }
+.wgw-head span:nth-child(3), .wgw-sip { text-align: right; }
+.wgw-row { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--dim); font-size: 14px; line-height: 1.45; text-align: left; cursor: pointer; }
+.wgw-row:hover { border-color: var(--muted); }
+.wgw-row.is-sel { border-color: var(--text); color: var(--text); }
+.wgw-mid { display: grid; justify-items: center; gap: 2px; text-align: center; }
+.wgw-name { font: 600 14px var(--display); color: var(--text); }
+.wgw-arrow { color: var(--sip); font-size: 16px; }
+.wgw-detail { margin: 4px 0 6px; padding: 10px 14px; border-left: 2px solid var(--sip); background: var(--panel-2); font-size: 15px; color: var(--dim); }
+.wgw-detail p + p { margin-top: 4px; }
+.wgw-detail b { color: var(--text); }
+.wgw-without b { color: var(--err); }
+@media (max-width: 640px) {
+  .wgw-head { display: none; }
+  .wgw-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .wgw-mid { order: -1; justify-items: start; text-align: left; }
+  .wgw-arrow { display: none; }
+  .wgw-browser::before { content: 'Browser: '; color: var(--muted); }
+  .wgw-sip { text-align: left; }
+  .wgw-sip::before { content: 'SIP phone: '; color: var(--muted); }
+}

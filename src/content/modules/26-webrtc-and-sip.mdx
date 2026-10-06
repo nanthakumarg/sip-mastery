@@ -1,0 +1,167 @@
+---
+module: 26
+title: WebRTC and SIP
+part: 9
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: "How a web browser takes part in SIP calls: the WebRTC media stack (ICE, DTLS-SRTP, rtcp-mux, BUNDLE); JSEP and how WebRTC SDP differs from classic SDP; SIP over secure WebSocket; trickle ICE; the gateway between WebRTC and classic SIP and what it must convert; and Opus, G.711, and transcoding."
+objectives:
+  - Name the layers of the WebRTC media stack, and say which of them a classic SIP phone lacks.
+  - Read a WebRTC SDP offer, and point out ICE, DTLS, BUNDLE, rtcp-mux, and the codecs.
+  - Follow a browser that registers and calls over secure WebSocket, and say why the certificate must name the WSS host.
+  - Explain trickle ICE, and how SIP carries trickled candidates in INFO.
+  - List what a WebRTC gateway converts, and predict what fails when it does not.
+  - Decide when a call between a browser and a phone needs transcoding.
+status: draft
+---
+
+## 26.1 The WebRTC media stack
+
+**<Term t="WebRTC" />** gives a web page access to the microphone and camera, and a way to send the media to another endpoint, with no plugin:
+
+<RfcQuote id="rfc8825-1-building-blocks" />
+
+WebRTC defines the media, but not the signaling. A web app can use any protocol to exchange the SDP; a SIP web app uses SIP over WebSocket. The media side is fixed, and stricter than classic SIP:
+
+| Layer | WebRTC | A classic SIP phone | Module |
+|---|---|---|---|
+| Finding a path | <Term t="ICE" />, always, with STUN and <Term t="TURN" /> | The address in the SDP | 20 |
+| Keys | <Term t="DTLS" />-SRTP, always | None, or SDES in the SDP | 18 |
+| Media | SRTP, always; plain RTP is not allowed | RTP, sometimes SRTP | 16, 18 |
+| Ports | <Term t="BUNDLE" /> and <Term t="rtcp-mux" />: one port for everything | One port per stream, RTCP on port + 1 | 15, 17 |
+| Audio codecs | <Term t="Opus" />, G.711 | G.711, G.722, G.729 | 16 |
+| Feedback | RTCP feedback: NACK, PLI, transport-cc | Plain RTCP reports | 17 |
+
+<RfcQuote id="rfc8827-6.5-dtls" />
+
+<RfcQuote id="rfc9143-5-bundle" />
+
+Every row is a reason why a browser cannot simply call a classic SIP phone. Something in the middle must convert: a <Term t="WebRTC gateway" /> (26.5).
+
+## 26.2 JSEP and WebRTC SDP
+
+The browser builds its SDP itself, through the JavaScript API. The web app calls `createOffer()`, gets an SDP, applies it with `setLocalDescription()`, and sends it in any way it likes: here, in the body of an INVITE. This model is **<Term t="JSEP" />**:
+
+<RfcQuote id="rfc9429-1.1-jsep" />
+
+The result looks very different from the SDP of a desk phone. Compare a browser's offer for an audio and video call with a SIP phone's offer for the same call. Pick a difference to highlight its lines:
+
+<SdpCompare />
+
+The WebRTC offer is about five times longer than the classic one: the SDP alone is over 1300 bytes. Over UDP the INVITE would break the 1300-byte rule (Module 19); over WebSocket, on TCP, size does not matter.
+
+## 26.3 SIP over secure WebSocket
+
+A browser cannot open a UDP or TCP socket. It can open a **<Term t="WebSocket" />**: a connection that starts as an HTTPS request and then carries messages in both directions. RFC 7118 puts one SIP message in each WebSocket message (Module 19). The browser has no address that anyone else can reach, so it writes a random `.invalid` host in Via and Contact, and the server sends everything back over the same connection:
+
+<RfcQuote id="rfc7118-5.1-via" />
+
+<Flow id="wss-cert-ok" eyebrow="Call flow · a browser opens WSS and registers" />
+
+Three points matter in production:
+
+- **The certificate must name the WSS host,** and come from a certificate authority that browsers trust. A browser shows no warning page for a WebSocket; it just fails (see Common mistakes).
+- **The server must check the Origin header,** so that only the company's own web app can open a SIP connection.
+- **The connection is the registration.** When the tab closes or the laptop sleeps, the WebSocket closes, and the server cannot reach the browser any more. Many web apps register with short Expires values and use push notifications for incoming calls.
+
+## 26.4 Trickle ICE
+
+A browser finds its candidates one by one: the host address at once, the server-reflexive address after a STUN round trip, the relay address after a TURN allocation. Plain ICE waits until all are found, then sends the offer. A slow or unreachable TURN server can add seconds before anything rings. **<Term t="trickle ICE" />** sends the offer at once, and the candidates as they appear:
+
+<RfcQuote id="rfc8838-1-gathering" />
+
+SIP carries trickled candidates in INFO requests, but only inside a dialog. The answer must therefore come early, in a reliable 183:
+
+<RfcQuote id="rfc8840-4.3-dialog" />
+
+<RfcQuote id="rfc8840-3-info" />
+
+<FlowBuilder kind="webrtc" preset={{ trickle: true }} eyebrow="Flow builder · trickle ICE over SIP INFO" />
+
+<Note title="In practice">
+Few SIP web libraries and gateways trickle over SIP. Most wait for candidate gathering to finish, with a timeout of a second or two, and send all candidates in the INVITE. When calls from a web app take seconds to start ringing, check the STUN and TURN servers first.
+</Note>
+
+## 26.5 The gateway between WebRTC and classic SIP
+
+A **WebRTC gateway** (often a function of the SBC) is a B2BUA with a media relay. On the browser side it speaks WebRTC; on the other side, classic SIP. Select a layer to see what it converts, and what breaks without it:
+
+<WebrtcGateway />
+
+The gateway usually has a public address, so it uses **<Term t="ICE lite" />**: it offers one host candidate, answers the browser's connectivity checks, and sends none of its own:
+
+<RfcQuote id="rfc8445-2.5-lite" />
+
+Follow the whole call in the builder. Turn off *Gateway converts media* to see what a classic phone does with a WebRTC offer, and set *Network* to *UDP blocked* to see why a web app needs a TURN server:
+
+<FlowBuilder kind="webrtc" preset={{}} eyebrow="Flow builder · a browser calls a SIP phone through a gateway" />
+
+<RfcQuote id="rfc8835-3.4-turn" />
+
+On a company network that allows only web traffic, TURN over TLS on port 443 is often the only way through. The web app gets the TURN credentials from its own server, usually short-lived ones, and passes them to the browser.
+
+## 26.6 Opus, G.711, and transcoding
+
+Every WebRTC endpoint has both Opus and G.711:
+
+<RfcQuote id="rfc7874-3-codecs" />
+
+| | Opus | G.711 (PCMU, PCMA) |
+|---|---|---|
+| Audio band | Narrowband to fullband (up to 20 kHz) | Narrowband (300–3400 Hz) |
+| Bit rate | 6–510 kbit/s, variable | 64 kbit/s |
+| Packet loss | Hides loss well; in-band FEC | Clicks and gaps |
+| Who has it | Every browser, most softphones | Every SIP phone, gateway, and carrier |
+
+So a call between a browser and a desk phone needs **no transcoding**, as long as the browser offers G.711 and the gateway passes it through. Browsers offer Opus first, then G.711, and the gateway can choose G.711 for the whole path. Transcoding is needed only when one side has no codec in common with the other, for example a web app that removes G.711 from its offers to save bandwidth:
+
+<RfcQuote id="rfc7874-3-transcoding" />
+
+<FlowBuilder kind="webrtc" preset={{ codec: 'opus-transcode' }} eyebrow="Flow builder · Opus on one side, G.711 on the other" />
+
+Transcoding costs CPU on the gateway for every call, adds delay, and loses the wideband audio that Opus brought. Where both sides can do it, G.711 end to end is simpler; where quality matters, use a wideband codec on both sides (G.722, or Opus on the SIP phones that support it).
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="No TURN server">
+    A web app works in every test from home and from the office Wi-Fi. A customer's company firewall blocks all UDP. The browser's connectivity checks never get through, the call connects in SIP, and nobody hears anything.
+
+    <FlowPair a={{ kind: 'webrtc', preset: { network: 'restrictive', turn: false } }} b={{ kind: 'webrtc', preset: { network: 'restrictive', turn: true } }} labels={['Broken: no TURN server', 'Fixed: TURN over TLS on 443']} />
+
+    <p class="fix"><b>Remember:</b> give every WebRTC client a TURN server that it can reach over UDP, TCP, and TLS on port 443. Test from a network that blocks UDP.</p>
+  </Mistake>
+
+  <Mistake title="A SIP side that does not understand DTLS-SRTP">
+    A proxy forwards the browser's INVITE to a desk phone, with the WebRTC SDP unchanged. The phone does not know UDP/TLS/RTP/SAVPF, ICE, or BUNDLE, and rejects the call with 488.
+
+    <FlowPair a={{ kind: 'webrtc', preset: { convert: false } }} b={{ kind: 'webrtc', preset: {} }} labels={['Broken: SDP passed through', 'Fixed: the gateway converts']} />
+
+    <p class="fix"><b>Remember:</b> between WebRTC and classic SIP, use a gateway that ends ICE and DTLS-SRTP and anchors the media, such as an SBC with WebRTC support, or a proxy with rtpengine.</p>
+  </Mistake>
+
+  <Mistake title="A certificate that does not name the WSS host">
+    The gateway is installed with its default, self-signed certificate for its internal name. Browsers refuse the TLS connection to wss://wss.atlanta.example. There is no warning page to click through; the web app sees error 1006 and cannot register.
+
+    <CompareFlows a="wss-cert-mismatch" b="wss-cert-ok" labels={['Broken: wrong certificate', 'Fixed: certificate for the WSS host']} />
+
+    <p class="fix"><b>Remember:</b> install a certificate from a public certificate authority whose name matches the host in the wss:// URL, with the full chain. Renew it before it expires; an expired certificate stops every web client at once.</p>
+  </Mistake>
+
+  <Mistake title="Opus on one side, G.711 on the other, and no transcoding">
+    A web app offers only Opus. The gateway passes the offer on, and the desk phone has only G.711. There is no codec in common, so the phone answers 488.
+
+    <FlowPair a={{ kind: 'webrtc', preset: { codec: 'opus-none' } }} b={{ kind: 'webrtc', preset: { codec: 'opus-transcode' } }} labels={['Broken: no codec in common', 'Fixed: the gateway transcodes']} />
+
+    <p class="fix"><b>Remember:</b> keep G.711 in the browser's offer, so that no transcoding is needed. If one side cannot change, the gateway must transcode, and needs the CPU for it.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- **WebRTC** media always uses **ICE**, **DTLS-SRTP**, **rtcp-mux**, and usually **BUNDLE**, with **Opus** and **G.711**. A classic SIP phone has none of this except G.711.
+- A browser builds its SDP through **JSEP**. Its offer carries candidates, an ICE username and password, a DTLS fingerprint, BUNDLE and mid, RTCP feedback, and stream IDs.
+- A browser sends SIP over **secure WebSocket**, with `.invalid` addresses in Via and Contact. The certificate must name the WSS host; a browser shows no warning, it just fails.
+- **Trickle ICE** sends the offer before all candidates are found. With SIP, later candidates go in **INFO** requests, inside an early dialog created by a reliable 183.
+- A **WebRTC gateway** converts each layer: WebSocket to UDP or TCP, ICE (as ICE lite), DTLS-SRTP to RTP, BUNDLE to separate ports, and, if it must, Opus to G.711.
+- Give every web client a **TURN** server reachable over TLS on 443. Keep **G.711** in the offer to avoid transcoding.

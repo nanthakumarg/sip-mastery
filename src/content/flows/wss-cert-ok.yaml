@@ -1,0 +1,86 @@
+id: wss-cert-ok
+title: "WSS with a valid certificate: the browser registers"
+summary: The gateway's certificate names the WSS host, so the browser opens the WebSocket and registers.
+lanes:
+  - id: browser
+    label: Browser
+    kind: ua
+    sub: https://app.atlanta.example
+  - id: gw
+    label: WebRTC gateway
+    kind: sbc
+    sub: wss://wss.atlanta.example
+steps:
+  - from: browser
+    to: gw
+    proto: net
+    label: TLS ClientHello
+    caption: The web app opens wss://wss.atlanta.example. The browser starts TLS, and names that host in SNI.
+    detail: |-
+      TCP  192.168.1.20:51844 → 203.0.113.80:443 (SYN, SYN-ACK, ACK)
+      TLS 1.3  ClientHello
+        server_name (SNI): wss.atlanta.example
+        ALPN: http/1.1
+  - from: gw
+    to: browser
+    proto: net
+    label: TLS ServerHello, Certificate
+    caption: The gateway presents a certificate for wss.atlanta.example, from a public certificate authority.
+    detail: |-
+      TLS 1.3  ServerHello
+        {Certificate, CertificateVerify, Finished}
+        Certificate: subjectAltName DNS:wss.atlanta.example
+                     issuer: a public CA that the browser trusts
+  - kind: msg
+    from: browser
+    to: gw
+    proto: net
+    label: WebSocket upgrade (GET)
+    caption: The browser checks the certificate, then asks for a WebSocket with the sip subprotocol.
+    detail: |-
+      GET / HTTP/1.1
+      Host: wss.atlanta.example
+      Upgrade: websocket
+      Connection: Upgrade
+      Sec-WebSocket-Protocol: sip
+      Origin: https://app.atlanta.example
+    rfc: rfc7118-4.1-handshake
+  - from: gw
+    to: browser
+    proto: net
+    label: 101 Switching Protocols
+    caption: The gateway accepts. From now on, each WebSocket message carries one SIP message.
+    detail: |-
+      HTTP/1.1 101 Switching Protocols
+      Upgrade: websocket
+      Connection: Upgrade
+      Sec-WebSocket-Protocol: sip
+  - from: browser
+    to: gw
+    label: REGISTER
+    caption: "The browser registers over the new connection. The .invalid host means: reach me over this connection."
+    message: |
+      REGISTER sip:atlanta.example SIP/2.0
+      Via: SIP/2.0/WSS df7jal23ls0d.invalid;branch=z9hG4bKws1c6e
+      Max-Forwards: 70
+      From: "Alice" <sip:alice@atlanta.example>;tag=r55ce1
+      To: "Alice" <sip:alice@atlanta.example>
+      Call-ID: reg-0f3k2a@df7jal23ls0d.invalid
+      CSeq: 1 REGISTER
+      Contact: <sip:k3x9q2fd@df7jal23ls0d.invalid;transport=ws;ob>
+      Expires: 600
+      Content-Length: {auto}
+    rfc: rfc7118-5.1-via
+  - from: gw
+    to: browser
+    label: 200 OK
+    caption: The gateway stores the binding. Calls to Alice come down the same WebSocket.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/WSS df7jal23ls0d.invalid;branch=z9hG4bKws1c6e
+      From: "Alice" <sip:alice@atlanta.example>;tag=r55ce1
+      To: "Alice" <sip:alice@atlanta.example>;tag=gwr81
+      Call-ID: reg-0f3k2a@df7jal23ls0d.invalid
+      CSeq: 1 REGISTER
+      Contact: <sip:k3x9q2fd@df7jal23ls0d.invalid;transport=ws;ob>;expires=600
+      Content-Length: {auto}

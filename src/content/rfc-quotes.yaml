@@ -5380,3 +5380,100 @@
     This is the case when media encryption (e.g., Secure Real-time Transport
     Protocol (SRTP)) is used only on the access network (outer network) side
     and the media is carried unencrypted in the inner network.
+
+# --- Module 26: WebRTC and SIP --------------------------------------------------
+
+- id: rfc8825-1-building-blocks
+  rfc: 8825
+  section: "1"
+  title: Introduction
+  text: >-
+    This memo describes a set of building blocks that (1) can be made accessible
+    and controllable through a JavaScript API in a browser and (2) together form
+    a sufficient set of functions to allow the use of interactive audio and video
+    in applications that communicate directly between browsers across the
+    Internet.
+
+- id: rfc9429-1.1-jsep
+  rfc: 9429
+  section: "1.1"
+  title: General Design of JSEP
+  text: >-
+    In this approach, the key information that needs to be exchanged is the
+    multimedia session description, which specifies the transport and media
+    configuration information necessary to establish the media plane.
+
+- id: rfc8827-6.5-dtls
+  rfc: 8827
+  section: "6.5"
+  title: Communications Security
+  text: >-
+    All media channels MUST be secured via SRTP and the Secure Real-time
+    Transport Control Protocol (SRTCP). Media traffic MUST NOT be sent over
+    plain (unencrypted) RTP or RTCP;
+
+- id: rfc8835-3.4-turn
+  rfc: 8835
+  section: "3.4"
+  title: Middlebox-Related Functions
+  text: >-
+    In order to deal with firewalls that block all UDP traffic, the mode of TURN
+    that uses TCP between the WebRTC endpoint and the TURN server MUST be
+    supported, and the mode of TURN that uses TLS over TCP between the WebRTC
+    endpoint and the TURN server MUST be supported.
+
+- id: rfc8445-2.5-lite
+  rfc: 8445
+  section: "2.5"
+  title: Lite Implementations
+  text: >-
+    Lite agents only use host candidates and do not generate connectivity checks
+    or run state machines, though they need to be able to respond to
+    connectivity checks.
+
+- id: rfc8838-1-gathering
+  rfc: 8838
+  section: "1"
+  title: Introduction
+  text: >-
+    This document defines "Trickle ICE", a supplementary mode of ICE operation
+    in which candidates can be exchanged incrementally as soon as they become
+    available (and simultaneously with the gathering of other candidates).
+
+- id: rfc8840-3-info
+  rfc: 8840
+  section: "3"
+  title: Protocol Overview
+  text: >-
+    This specification defines an additional mechanism where candidates can be
+    exchanged using SIP INFO messages and a newly defined Info Package
+    [RFC6086].
+
+- id: rfc8840-4.3-dialog
+  rfc: 8840
+  section: "4.3"
+  title: Establishing the Dialog
+  text: >-
+    In order to be able to start trickling, the following two conditions need
+    to be satisfied at the SIP UAs: * Trickle ICE support at the peer agent MUST
+    be confirmed. * A dialog MUST have been created between the peers.
+
+- id: rfc7874-3-codecs
+  rfc: 7874
+  section: "3"
+  title: Codec Requirements
+  text: >-
+    WebRTC endpoints are REQUIRED to implement the following audio codecs: o
+    Opus [RFC6716] with the payload format specified in [RFC7587]. o PCMA and
+    PCMU (as specified in ITU-T Recommendation G.711 [G.711]) with the payload
+    format specified in Section 4.5.14 of [RFC3551].
+
+- id: rfc7874-3-transcoding
+  rfc: 7874
+  section: "3"
+  title: Codec Requirements
+  text: >-
+    If other suitable audio codecs are available for the WebRTC endpoint to use,
+    it is RECOMMENDED that they also be included in the offer in order to
+    maximize the possibility of establishing the session without the need for
+    audio transcoding.

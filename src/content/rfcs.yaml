@@ -29,7 +29,7 @@ rfcs:
   - { n: 5658, area: core, proto: sip, short: Double Record-Route, summary: "A proxy with two interfaces adds two Record-Route values, one for each side, instead of rewriting Record-Route in responses.", modules: [10] }
   - { n: 6026, area: core, proto: sip, short: 2xx to INVITE fixes, summary: "Adds the Accepted state so that retransmitted 2xx responses and their ACKs are handled correctly.", modules: [8] }
   - { n: 6223, area: core, proto: sip, short: Keep-alive negotiation, summary: "The Via keep parameter: adjacent SIP elements agree to send CRLF or STUN keepalives.", modules: [19] }
-  - { n: 6455, area: core, short: WebSocket, summary: "The WebSocket protocol: a two-way connection that starts as an HTTP request.", modules: [19] }
+  - { n: 6455, area: core, short: WebSocket, summary: "The WebSocket protocol: a two-way connection that starts as an HTTP request.", modules: [19, 26] }
   - { n: 7118, area: core, proto: sip, short: SIP over WebSocket, summary: "Carries SIP over WebSocket so that a browser can be a SIP user agent.", modules: [19, 26] }
 
   # --- SIP extensions -----------------------------------------------------------
@@ -77,19 +77,19 @@ rfcs:
   - { n: 3389, area: media, proto: rtp, short: Comfort noise, summary: "The comfort noise (CN) payload: the level of the background noise during silence.", modules: [16] }
   - { n: 4961, area: media, proto: rtp, short: Symmetric RTP, summary: "Send RTP and RTCP from the port where you receive them. NAT and SBCs need it.", modules: [16, 20] }
   - { n: 6716, area: media, proto: rtp, short: Opus, summary: "The Opus audio codec, from narrowband speech to fullband music.", modules: [16] }
-  - { n: 7587, area: media, proto: rtp, short: Opus in RTP, summary: "The RTP payload format for Opus: opus/48000/2 in every SDP.", modules: [16] }
+  - { n: 7587, area: media, proto: rtp, short: Opus in RTP, summary: "The RTP payload format for Opus: opus/48000/2 in every SDP.", modules: [16, 26] }
   - { n: 4733, area: media, proto: rtp, short: DTMF in RTP, summary: "Telephone events (DTMF digits) as RTP packets.", modules: [5, 15, 16] }
   - { n: 6337, area: media, proto: sdp, short: Offer/answer in SIP, summary: "How SIP uses offer/answer in practice: which messages carry SDP, glare, and hold.", modules: [15] }
   - { n: 3611, area: media, proto: rtcp, short: RTCP XR, summary: "Extended RTCP reports, including VoIP quality metrics.", modules: [17] }
   - { n: 4585, area: media, proto: rtcp, short: RTCP feedback, summary: "The AVPF profile for fast RTCP feedback such as NACK.", modules: [17] }
   - { n: 3605, area: media, proto: rtcp, short: RTCP port attribute, summary: "The a=rtcp attribute: an RTCP port that is not the RTP port + 1.", modules: [15, 17, 20] }
-  - { n: 5761, area: media, proto: rtcp, short: rtcp-mux, summary: "RTP and RTCP on one port.", modules: [15, 17, 20] }
+  - { n: 5761, area: media, proto: rtcp, short: rtcp-mux, summary: "RTP and RTCP on one port.", modules: [15, 17, 20, 26] }
   - { n: 5104, area: media, proto: rtcp, short: Codec control messages, summary: "RTCP feedback for video codecs, including FIR (Full Intra Request).", modules: [17] }
   - { n: 6035, area: media, proto: sip, short: Voice quality reports, summary: "A SIP event package that sends call quality summaries (vq-rtcpxr) with PUBLISH.", modules: [17] }
   - { n: 3711, area: media, proto: rtp, short: SRTP, summary: "Secure RTP encrypts and authenticates media packets.", modules: [18] }
   - { n: 4568, area: media, proto: sdp, short: SDES, summary: "Media keys in SDP (a=crypto).", modules: [18] }
-  - { n: 5763, area: media, proto: sdp, short: DTLS-SRTP framework, summary: "SRTP keys set up with DTLS. SDP carries a fingerprint of the certificate.", modules: [18] }
-  - { n: 5764, area: media, proto: rtp, short: DTLS-SRTP, summary: "The DTLS extension that sets up SRTP keys.", modules: [18] }
+  - { n: 5763, area: media, proto: sdp, short: DTLS-SRTP framework, summary: "SRTP keys set up with DTLS. SDP carries a fingerprint of the certificate.", modules: [18, 26] }
+  - { n: 5764, area: media, proto: rtp, short: DTLS-SRTP, summary: "The DTLS extension that sets up SRTP keys.", modules: [18, 26] }
   - { n: 8842, area: media, proto: sdp, short: DTLS in SDP offer/answer, summary: "How offers and answers set up and reuse DTLS associations: a=setup, a=fingerprint, a=tls-id.", modules: [18] }
   - { n: 4145, area: media, proto: sdp, short: The setup attribute, summary: "The a=setup roles (active, passive, actpass) for connection-oriented media, which DTLS-SRTP reuses.", modules: [18] }
   - { n: 7714, area: media, proto: rtp, short: AES-GCM for SRTP, summary: "The AEAD_AES_128_GCM and AEAD_AES_256_GCM SRTP crypto-suites.", modules: [18] }
@@ -101,7 +101,7 @@ rfcs:
   - { n: 5389, area: nat, proto: dns, short: STUN (second version), summary: "STUN as a toolkit for NAT traversal. RFC 8489 replaced it.", modules: [20] }
   - { n: 8489, area: nat, proto: dns, short: STUN, summary: "Lets a client learn its public IP address and port.", modules: [20] }
   - { n: 5766, area: nat, proto: dns, short: TURN (first version), summary: "The first TURN specification. RFC 8656 replaced it.", modules: [20] }
-  - { n: 8656, area: nat, proto: dns, short: TURN, summary: "A relay for media when no direct path works.", modules: [20] }
+  - { n: 8656, area: nat, proto: dns, short: TURN, summary: "A relay for media when no direct path works.", modules: [20, 26] }
   - { n: 5245, area: nat, proto: dns, short: ICE (first version), summary: "The first ICE specification. RFC 8445 replaced it.", modules: [20] }
   - { n: 8445, area: nat, proto: dns, short: ICE, summary: "Finds the best working path between two endpoints with STUN and TURN.", modules: [20, 26] }
   - { n: 6314, area: nat, proto: sip, short: NAT practices for SIP, summary: "Describes good practices for SIP and media through NAT.", modules: [15, 20] }
@@ -124,6 +124,10 @@ rfcs:
   - { n: 8829, area: mobile, proto: sdp, short: JSEP (first version), summary: "How a browser uses SDP offer/answer. RFC 9429 replaced it.", modules: [26] }
   - { n: 9429, area: mobile, proto: sdp, short: JSEP, summary: "How a browser uses SDP offer/answer.", modules: [26] }
   - { n: 8838, area: mobile, proto: dns, short: Trickle ICE, summary: "Sends ICE candidates as they are found, so calls connect faster.", modules: [26] }
+  - { n: 8840, area: mobile, proto: dns, short: Trickle ICE for SIP, summary: "How SIP user agents send trickled ICE candidates in INFO requests, once a dialog exists.", modules: [26] }
+  - { n: 8827, area: mobile, short: WebRTC security, summary: "The security architecture of WebRTC: consent, DTLS-SRTP for every media stream, and no plain RTP.", modules: [26] }
+  - { n: 8835, area: mobile, short: WebRTC transports, summary: "The transports every WebRTC endpoint must support: ICE, STUN, TURN over UDP, TCP, and TLS, and BUNDLE.", modules: [26] }
+  - { n: 7874, area: mobile, proto: rtp, short: WebRTC audio codecs, summary: "Every WebRTC endpoint must support Opus and G.711 (PCMA and PCMU).", modules: [26] }
   - { n: 8843, area: mobile, proto: sdp, short: BUNDLE (first version), summary: "Several media streams on one transport. RFC 9143 replaced it.", modules: [26] }
   - { n: 9143, area: mobile, proto: sdp, short: BUNDLE, summary: "Several media streams on one transport.", modules: [15, 26] }
   - { n: 3310, area: mobile, short: Digest AKA, summary: "Digest authentication with the SIM card (AKA). IMS uses it.", modules: [27] }

@@ -1226,6 +1226,16 @@
   "updates": [],
   "updatedBy": []
  },
+ "7874": {
+  "title": "WebRTC Audio Codec and Processing Requirements",
+  "month": "May",
+  "year": 2016,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
  "8174": {
   "title": "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words",
   "month": "May",
@@ -1333,6 +1343,16 @@
   "updates": [],
   "updatedBy": []
  },
+ "8827": {
+  "title": "WebRTC Security Architecture",
+  "month": "January",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
+ },
  "8829": {
   "title": "JavaScript Session Establishment Protocol (JSEP)",
   "month": "January",
@@ -1342,6 +1362,16 @@
   "obsoletedBy": [
    9429
   ],
+  "updates": [],
+  "updatedBy": []
+ },
+ "8835": {
+  "title": "Transports for WebRTC",
+  "month": "January",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
   "updates": [],
   "updatedBy": []
  },
@@ -1369,6 +1399,18 @@
   "obsoletedBy": [],
   "updates": [],
   "updatedBy": []
+ },
+ "8840": {
+  "title": "A Session Initiation Protocol (SIP) Usage for Incremental Provisioning of Candidates for the Interactive Connectivity Establishment (Trickle ICE)",
+  "month": "January",
+  "year": 2021,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   9725
+  ]
  },
  "8842": {
   "title": "Session Description Protocol (SDP) Offer/Answer Considerations for Datagram Transport Layer Security (DTLS) and Transport Layer Security (TLS)",

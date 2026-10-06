@@ -1,5 +1,5 @@
 /**
- * The flow generators behind the FlowBuilder island (Modules 21 to 25), each
+ * The flow generators behind the FlowBuilder island (Modules 21 to 26), each
  * with the options it shows. One island renders any of them from this table.
  */
 import type { FlowData } from './flow.ts';
@@ -18,6 +18,7 @@ import {
 import {
   allTrunks, applyTrunk, buildTrunk, CALLER_IDS, DEFAULT_TRUNK, NUMBERS, PSTN_OUTCOMES, REDIRECTS, TRUNK_QUOTES, trunkInactive, trunkKey, TRUNKS,
 } from './trunk.ts';
+import { allWebrtc, applyWebrtc, buildWebrtc, CODECS, DEFAULT_WEBRTC, NETWORKS, WEBRTC_QUOTES, webrtcInactive, webrtcKey } from './webrtc.ts';
 import { allBalances, applyBalance, BALANCE_QUOTES, balanceInactive, balanceKey, buildBalance, DEFAULT_BALANCE, FAILURES } from './balance.ts';
 
 /** One row of controls: a choice of values for one option, or on/off toggles. */
@@ -100,6 +101,14 @@ export const GENERATORS = {
       { kind: 'toggles', label: 'What if', items: [['probe', 'OPTIONS health checks']] },
     ],
     defaults: DEFAULT_BALANCE, apply: applyBalance, inactive: balanceInactive, key: balanceKey, build: buildBalance, quotes: BALANCE_QUOTES, all: allBalances,
+  }),
+  webrtc: wrap({
+    rows: [
+      { kind: 'choice', label: 'Network', key: 'network', items: NETWORKS },
+      { kind: 'choice', label: 'Codecs', key: 'codec', items: CODECS },
+      { kind: 'toggles', label: 'What if', items: [['turn', 'TURN server'], ['trickle', 'Trickle ICE'], ['convert', 'Gateway converts media']] },
+    ],
+    defaults: DEFAULT_WEBRTC, apply: applyWebrtc, inactive: webrtcInactive, key: webrtcKey, build: buildWebrtc, quotes: WEBRTC_QUOTES, all: allWebrtc,
   }),
 };
 
