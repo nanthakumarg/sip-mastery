@@ -715,3 +715,19 @@
 - term: HTTPS
   definition: HTTP over TLS. Verifiers use it to fetch STIR certificates.
 
+# --- Voice quality (Module 29) ----------------------------------------------------
+- term: DSCP
+  aliases: [Differentiated Services Code Point, DiffServ]
+  definition: Six bits in the IP header that tell every router how to treat the packet. Voice uses EF (46).
+- term: EF
+  aliases: [Expedited Forwarding]
+  definition: The DSCP (46) and per-hop behaviour for voice - a priority queue, so the packets meet short or empty queues.
+- term: hybrid
+  aliases: [2-wire/4-wire hybrid]
+  definition: The circuit that joins a two-wire analogue line to the four-wire network. An imperfect hybrid reflects part of the far end's voice back - line echo.
+- term: echo canceller
+  aliases: [G.168, line echo canceller, acoustic echo canceller, AEC]
+  definition: A filter that subtracts the echo of the far end's voice from what it sends back. Gateways cancel line echo; phones and softphones cancel acoustic echo from the loudspeaker.
+- term: talker echo
+  definition: Hearing your own voice back from the far end. It becomes annoying as the delay grows, so VoIP needs much better echo control than a local call.
+

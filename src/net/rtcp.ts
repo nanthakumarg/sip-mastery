@@ -265,7 +265,7 @@ export function emodel(i: EmodelInput): Emodel {
 export function mosFromR(r: number): number {
   if (r <= 0) return 1;
   if (r >= 100) return 4.5;
-  return 1 + 0.035 * r + r * (r - 60) * (100 - r) * 7e-6;
+  return Math.max(1, 1 + 0.035 * r + r * (r - 60) * (100 - r) * 7e-6);
 }
 
 /** User satisfaction for an R value (ITU-T G.107 Annex B). */

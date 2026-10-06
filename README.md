@@ -81,6 +81,7 @@ All course content lives in `src/content/`.
 <SdpCompare />  <WebrtcGateway />                                              WebRTC SDP vs classic SDP; what a WebRTC gateway converts (src/sip/webrtc.ts)
 <ImsMap />                                                                     the IMS functions, their headers, and the paths of REGISTER and calls (src/sip/ims.ts)
 <PassportDecoder />                                                            an Identity header decoded, with a live ES256 check (src/sip/stir.ts, stir-data.ts)
+<QualityBudget />  <DscpExplorer />                                            delay, jitter, loss → MOS; DSCP, ToS, and priorities (src/net/quality.ts)
 ```
 
 ### Flow file rules

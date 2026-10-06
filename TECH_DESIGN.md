@@ -80,6 +80,7 @@ sip-course/
 │  │  ├─ address.ts              # address classes (Module 2)
 │  │  ├─ packet.ts               # Ethernet / IPv4 / UDP frame builder (Module 2)
 │  │  ├─ rtp.ts                  # RTP header, telephone-event, bandwidth, jitter buffer (Module 16)
+│  │  ├─ quality.ts              # delay budget, jitter-buffer discards, transcoding, E-model; DSCP classes (Module 29)
 │  │  ├─ rtcp.ts                 # RTCP SR/RR/SDES/BYE, round-trip time, E-model (Module 17)
 │  │  ├─ srtp.ts                 # SRTP key derivation, AES-CM, HMAC-SHA1 (WebCrypto); a=crypto, a=setup (Module 18)
 │  │  ├─ transport.ts            # IP fragments, TCP segments, the 1300-byte rule, UDP vs TCP race (Module 19)

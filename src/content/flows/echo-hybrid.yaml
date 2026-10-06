@@ -1,0 +1,51 @@
+id: echo-hybrid
+title: Line echo from a PSTN hybrid, with no echo canceller
+summary: A hybrid in the PSTN reflects Alice's voice. With the VoIP delay, she hears it as talker echo.
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: IP phone
+  - id: gw
+    label: Carrier gateway
+    kind: server
+    sub: RTP ↔ TDM
+  - id: pstn
+    label: PSTN
+    kind: server
+    sub: Bob's analogue line
+steps:
+  - kind: media
+    from: alice
+    to: gw
+    proto: rtp
+    oneway: true
+    at: 0
+    label: RTP (Alice speaks)
+    caption: 'Alice says "Hello". Her voice takes about 90 ms to reach the gateway: packets, network, jitter buffer.'
+  - kind: media
+    from: gw
+    to: pstn
+    proto: net
+    oneway: true
+    at: 0.09
+    label: PSTN (TDM audio)
+    caption: The gateway decodes the RTP and sends the audio into the PSTN, toward Bob's analogue line.
+  - kind: media
+    from: pstn
+    to: gw
+    proto: net
+    oneway: true
+    at: 0.1
+    label: PSTN (Bob and the echo)
+    caption: At the hybrid in Bob's exchange, part of Alice's voice reflects back, mixed with Bob's voice.
+    detail: "Echo return loss of a typical hybrid: 10–20 dB. The echo comes back about 10 ms after the signal went out."
+  - kind: media
+    from: gw
+    to: alice
+    proto: rtp
+    oneway: true
+    at: 0.19
+    label: RTP (Bob and the echo)
+    caption: The gateway sends everything back. Alice hears her own "Hello" about 190 ms after she said it.
+    warn: "Talker echo: at this delay, even a quiet echo makes conversation hard. Alice blames her phone, but the echo comes from the PSTN."

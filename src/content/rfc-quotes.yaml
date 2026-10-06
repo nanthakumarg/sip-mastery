@@ -5719,3 +5719,63 @@
     new attribute, defined here as the TN Authorization List, which contains a
     list of telephone numbers defining the scope of authority of the
     certificate.
+
+# --- Module 29: Voice quality -------------------------------------------------------
+
+- id: rfc2474-3-dscp
+  rfc: 2474
+  section: "3"
+  title: Differentiated Services Field Definition
+  text: >-
+    Six bits of the DS field are used as a codepoint (DSCP) to select the PHB a
+    packet experiences at each node.
+
+- id: rfc3246-1-ef
+  rfc: 3246
+  section: "1"
+  title: Introduction
+  text: >-
+    Since propagation delays are a fixed property of the topology, delay and
+    jitter are minimized when queuing delays are minimized.
+
+- id: rfc3246-1-short-queues
+  rfc: 3246
+  section: "1"
+  title: Introduction
+  text: >-
+    The intent of the EF PHB is to provide a PHB in which suitably marked packets
+    usually encounter short or empty queues.
+
+- id: rfc4594-4.1-ef
+  rfc: 4594
+  section: "4.1"
+  title: Telephony Service Class
+  text: >-
+    Applications or IP end points SHOULD pre-mark their packets with EF DSCP
+    value.
+
+- id: rfc4594-4.1-engineered
+  rfc: 4594
+  section: "4.1"
+  title: Telephony Service Class
+  text: >-
+    The bandwidth in the core network and the number of simultaneous VoIP
+    sessions that can be supported needs to be engineered and controlled so that
+    there is no congestion for this service.
+
+- id: rfc4594-4.2-cs5
+  rfc: 4594
+  section: "4.2"
+  title: Signaling Service Class
+  text: >-
+    Applications or IP end points SHOULD pre-mark their packets with CS5 DSCP
+    value.
+
+- id: rfc4594-4.2-untrusted
+  rfc: 4594
+  section: "4.2"
+  title: Signaling Service Class
+  text: >-
+    Packet flow marking (DSCP setting) from untrusted sources (end user devices)
+    SHOULD be verified at ingress to DiffServ network using Multifield (MF)
+    Classification methods defined in [RFC2475].

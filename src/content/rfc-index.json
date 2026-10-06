@@ -37,6 +37,25 @@
    3266
   ]
  },
+ "2474": {
+  "title": "Definition of the Differentiated Services Field (DS Field) in the IPv4 and IPv6 Headers",
+  "month": "December",
+  "year": 1998,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   1349,
+   1455
+  ],
+  "obsoletedBy": [],
+  "updates": [
+   791
+  ],
+  "updatedBy": [
+   3168,
+   3260,
+   8436
+  ]
+ },
  "2543": {
   "title": "SIP: Session Initiation Protocol",
   "month": "March",
@@ -84,6 +103,18 @@
    6335,
    8553
   ]
+ },
+ "3246": {
+  "title": "An Expedited Forwarding PHB (Per-Hop Behavior)",
+  "month": "March",
+  "year": 2002,
+  "status": "PROPOSED STANDARD",
+  "obsoletes": [
+   2598
+  ],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": []
  },
  "3261": {
   "title": "SIP: Session Initiation Protocol",
@@ -674,6 +705,19 @@
   "updatedBy": [
    5506,
    8108
+  ]
+ },
+ "4594": {
+  "title": "Configuration Guidelines for DiffServ Service Classes",
+  "month": "August",
+  "year": 2006,
+  "status": "INFORMATIONAL",
+  "obsoletes": [],
+  "obsoletedBy": [],
+  "updates": [],
+  "updatedBy": [
+   5865,
+   8622
   ]
  },
  "4733": {

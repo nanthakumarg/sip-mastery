@@ -1,0 +1,167 @@
+---
+module: 29
+title: Voice quality
+part: 9
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: "What makes a call sound good or bad, and how to engineer it: the delay, jitter, and loss budgets of a call; DSCP marking so that voice gets priority; what transcoding costs; where echo comes from and how to remove it; and how to use MOS and the R-factor in practice."
+objectives:
+  - Build the one-way delay of a call from its parts, and compare it with the G.114 limits.
+  - Explain how jitter becomes delay or loss in the jitter buffer.
+  - Mark voice, video, and signaling with the right DSCP, and tell a DSCP value from a ToS value.
+  - Say what transcoding costs in CPU, delay, and quality, and where it can be avoided.
+  - Find the side of the call that causes echo, and name the fix.
+  - Use MOS and R-factor figures from monitoring tools, and know what they cannot see.
+status: draft
+---
+
+## 29.1 Delay, jitter, and loss budgets
+
+A call sounds good when three numbers stay small: the **delay** from one mouth to the other ear, the **jitter** that the receiver must smooth out, and the **loss** that it must hide. Module 16 explained each of them, and Module 17 turned them into an R-factor and a MOS. This module treats them as a budget: every element of the path spends some, and the sum must stay within the limits.
+
+| | Target | Where it starts to hurt | Why |
+|---|---|---|---|
+| One-way delay | Below 150 ms | Above 150 ms users notice; above 400 ms they talk over each other | ITU-T G.114 |
+| Jitter | Below 30 ms | Every millisecond of jitter costs delay or loss in the jitter buffer | The buffer must cover it |
+| Packet loss | Below 1 % | Above 1–2 %, or in bursts, concealment no longer hides it | Each lost packet is 20 ms of speech |
+
+The delay has fixed parts, which you cannot avoid, and variable parts, which you can engineer. Change the inputs below, or load an example, and watch where the milliseconds and the R-factor points go:
+
+<QualityBudget />
+
+The model makes three simplifications, so treat its numbers as a guide, not a measurement:
+
+- **Light in fibre** covers about 200 km per millisecond, and real routes are longer than the great circle. Distance is the one part of the budget that no equipment can reduce.
+- **The jitter buffer** turns jitter into delay or into loss. The model treats the delay variation as random, with a mean equal to the RFC 3550 jitter. An adaptive buffer that holds about five times the jitter plays out more than 99 % of the packets. A fixed buffer smaller than the jitter discards many of them, even when the network loses none.
+- **Losses add up:** the loss that the listener hears is the network's loss plus the jitter buffer's discards.
+
+<RfcQuote id="rfc3550-6.4.1-jitter" />
+
+<RfcQuote id="rfc3246-1-ef" />
+
+## 29.2 DSCP marking
+
+Most of the variable delay, and most of the jitter, comes from **queues**: packets wait behind other packets on a busy link. **<Term t="DSCP" />** marking tells every router which packets may go first:
+
+<RfcQuote id="rfc2474-3-dscp" />
+
+<DscpExplorer />
+
+| Traffic | DSCP | Value | Treatment |
+|---|---|---|---|
+| Voice RTP (and its RTCP) | <Term t="EF" /> | 46 | Strict priority, with a rate limit |
+| Video calls | AF41 | 34 | A guaranteed share |
+| SIP signaling | CS5 (RFC 4594), or CS3 (common practice) | 40, or 24 | A guaranteed share |
+| Routing protocols | CS6 | 48 | Network control |
+| Everything else | DF | 0 | Best effort |
+
+<RfcQuote id="rfc3246-1-short-queues" />
+
+<RfcQuote id="rfc4594-4.1-ef" />
+
+<RfcQuote id="rfc4594-4.2-cs5" />
+
+RFC 4594 recommends CS5 for signaling, but many phones, switches, and enterprise designs use CS3 (or the older AF31). Either works if every device in the network agrees.
+
+Four practical rules:
+
+- **Marking only matters where a queue forms:** the uplink of a branch office, a Wi-Fi access point, the WAN edge. On an idle gigabit LAN, nothing waits.
+- **The network decides whom to trust.** A PC can mark its downloads EF too. Switches trust the marking of phones (often after they recognise them by LLDP or a voice VLAN), and re-mark everything else to 0.
+- **Marking stops at the Internet.** Providers usually ignore or reset DSCP from customers, unless the contract includes QoS. Over the public Internet, voice competes with everything else.
+- **EF is a priority with a limit.** Too many calls in the EF queue starve each other. Call admission control (Module 25) must keep the number of calls below what the queue can carry.
+
+<RfcQuote id="rfc4594-4.1-engineered" />
+
+<RfcQuote id="rfc4594-4.2-untrusted" />
+
+## 29.3 Transcoding: CPU cost and quality loss
+
+**Transcoding** decodes the audio and encodes it again in another codec. It happens wherever two sides share no codec: an SBC between a G.729 branch office and a G.711 trunk, a WebRTC gateway between Opus and G.711 (Module 26), a media gateway between AMR-WB and the PSTN (Module 27). It costs in three ways:
+
+| Cost | Why |
+|---|---|
+| **CPU or DSP capacity** | Every packet of every call is decoded and encoded. A media server that relays hundreds of calls may transcode only a fraction of that number. |
+| **Delay** | The transcoder must collect a whole frame before it can encode it, and some codecs look ahead. Each stage adds about one packet time. |
+| **Quality** | Each lossy codec removes part of the signal, and the next one cannot restore it. The impairments add up: two G.729 stages sound clearly worse than one. |
+
+Load the example *G.729 WAN, transcoded twice* in the budget above: two stages cost 22 points of R and 70 ms. The cure is codec negotiation: offer every codec you can, and let the SDP choose one that both ends share, so that the media passes through untouched:
+
+<RfcQuote id="rfc7874-3-transcoding" />
+
+## 29.4 Echo: causes and fixes
+
+Echo is your own voice coming back. There are two sources:
+
+- **Line echo** comes from a <Term t="hybrid" />: the circuit where a two-wire analogue line joins the four-wire network. An imperfect hybrid reflects part of the incoming voice back. It exists wherever the PSTN or an analogue phone is in the path.
+- **Acoustic echo** comes from a loudspeaker: the far end's voice leaves the speaker of a hands-free phone or a laptop and enters its microphone.
+
+On a local analogue call, echo comes back within a few milliseconds and sounds like the natural sidetone of the line. With the delay of VoIP, the same echo comes back a fifth of a second later and makes conversation hard. VoIP did not create the echo; it made it audible.
+
+<CompareFlows a="echo-hybrid" b="echo-cancelled" labels={['No echo canceller', 'Echo canceller at the gateway']} />
+
+The fixes sit **next to the source**:
+
+| Echo | Who removes it |
+|---|---|
+| Line echo from the PSTN | The gateway's line <Term t="echo canceller" /> (ITU-T G.168), on the side toward the PSTN |
+| Acoustic echo | The phone, headset, or softphone with an acoustic echo canceller (AEC) |
+
+One rule finds the source fast: **the person who hears the echo is not the person who causes it.** If Alice hears her own voice, the echo is made on Bob's side: his analogue line, his gateway, or his speakerphone. Replacing Alice's phone will not help.
+
+## 29.5 MOS and R-factor in practice
+
+Module 17 showed how the E-model turns delay, loss, and the codec into an R-factor and an estimated MOS. In operations, the numbers come from three places:
+
+| Source | How | Sees |
+|---|---|---|
+| The phones | RTCP XR VoIP metrics (RFC 3611), or a summary sent with SIP PUBLISH at the end of the call (RFC 6035) | What the listener actually got, after the jitter buffer |
+| SBCs and media servers | RTCP reports and their own measurements of the RTP they relay | Each leg of the call separately |
+| Network probes | Copies of the RTP from a switch port or a tap | One point in the path |
+
+<RfcQuote id="rfc3611-4.7.5-r" />
+
+Use the numbers with care:
+
+- **Look at single calls, not only averages.** A daily average MOS of 4.2 can hide the one branch office where every call is at 3.0.
+- **Compare both directions and both legs.** Bad quality in one direction only points to one access link or one Wi-Fi network.
+- **Know what MOS does not see.** An estimated MOS does not hear echo, clipping, one-way audio, a wrong volume, or background noise. A call with MOS 4.3 can still be unusable.
+- **A typical scale for alarms:** above 4.0 good, 3.6 to 4.0 acceptable, below 3.6 investigate.
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="DSCP 46 typed into a ToS field">
+    A phone's configuration asks for the "ToS" value. The engineer types 46, the DSCP for voice. The phone sends ToS 46, which is DSCP 11: no class at all. Voice gets no priority, and the problem shows only when the uplink is busy.
+
+    <p class="fix"><b>Remember:</b> DSCP 46 (EF) is ToS 184 (0xB8). Check which field the device asks for, then check the result in a capture: Wireshark shows "DSCP: Expedited Forwarding". Try the check in the DSCP explorer above.</p>
+  </Mistake>
+
+  <Mistake title="A jitter buffer too small for the network">
+    Softphones on a busy Wi-Fi network use a fixed 20 ms jitter buffer. The jitter is 12 ms. The network loses almost nothing, but the buffer discards almost a fifth of the packets as too late, and the audio sounds choppy. Monitoring shows 0.5 % loss and nobody understands the complaints.
+
+    <p class="fix"><b>Remember:</b> use an adaptive jitter buffer, and count discarded packets as lost. Load the example <i>Busy Wi-Fi, fixed 20 ms buffer</i> in the quality budget above, then switch to the adaptive buffer.</p>
+  </Mistake>
+
+  <Mistake title="Transcoding twice">
+    A branch office uses G.729 to save bandwidth. The SBC at headquarters transcodes it to G.711 for the PBX, and the trunk SBC transcodes it back to G.729 for a carrier that prefers it. Every external call goes through two extra codec stages: 22 R points and 70 ms lost, plus the CPU of two transcoders.
+
+    <p class="fix"><b>Remember:</b> offer the same codec along the whole path where you can, and let it pass through. Transcode once, at the point where it cannot be avoided.</p>
+  </Mistake>
+
+  <Mistake title="Blaming the phone of the person who hears the echo">
+    Alice complains that she hears herself on calls to one customer. Her phone is replaced twice. The customer has an analogue line behind an old gateway with its echo canceller turned off.
+
+    <CompareFlows a="echo-hybrid" b="echo-cancelled" labels={['Problem: no echo canceller', 'Fixed: G.168 at the gateway']} />
+
+    <p class="fix"><b>Remember:</b> the echo that Alice hears is made on the far side. Check the far end's gateway, its echo canceller settings, and any speakerphone there.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- Keep one-way delay below **150 ms** (G.114), jitter below **30 ms**, and loss below **1 %**. Distance, packetisation, the jitter buffer, and transcoding all spend from the delay budget.
+- The **jitter buffer** turns jitter into delay or discards. Count discards as loss.
+- Mark voice **EF (46)**, video **AF41**, and signaling **CS5** or **CS3**, consistently. DSCP 46 is **ToS 184**. Marking helps only where queues form, and only if the network trusts it.
+- **Transcoding** costs CPU, a packet time of delay, and quality, at every stage. Negotiate a shared codec instead.
+- **Echo** is made on the far side of the person who hears it: line echo at a PSTN hybrid (fixed by the gateway's G.168 canceller), acoustic echo at a speaker (fixed by AEC in the phone).
+- **MOS and R** come from RTCP XR, SBCs, and probes. Look at single calls and both directions, and remember what MOS does not hear.

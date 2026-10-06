@@ -2099,3 +2099,51 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 .ppd-result li.is-bad b { color: var(--err); }
 .ppd-result li.is-ok b { color: var(--text); }
 .ppd-hint { margin-top: 6px; color: var(--sip); font-size: 14px; }
+
+/* ---------- Quality budget (Module 29) ---------- */
+.qb { max-width: 1300px; }
+.qb-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px 24px; margin-top: 14px; align-items: start; }
+@media (max-width: 900px) { .qb-controls { grid-template-columns: minmax(0, 1fr); } }
+.qb-choices { display: flex; flex-wrap: wrap; gap: 8px; align-content: start; }
+.qb-choices .seg { flex-wrap: wrap; }
+.qb-sliders { display: grid; gap: 10px; }
+.qb-sliders .jb-slider { min-width: 0; }
+.qb-delay { margin-top: 18px; }
+.qb-delay .eyebrow b { color: var(--text); font-size: 13px; }
+.qb-bar { position: relative; display: flex; height: 28px; margin: 8px 0 22px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); }
+.qb-seg { height: 100%; border-right: 1px solid var(--bg); }
+.qb-mark { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--sip); }
+.qb-mark.is-limit { border-left-color: var(--err); }
+.qb-mark span { position: absolute; top: 100%; left: -20px; margin-top: 4px; font: 400 11px var(--mono); color: var(--muted); white-space: nowrap; }
+.k-pkt { background: var(--rtp); }
+.k-codec { background: var(--sdp); }
+.k-net { background: var(--sip); }
+.k-dist { background: var(--dns); }
+.k-jb { background: var(--rtcp); }
+.k-tx { background: var(--err); }
+.qb-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--dim); }
+.qb-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; }
+.qb-legend b { color: var(--text); font-weight: 500; }
+.qb .mos-scale { margin-top: 18px; }
+.qb-advice { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 15px; color: var(--dim); }
+.qb-advice li { padding: 6px 10px; border-left: 2px solid var(--sip); background: var(--panel); }
+
+/* ---------- DSCP explorer (Module 29) ---------- */
+.dscp { max-width: 1300px; }
+.dscp .stage-head { flex-wrap: wrap; gap: 12px; }
+.dscp .seg { flex-wrap: wrap; }
+.rtph-cell.p-ds { border-top: 2px solid var(--sip); }
+.rtph-cell.p-ecn { border-top: 2px dashed var(--muted); }
+.dscp-main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; margin-top: 14px; align-items: start; }
+@media (max-width: 900px) { .dscp-main { grid-template-columns: minmax(0, 1fr); } }
+.dscp-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 12px 0 0; font-size: 14.5px; color: var(--dim); }
+.dscp-facts dt { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.dscp-facts dd { margin: 0; }
+.dscp-facts code { color: var(--text); }
+.dscp-check { padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); font-size: 14.5px; color: var(--dim); }
+.dscp-check label { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.dscp-check input { width: 90px; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--text); font: 400 14px var(--mono); }
+.dscp-check .is-bad { color: var(--err); }
+.dscp-check .is-ok { color: var(--rtcp); }
+.dscp-check p + p { margin-top: 6px; }
+.dscp-note { margin-top: 10px; font-size: 14.5px; color: var(--dim); }

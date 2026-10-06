@@ -1,0 +1,52 @@
+id: echo-cancelled
+title: Line echo, removed by the gateway's echo canceller
+summary: The gateway cancels the echo from the hybrid, so Alice hears only Bob.
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: IP phone
+  - id: gw
+    label: Carrier gateway
+    kind: server
+    sub: RTP ↔ TDM
+  - id: pstn
+    label: PSTN
+    kind: server
+    sub: Bob's analogue line
+steps:
+  - kind: media
+    from: alice
+    to: gw
+    proto: rtp
+    oneway: true
+    at: 0
+    label: RTP (Alice speaks)
+    caption: 'Alice says "Hello". Her voice takes about 90 ms to reach the gateway: packets, network, jitter buffer.'
+  - kind: media
+    from: gw
+    to: pstn
+    proto: net
+    oneway: true
+    at: 0.09
+    label: PSTN (TDM audio)
+    caption: The gateway decodes the RTP and sends the audio into the PSTN, toward Bob's analogue line.
+    detail: "The echo canceller keeps a copy of this signal: the reference for what may come back."
+  - kind: media
+    from: pstn
+    to: gw
+    proto: net
+    oneway: true
+    at: 0.1
+    label: PSTN (Bob and the echo)
+    caption: At the hybrid in Bob's exchange, part of Alice's voice reflects back, mixed with Bob's voice.
+    detail: "Echo return loss of a typical hybrid: 10–20 dB. The echo comes back about 10 ms after the signal went out."
+  - kind: media
+    from: gw
+    to: alice
+    proto: rtp
+    oneway: true
+    at: 0.19
+    label: RTP (Bob only)
+    caption: The gateway's echo canceller subtracts the reflected copy of Alice's voice. Only Bob's voice goes back to Alice.
+    detail: "ITU-T G.168 line echo canceller: an adaptive filter models the echo path (tail length 64–128 ms) and subtracts its estimate."
