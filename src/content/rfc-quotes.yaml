@@ -5321,3 +5321,62 @@
   text: >-
     Any SIP Response message, with the exception of a 100 (Trying), MAY contain
     a Reason header field with a Q.850 [Q.850] cause code.
+
+# --- Module 25: Proxies, B2BUAs, and SBCs ------------------------------------
+
+- id: rfc5853-3.1.1-topology
+  rfc: 5853
+  section: "3.1.1"
+  title: Topology Hiding
+  text: >-
+    The most common form of topology hiding is the application of header
+    privacy (see Section 5.1 of [2]), which involves stripping Via and
+    Record-Route headers, replacing the Contact header, and even changing
+    Call-IDs.
+
+- id: rfc5853-3.2.1-relay
+  rfc: 5853
+  section: "3.2.1"
+  title: Media Traffic Management
+  text: >-
+    By modifying the session description, the SBC can force the media to be
+    sent through a media relay which may be co-located with the SBC.
+
+- id: rfc5853-3.2.2-e2e
+  rfc: 5853
+  section: "3.2.2"
+  title: Media Traffic Management (Architectural Issues)
+  text: >-
+    Implementing traffic management in this manner requires the SBC to access
+    and modify the session descriptions (i.e., offers and answers) exchanged
+    between the user agents. Consequently, this approach does not work if user
+    agents encrypt or integrity-protect their message bodies end-to-end.
+
+- id: rfc5853-3.3.1-mismatch
+  rfc: 5853
+  section: "3.3.1"
+  title: Fixing Capability Mismatches
+  text: >-
+    For example, an SBC can enable a plain SIP [1] user agent to connect to a
+    3GPP network, or enable a connection between user agents that support
+    different IP versions, different codecs, or that are in different address
+    realms.
+
+- id: rfc5853-3.5.1-access
+  rfc: 5853
+  section: "3.5.1"
+  title: Access Control
+  text: >-
+    This way, all the SIP traffic entering the inner network needs to be routed
+    though the SBC, which only routes messages from authorized parties or
+    traffic that meets a specific policy that is expressed in the SBC
+    administratively.
+
+- id: rfc5853-3.7.1-srtp
+  rfc: 5853
+  section: "3.7.1"
+  title: Media Encryption
+  text: >-
+    This is the case when media encryption (e.g., Secure Real-time Transport
+    Protocol (SRTP)) is used only on the access network (outer network) side
+    and the media is carried unencrypted in the inner network.

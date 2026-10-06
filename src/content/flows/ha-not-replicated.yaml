@@ -1,0 +1,209 @@
+id: ha-not-replicated
+title: SBC failover, without replicated dialogs
+summary: The active SBC of a pair fails during a call. The standby SBC takes the floating IP address, but knows nothing about the call, so one side of it never ends.
+lanes:
+  - id: alice
+    label: Alice
+    kind: ua
+    sub: 192.0.2.10
+  - id: active
+    label: Active SBC
+    kind: sbc
+    sub: 198.51.100.41
+  - id: standby
+    label: Standby SBC
+    kind: sbc
+    sub: 198.51.100.42
+  - id: bob
+    label: Bob
+    kind: ua
+    sub: 203.0.113.20
+steps:
+  - from: alice
+    to: active
+    label: INVITE
+    caption: Alice calls Bob. The SBC pair has one floating IP address, 198.51.100.40; the active SBC holds it.
+    message: |
+      INVITE sip:bob@biloxi.example SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 314159 INVITE
+      Contact: <sip:alice@192.0.2.10:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=alice 2890844526 2890844526 IN IP4 192.0.2.10
+      s=-
+      c=IN IP4 192.0.2.10
+      t=0 0
+      m=audio 49170 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+  - from: active
+    to: alice
+    label: 100 Trying
+    caption: The active SBC takes the call.
+    message: |
+      SIP/2.0 100 Trying
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 314159 INVITE
+      Content-Length: {auto}
+  - from: active
+    to: bob
+    label: INVITE
+    caption: The SBC starts its call to Bob. It keeps the state of both dialogs in its own memory only.
+    message: |
+      INVITE sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.40:5060;branch=z9hG4bKsa1a6f
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=sbc2b18
+      To: Bob <sip:bob@biloxi.example>
+      Call-ID: c0ffee42@198.51.100.40
+      CSeq: 1 INVITE
+      Contact: <sip:sbc@198.51.100.40:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=sbc 5001 5001 IN IP4 198.51.100.40
+      s=-
+      c=IN IP4 198.51.100.40
+      t=0 0
+      m=audio 40000 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+  - from: bob
+    to: active
+    label: 200 OK
+    caption: Bob answers.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 198.51.100.40:5060;branch=z9hG4bKsa1a6f
+      From: Alice <sip:alice@atlanta.example>;tag=sbc2b18
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: c0ffee42@198.51.100.40
+      CSeq: 1 INVITE
+      Contact: <sip:bob@203.0.113.20:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=bob 2890844527 2890844527 IN IP4 203.0.113.20
+      s=-
+      c=IN IP4 203.0.113.20
+      t=0 0
+      m=audio 3456 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+  - from: active
+    to: alice
+    label: 200 OK
+    caption: The SBC answers Alice. Its Contact and SDP give the floating address, not its own.
+    message: |
+      SIP/2.0 200 OK
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b1d75
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=sbc1a77
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 314159 INVITE
+      Contact: <sip:sbc@198.51.100.40:5060>
+      Content-Type: application/sdp
+      Content-Length: {auto}
+
+      v=0
+      o=sbc 5002 5002 IN IP4 198.51.100.40
+      s=-
+      c=IN IP4 198.51.100.40
+      t=0 0
+      m=audio 40002 RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+  - from: alice
+    to: active
+    label: ACK
+    caption: Alice acknowledges.
+    message: |
+      ACK sip:sbc@198.51.100.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 192.0.2.10:5060;branch=z9hG4bK74b2048
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=9fxced76sl
+      To: Bob <sip:bob@biloxi.example>;tag=sbc1a77
+      Call-ID: 3848276298220188511@192.0.2.10
+      CSeq: 314159 ACK
+      Content-Length: {auto}
+  - from: active
+    to: bob
+    label: ACK
+    caption: The SBC acknowledges Bob's 200 OK.
+    message: |
+      ACK sip:bob@203.0.113.20:5060 SIP/2.0
+      Via: SIP/2.0/UDP 198.51.100.40:5060;branch=z9hG4bKsa1d42
+      Max-Forwards: 70
+      From: Alice <sip:alice@atlanta.example>;tag=sbc2b18
+      To: Bob <sip:bob@biloxi.example>;tag=314159
+      Call-ID: c0ffee42@198.51.100.40
+      CSeq: 1 ACK
+      Content-Length: {auto}
+  - kind: media
+    from: alice
+    to: bob
+    proto: rtp
+    label: RTP
+    caption: The media flows through the floating address of the SBC pair.
+  - from: active
+    to: standby
+    proto: net
+    label: keepalive
+    lost: true
+    caption: The active SBC crashes. Its keepalives to the standby SBC stop.
+    detail: |-
+      Heartbeat over a dedicated link, every 1 s.
+      The standby SBC waits 3 s, then takes over.
+  - from: standby
+    to: bob
+    proto: net
+    label: gratuitous ARP
+    caption: The standby SBC takes 198.51.100.40 and announces it on its LAN. Packets for that address now reach the standby SBC.
+    detail: |-
+      ARP reply (gratuitous), broadcast
+        198.51.100.40 is-at 52:54:00:3a:9c:02  (the standby SBC)
+    status:
+      active: Down
+      standby: Active
+  - from: bob
+    to: standby
+    label: BYE
+    caption: Bob hangs up. His BYE goes to the floating address, so the standby SBC receives it.
+    message: |
+      BYE sip:sbc@198.51.100.40:5060 SIP/2.0
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      Max-Forwards: 70
+      From: Bob <sip:bob@biloxi.example>;tag=314159
+      To: Alice <sip:alice@atlanta.example>;tag=sbc2b18
+      Call-ID: c0ffee42@198.51.100.40
+      CSeq: 231 BYE
+      Content-Length: {auto}
+  - from: standby
+    to: bob
+    label: 481 Call/Transaction Does Not Exist
+    caption: The standby SBC knows nothing about this dialog.
+    message: |
+      SIP/2.0 481 Call/Transaction Does Not Exist
+      Via: SIP/2.0/UDP 203.0.113.20:5060;branch=z9hG4bKb01f6b
+      From: Bob <sip:bob@biloxi.example>;tag=314159
+      To: Alice <sip:alice@atlanta.example>;tag=sbc2b18
+      Call-ID: c0ffee42@198.51.100.40
+      CSeq: 231 BYE
+      Content-Length: {auto}
+    rfc: rfc3261-12.2.2-481
+    warn: Nobody sends a BYE to Alice. Her call stays up, and billing keeps counting.
+  - kind: media
+    from: alice
+    to: standby
+    proto: rtp
+    label: RTP
+    caption: Alice's phone still sends RTP. The standby SBC drops it, and Alice hears silence until she hangs up.
+    oneway: true

@@ -1932,3 +1932,54 @@ svg.rl-map { display: block; width: 100%; min-width: 560px; height: auto; backgr
 .nn-out dt { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
 .nn-out dd { margin: 0; min-width: 0; }
 @media (max-width: 560px) { .nn-out { grid-template-columns: minmax(0, 1fr); } .nn-out dd { margin-bottom: 6px; } }
+
+/* ---------- Proxy vs B2BUA (Module 25.1) ---------- */
+.elcmp { max-width: 1400px; }
+.elcmp .stage-head { flex-wrap: wrap; gap: 12px; }
+.elcmp .seg { flex-wrap: wrap; }
+.elcmp-row { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.elcmp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.elcmp-name { font: 700 18px var(--display); color: var(--text); }
+.elcmp-count { font: 400 12.5px var(--mono); color: var(--muted); }
+.elcmp-panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 10px; }
+@media (max-width: 900px) { .elcmp-panes { grid-template-columns: minmax(0, 1fr); } }
+.elcmp-pane { min-width: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.elcmp-pane > .eyebrow { padding: 8px 12px 0; }
+.elcmp-pane .insp-line { cursor: default; }
+.elcmp-pane .insp-text { overflow-wrap: anywhere; }
+.elcmp-why { margin-top: 10px; font-size: 15px; color: var(--dim); max-width: 75ch; }
+
+/* ---------- SBC function explorer (Module 25.3) ---------- */
+.sbcx { max-width: 1400px; }
+.sbcx .stage-head { flex-wrap: wrap; gap: 12px; }
+.sbcx-controls { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: end; margin-top: 14px; }
+.sbcx-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.sbcx-toggle { display: inline-flex; gap: 6px; align-items: center; height: 34px; padding: 0 11px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--dim); font: 400 12.5px var(--mono); }
+.sbcx-toggle[aria-pressed=true] { border-color: var(--sip); color: var(--text); }
+.sbcx-toggle[aria-pressed=true] .sbcx-dot { color: var(--sip); }
+.sbcx-busy { display: grid; gap: 6px; }
+.sbcx-note { margin-top: 10px; font-size: 14px; color: var(--sip); }
+.sbcx-mapwrap { overflow-x: auto; margin: 16px 0 4px; }
+.sbcx-map { display: block; width: 100%; min-width: 620px; max-width: 900px; height: auto; margin: 0 auto; }
+.sbcx-map .zone { fill: none; stroke: var(--line); stroke-dasharray: 4 4; }
+.sbcx-map .zone-label { fill: var(--muted); font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.sbcx-map .node rect { fill: var(--panel-2); stroke: var(--line); }
+.sbcx-map .node.is-sbc rect { stroke: var(--text); stroke-width: 1.5; }
+.sbcx-map .node.is-attacker rect { stroke: var(--err); stroke-dasharray: 3 3; }
+.sbcx-map .node text { fill: var(--text); font: 600 14px var(--display); text-anchor: middle; }
+.sbcx-map .node text.sub { fill: var(--muted); font: 400 10.5px var(--mono); }
+.sbcx-map .sig { stroke: var(--sip); stroke-width: 2; }
+.sbcx-map .rtp { stroke: var(--rtp); stroke-width: 2; stroke-dasharray: 6 5; fill: none; }
+.sbcx-map .rtp.is-broken { stroke: var(--err); }
+.sbcx-map .atk { stroke: var(--err); stroke-width: 1.5; stroke-dasharray: 2 4; fill: none; }
+.sbcx-map .atk.is-blocked { stroke: var(--muted); }
+.sbcx-map .lbl { fill: var(--dim); font: 400 11px var(--mono); text-anchor: middle; }
+.sbcx-map .lbl.is-err { fill: var(--err); }
+.sbcx-map .lbl.is-ok { fill: var(--muted); }
+.sbcx-carrier { margin-top: 14px; font-size: 15.5px; color: var(--text); }
+.sbcx-checks, .sbcx-attacks { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14.5px; color: var(--dim); }
+.sbcx-checks li, .sbcx-attacks li { padding: 6px 10px; border-left: 2px solid var(--line); background: var(--panel); }
+.sbcx-checks li.is-bad, .sbcx-attacks li.is-bad { border-left-color: var(--err); }
+.sbcx-checks li.is-bad b { color: var(--err); }
+.sbcx-checks li.is-ok b, .sbcx-attacks li.is-ok b { color: var(--text); }
+.sbcx-attacks li.is-bad b { color: var(--err); }

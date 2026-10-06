@@ -543,3 +543,35 @@
   definition: A SIP header (RFC 5806) that records each time a call was forwarded, with the number that forwarded it and why.
 - term: History-Info
   definition: A SIP header (RFC 7044) that records each target a request had, in order, and how each one changed. The standard replacement for Diversion.
+
+# --- Proxies, B2BUAs, and SBCs (Module 25) -------------------------------------
+- term: Load balancer
+  aliases: [dispatcher]
+  definition: A proxy in front of a group of servers. It sends each new call or registration to one of them, and skips servers that do not answer its health checks.
+- term: PBX A
+  definition: In Module 25, one of two PBXs behind a load balancer. Both serve the same users.
+- term: PBX B
+  definition: In Module 25, the second of two PBXs behind a load balancer.
+- term: Active SBC
+  definition: In Module 25, the SBC of a high-availability pair that holds the floating IP address and handles the calls.
+- term: Standby SBC
+  definition: In Module 25, the SBC of a high-availability pair that waits. It takes over the floating IP address when the active SBC fails.
+- term: health check
+  definition: A request, often OPTIONS, that a load balancer or SBC sends to a server every few seconds to learn whether it is up.
+- term: floating IP address
+  aliases: [virtual IP address, VIP, floating IP]
+  definition: An IP address that moves between the servers of a high-availability pair. Clients always use it, so they need not know which server is active.
+- term: gratuitous ARP
+  definition: An ARP message that a server sends without being asked, to tell the switches and routers on its LAN that an IP address now belongs to its MAC address.
+- term: media anchoring
+  aliases: [media relay, anchoring the media]
+  definition: An SBC or B2BUA puts its own address in the SDP, so the RTP flows through it. Needed for NAT traversal, transcoding, SRTP on one side, and recording.
+- term: transcoding
+  definition: Decoding the media in one codec and encoding it in another, for example G.722 to G.711. It costs CPU or DSP capacity, and some quality.
+- term: SIP normalisation
+  aliases: [header normalisation, header manipulation]
+  definition: Changes an SBC makes so that each side gets the SIP it expects, such as E.164 numbers, P-Asserted-Identity in place of an old header, or the removal of unknown headers.
+- term: call admission control
+  aliases: [CAC]
+  definition: A limit on the number of calls, or the bandwidth, that an SBC accepts on a trunk or from a site. Calls over the limit get an error at once.
+

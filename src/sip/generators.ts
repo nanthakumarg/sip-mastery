@@ -1,5 +1,5 @@
 /**
- * The flow generators behind the FlowBuilder island (Modules 21 to 24), each
+ * The flow generators behind the FlowBuilder island (Modules 21 to 25), each
  * with the options it shows. One island renders any of them from this table.
  */
 import type { FlowData } from './flow.ts';
@@ -18,6 +18,7 @@ import {
 import {
   allTrunks, applyTrunk, buildTrunk, CALLER_IDS, DEFAULT_TRUNK, NUMBERS, PSTN_OUTCOMES, REDIRECTS, TRUNK_QUOTES, trunkInactive, trunkKey, TRUNKS,
 } from './trunk.ts';
+import { allBalances, applyBalance, BALANCE_QUOTES, balanceInactive, balanceKey, buildBalance, DEFAULT_BALANCE, FAILURES } from './balance.ts';
 
 /** One row of controls: a choice of values for one option, or on/off toggles. */
 export type Row =
@@ -92,6 +93,13 @@ export const GENERATORS = {
       { kind: 'toggles', label: 'What if', items: [['earlyMedia', 'In-band tones (183)']] },
     ],
     defaults: DEFAULT_TRUNK, apply: applyTrunk, inactive: trunkInactive, key: trunkKey, build: buildTrunk, quotes: TRUNK_QUOTES, all: allTrunks,
+  }),
+  balance: wrap({
+    rows: [
+      { kind: 'choice', label: 'PBX A', key: 'failure', items: FAILURES },
+      { kind: 'toggles', label: 'What if', items: [['probe', 'OPTIONS health checks']] },
+    ],
+    defaults: DEFAULT_BALANCE, apply: applyBalance, inactive: balanceInactive, key: balanceKey, build: buildBalance, quotes: BALANCE_QUOTES, all: allBalances,
   }),
 };
 

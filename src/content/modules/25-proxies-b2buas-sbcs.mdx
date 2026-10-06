@@ -1,0 +1,185 @@
+---
+module: 25
+title: Proxies, B2BUAs, and SBCs
+part: 9
+level: [advanced]
+paths: { noc: core, dev: core }
+summary: "The elements in the middle of real SIP networks: what a proxy may change and what a B2BUA may change; the usual roles of Kamailio, OpenSIPS, Asterisk, FreeSWITCH, and rtpengine; the functions of an SBC and what each one costs; load balancing and failover with OPTIONS health checks; and high availability with floating IP addresses and shared state."
+objectives:
+  - Say which headers and bodies a proxy may change, and show in a trace that an element is a B2BUA.
+  - Name the usual role of each common open-source SIP server, and draw a typical design with them.
+  - Explain topology hiding, normalisation, media anchoring, transcoding, security, and call admission control, and what each costs.
+  - Follow a load balancer that fails over with health checks, after a timeout, after a 503, and not after a 6xx.
+  - Explain what state an HA pair must share so that calls survive a failover.
+status: draft
+---
+
+## 25.1 What a proxy may change, and what a B2BUA may change
+
+Module 3 introduced the two kinds of element in the middle of a call. A **<Term t="proxy" />** routes requests that belong to someone else, so RFC 3261 limits what it may touch. A **<Term t="B2BUA" />** ends the call on one side and starts a new call on the other, so it may change anything:
+
+<RfcQuote id="rfc3261-16.6-copy" />
+
+<RfcQuote id="rfc7092-3.1.2-signaling-only" />
+
+| Part of the message | Proxy | B2BUA |
+|---|---|---|
+| Request-URI | Yes: the next target (location service, Route) | Its own, for the new call |
+| Via | Adds its own on top; removes it from responses | A new Via stack: only its own |
+| Max-Forwards | Minus one | Usually starts again at 70, or copies it minus one |
+| Record-Route, Route | Adds Record-Route; removes its own Route entry | Its own route set on each side |
+| From, To, tags | Never | New tags; it may also change the names and URIs |
+| Call-ID, CSeq | Never | New on each side |
+| Contact | Never | Its own address |
+| Body (SDP) | **Never** | Anything: its own address, other codecs, other media |
+| Other headers | May add some (such as P-Asserted-Identity); does not remove others | Copies only what it chooses |
+
+Pick a message in the diagram, and compare what each element does to it. The + and ~ marks show the headers that the element added or changed; − marks the ones it removed:
+
+<ElementCompare />
+
+Two consequences matter in daily work:
+
+- **Behind a proxy there is one dialog.** Alice and Bob hold the same Call-ID and tags, and every feature that works end to end works through the proxy: REFER, Replaces, SDP encryption keys, an Identity signature (Module 28).
+- **Behind a B2BUA there are two dialogs.** To follow one call in a trace, match the two sides by time, numbers, and any correlation header the B2BUA adds. Every end-to-end feature now works only if the B2BUA supports it, on both sides.
+
+## 25.2 Common open-source roles
+
+Most SIP networks are built from a few well-known open-source servers, each in its usual role. This course does not teach their configuration, but you will meet them in traces and in job descriptions:
+
+| Server | Role | Typical work |
+|---|---|---|
+| Kamailio, OpenSIPS | Proxy, registrar, load balancer, edge proxy | Routing, authentication, registration, load balancing, rate limits. Tens of thousands of calls per server, because they handle only signaling. |
+| Asterisk, FreeSWITCH | B2BUA | PBX features, IVR, voicemail, conferences, queues, recording, transcoding. They handle the media, so far fewer calls per server. |
+| rtpengine | Media relay, controlled by a proxy | Anchors RTP, converts between RTP and SRTP or WebRTC, records. |
+
+A common design puts these together: Kamailio at the edge as registrar and load balancer, rtpengine next to it for the media, and a group of Asterisk or FreeSWITCH servers behind it for the features.
+
+<Note title="A proxy that changes the SDP">
+Kamailio or OpenSIPS with rtpengine rewrites the addresses in the SDP so that the media flows through rtpengine. A proxy must not change the body, so this combination behaves as a media-aware element, not as a pure proxy. Call it what it is when you read a trace: the Call-ID and tags pass unchanged, but the SDP does not.
+</Note>
+
+## 25.3 SBC functions
+
+An <Term t="SBC" /> is a B2BUA at the border of a network:
+
+<RfcQuote id="rfc5853-2-sbc-b2bua" />
+
+Each of its functions solves a problem at the border, and each has a cost. Turn them on and off below. The PBX on the left sends the same INVITE each time; watch what reaches the carrier, where the media flows, and what happens to attacks:
+
+<SbcExplorer />
+
+| Function | What it does | What it costs |
+|---|---|---|
+| <Term t="topology hiding" /> | New Call-ID, its own Via, Contact, and route set; inside names and addresses removed | Traces on each side show different calls |
+| <Term t="SIP normalisation" /> | E.164 numbers, P-Asserted-Identity, removes or rewrites headers that the other side does not accept | Rules to write and test for each peer |
+| <Term t="media anchoring" /> (NAT) | Its own address in the SDP; relays the RTP and latches onto its real source | Bandwidth and a little delay; the SBC is now in the media path |
+| <Term t="transcoding" /> | Converts between codecs that the two sides do not share | CPU or DSP capacity, delay, and some quality, on every packet |
+| Security | TLS and SRTP on the Internet side, access lists, rate limits, protocol repair | Certificates to manage; CPU for encryption |
+| <Term t="call admission control" /> | Limits calls per trunk or site; rejects the rest at once | A limit that must match the trunk contract |
+
+<RfcQuote id="rfc5853-3.1.1-topology" />
+
+<RfcQuote id="rfc5853-3.2.1-relay" />
+
+<RfcQuote id="rfc5853-3.3.1-mismatch" />
+
+<RfcQuote id="rfc5853-3.5.1-access" />
+
+<RfcQuote id="rfc5853-3.7.1-srtp" />
+
+Everything an SBC does to the SDP breaks end-to-end features. Encryption keys exchanged in the SDP, a signature over the SDP, and any feature that the SBC does not understand stop working:
+
+<RfcQuote id="rfc5853-3.2.2-e2e" />
+
+## 25.4 Load balancing and failover with OPTIONS health checks
+
+A <Term t="Load balancer" /> is a proxy in front of a group of servers. It chooses a server for each new call, often in turn ("round robin") or by weight, and it must skip servers that are down. It learns that a server is down in one of two ways:
+
+- **After a failure.** The server answers 503, or nothing comes back at all. With no answer, the load balancer waits for Timer B: 32 seconds over UDP, while the caller hears nothing.
+- **Before the call, with a <Term t="health check" />.** The load balancer sends OPTIONS to each server every few seconds, and takes a server out of the list when it stops answering.
+
+<FlowBuilder kind="balance" preset={{}} eyebrow="Flow builder · a load balancer in front of two PBXs" />
+
+<RfcQuote id="rfc3263-4.3-failure" />
+
+<RfcQuote id="rfc3263-4.3-new-branch" />
+
+Fail over only on a failure of the **server**: a timeout, a transport error, or a 503. A 4xx or 6xx is an answer about the **call**, and the next server would give the same answer, or worse, ring the user a second time:
+
+<RfcQuote id="rfc3261-16.7-6xx" />
+
+A 503 with **Retry-After** tells the load balancer how long to leave that server alone:
+
+<RfcQuote id="rfc3261-20.33-retry-after" />
+
+Three design choices go with every load balancer:
+
+- **What it balances: calls, not requests.** In-dialog requests follow the Contact and the route set to the server that has the call. A load balancer that Record-Routes must send them to the same server, not to the next one in turn.
+- **Where registrations live.** If each PBX keeps its own registrations, a call for Bob must go to the PBX where Bob registered. A shared location database lets any PBX take any call.
+- **How fast it detects a failure.** OPTIONS every 5 seconds, with a server marked down after 2 or 3 missed answers, finds a failure in about 15 seconds. Shorter intervals find it faster, at the cost of more traffic. DNS SRV (Module 11) spreads the load from the client side instead, with the same failover rules.
+
+## 25.5 High availability: shared state and floating IPs
+
+An <Term t="Active SBC" /> and a <Term t="Standby SBC" /> share one **<Term t="floating IP address" />**. Phones, carriers, and DNS know only that address. When the active SBC stops sending keepalives, the standby takes the address and announces it with a <Term t="gratuitous ARP" />. Packets for the floating address now reach the new active SBC. For this to work, every address that other elements store must be the floating address: Via, Contact, Record-Route, and the SDP.
+
+What survives a failover depends on the state that the two SBCs share:
+
+| State | If it is not shared | If it is shared |
+|---|---|---|
+| Registrations | Phones are unreachable until they register again | Incoming calls work at once |
+| Dialogs | The next request in a call gets 481; one side of the call never ends | BYE, re-INVITE, and transfer work as before |
+| Media relay sessions | The RTP stops; both sides hear silence | The audio continues after a short gap |
+| Transactions | A request in progress is lost; retransmissions or the user retry it | Rarely shared; the gain is small |
+
+<Flow id="ha-replicated" eyebrow="Call flow · a failover during a call, with shared dialogs" />
+
+<RfcQuote id="rfc3261-12-state" />
+
+<RfcQuote id="rfc3261-12.2.2-481" />
+
+A proxy that does not keep dialog state needs none of this: any copy of it can forward the next request, because the route set in the request says where to go. That is one reason why large networks keep their proxies stateless or transaction-stateful, and put the state that must survive in a shared database.
+
+## Common mistakes
+
+<Mistakes>
+  <Mistake title="Topology hiding that forgets the SDP">
+    An SBC rewrites Via, Contact, and Call-ID on its way to the carrier, and the headers look clean. The SDP still gives the PBX's private address. Calls connect, but the carrier's RTP goes to 10.1.1.20 and never arrives: one-way audio on every outbound call.
+
+    <BrokenFixedFlow broken="sbc-sdp-leak" fixed="sbc-media-anchored" />
+
+    <p class="fix"><b>Remember:</b> an address in the SDP is part of the topology. Anchor the media on the SBC, or make sure that the inside address is reachable from the outside. The course's checker calls this rule sdp-private-address (Module 20).</p>
+  </Mistake>
+
+  <Mistake title="A load balancer with no health checks">
+    A load balancer sends calls in turn to two PBXs, and does not probe them. PBX A fails at night. Every second call now waits 32 seconds for Timer B before it goes to PBX B, and most callers hang up first.
+
+    <FlowPair a={{ kind: 'balance', preset: { probe: false, failure: 'down' } }} b={{ kind: 'balance', preset: { probe: true, failure: 'down' } }} labels={['Broken: no health checks', 'Fixed: OPTIONS every few seconds']} />
+
+    <p class="fix"><b>Remember:</b> probe every server with OPTIONS, and take it out of the list after a few missed answers. Also set a failover timer much shorter than 32 seconds for the INVITE to a server.</p>
+  </Mistake>
+
+  <Mistake title="Failing over after a final answer from the user">
+    A load balancer tries the next server after any error response. Bob presses Decline, and PBX A answers 603. The load balancer sends the call to PBX B, which rings Bob's phone again.
+
+    <FlowPair a={{ kind: 'balance', preset: { probe: true, failure: 'decline', failoverAll: true } }} b={{ kind: 'balance', preset: { probe: true, failure: 'decline' } }} labels={['Broken: fails over on 603', 'Fixed: passes the 603 on']} />
+
+    <p class="fix"><b>Remember:</b> fail over on a timeout, a transport error, or a 503. Pass every other final response to the caller, and never try another server after a 6xx.</p>
+  </Mistake>
+
+  <Mistake title="An HA pair that does not share dialogs">
+    Two SBCs share a floating IP address, and the failover test passes: new calls work within seconds. Nobody tests a call that is up during the failover. In production, every such call has one side that never ends; billing records run for hours, and trunk channels stay in use.
+
+    <CompareFlows a="ha-not-replicated" b="ha-replicated" labels={['Problem: 481, one side stays up', 'Fixed: shared dialogs']} />
+
+    <p class="fix"><b>Remember:</b> replicate dialog state and media relay sessions between the pair, and use session timers (Module 22) so that a call whose state was lost ends by itself. Test a failover with calls in progress.</p>
+  </Mistake>
+</Mistakes>
+
+## Summary
+
+- A **proxy** changes only what routing needs: Request-URI, Via, Max-Forwards, Route, and Record-Route. It never changes From, To, Call-ID, CSeq, Contact, or the body. A **B2BUA** may change everything, and splits the call into two dialogs.
+- **Kamailio** and **OpenSIPS** are proxies, registrars, and load balancers; **Asterisk** and **FreeSWITCH** are B2BUAs with media features; **rtpengine** is a media relay that a proxy controls.
+- An **SBC** is a B2BUA at the border. Its functions: topology hiding, normalisation, media anchoring for NAT, transcoding, security, and call admission control. Each one has a cost, and every change to the SDP breaks end-to-end features.
+- A **load balancer** probes its servers with OPTIONS and fails over on a timeout, a transport error, or a 503, never on a 4xx or 6xx answer about the call.
+- An **HA pair** shares a floating IP address. Calls survive a failover only if the pair shares registrations, dialogs, and media sessions, and every stored address is the floating one.

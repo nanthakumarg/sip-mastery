@@ -66,6 +66,9 @@ sip-course/
 │  │  ├─ events.ts               # SUBSCRIBE/NOTIFY for presence (with PUBLISH), dialog, message-summary, reg (Module 23)
 │  │  ├─ trunk.ts                # a PBX calls the PSTN through a carrier SBC and gateway: ISUP, Q.850, caller ID (Module 24)
 │  │  ├─ numbers.ts              # number normalisation to E.164, tel URI, user=phone (Module 24)
+│  │  ├─ elements.ts             # the same call through a proxy and a B2BUA, paired message by message (Module 25)
+│  │  ├─ sbc.ts                  # SBC functions on one INVITE: topology hiding, normalisation, media, transcoding, security, CAC (Module 25)
+│  │  ├─ balance.ts              # a load balancer with OPTIONS health checks and failover (Module 25)
 │  │  ├─ generators.ts           # the generators and their options, for the FlowBuilder island
 │  │  └─ digest.ts               # HA1 / HA2 / response
 │  ├─ net/                       # below SIP: addresses, packets, RTP
