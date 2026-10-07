@@ -8,7 +8,7 @@ A free, public, read-only web course. It takes support/NOC engineers and develop
 - IMS/VoLTE, STIR/SHAKEN, and WebRTC are core modules. T.38 fax is removed.
 - There are no quizzes, accounts, progress tracking, or certificates. The course teaches with interactive diagrams.
 - Every lesson quotes and links the RFC sections it relies on.
-- The visual design follows the two decks in `presentations/`.
+- The visual design is a signalling console: protocol colours, Bricolage Grotesque and Martian Mono, in light and dark themes (§4).
 - Diagrams follow a "visual ASD-STE100" rule set: about 80% of the way to strict Simplified Technical English, applied to labels, symbols, and steps (see §5).
 
 ---
@@ -558,7 +558,7 @@ The flows follow RFC 3665 (basic call flows) and RFC 5359 (service examples).
 - 25.4 Load balancing and failover with OPTIONS health checks
 - 25.5 High availability: shared state and floating IPs
 
-**Diagrams:** ⚖️ *Proxy vs B2BUA side-by-side*: the same call through each, with a diff of the messages on both sides of the element. 🏗 *SBC function explorer*: topology view with toggles (as in `presentations/scaled-architecture.html`).
+**Diagrams:** ⚖️ *Proxy vs B2BUA side-by-side*: the same call through each, with a diff of the messages on both sides of the element. 🏗 *SBC function explorer*: topology view with toggles.
 
 ### Module 26: WebRTC and SIP 🔴
 - 26.1 The WebRTC media stack: ICE, DTLS-SRTP, `rtcp-mux`, BUNDLE
@@ -646,12 +646,12 @@ A good-to-know reference. The earlier modules already explain the protocol, so t
 
 ---
 
-## 4. Visual design direction (from `presentations/`)
+## 4. Visual design direction
 
-The course uses the same visual language as both decks. This is a direction, not the final technical design.
+The course uses one visual language throughout. This is a direction, not the final technical design.
 
 **Look**
-- Dark "signaling console" theme. Background `#0E1013`, panels `#15181d` / `#1b1f26`, lines `#2a3039`, text `#ECE7DC`, dim text `#BEB8AC`, muted `#828a95`
+- "Signaling console" look, in light (default) and dark themes. Dark background `#0E1013`, panels `#15181d` / `#1b1f26`, lines `#2a3039`, text `#ECE7DC`, dim text `#BEB8AC`, muted `#828a95`
 - Faint scanline texture on diagram stages
 - Fonts: **Bricolage Grotesque** (headings and text) and **Martian Mono** (messages, headers, labels)
 - Large, tight headings with one key phrase highlighted in amber (`h2 em`)
@@ -660,7 +660,7 @@ The course uses the same visual language as both decks. This is a direction, not
 - Stat tiles for key numbers (T1 = 500 ms, 64×T1 = 32 s, 1300 bytes)
 - Entrance animations: lines draw in, labels fade in; respects `prefers-reduced-motion`
 
-**Protocol colour map** (extends the decks' map)
+**Protocol colour map**
 
 | Colour | Hex | Meaning |
 |---|---|---|
@@ -674,7 +674,7 @@ The course uses the same visual language as both decks. This is a direction, not
 | Red | `#FF4F6A` | Lost packets and elements that are down |
 | 🔒 + double line | (any colour) | Encrypted (TLS, SRTP, DTLS) |
 
-**Page format.** The decks are slides. The course is a reading site, so lessons are scrolling pages. Diagrams sit in "stages" like the one in `scaled-architecture.html`: a diagram, an inspector panel beside it, and a player bar under it. On long explanations the diagram stays fixed while the text steps scroll past it ("scrollytelling"). Each step of the text moves the diagram forward.
+**Page format.** The course is a reading site, so lessons are scrolling pages. Diagrams sit in "stages": a diagram, an inspector panel beside it, and a player bar under it. On long explanations the diagram stays fixed while the text steps scroll past it ("scrollytelling"). Each step of the text moves the diagram forward.
 
 **Responsive.** Below tablet width the inspector moves under the diagram, and ladders scroll horizontally inside their stage, not the page.
 

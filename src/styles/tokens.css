@@ -1,6 +1,6 @@
 /* ===========================================================
    DESIGN TOKENS
-   From presentations/: a dark signalling console. Colour always
+   A signalling console, in light and dark. Colour always
    names the protocol on the wire (COURSE_STRUCTURE §4, §5.2).
    =========================================================== */
 :root {

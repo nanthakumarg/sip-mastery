@@ -45,6 +45,7 @@ for (const file of pages) {
   const desc = meta(html, 'description');
   if (!title) fail(where, 'no <title>');
   else if (title.length > 70) fail(where, `title is ${title.length} characters (max 70): ${title}`);
+  if (!meta(html, 'author')) fail(where, 'no meta author');
   if (!desc) fail(where, 'no meta description');
   else if (desc.length < 70 || desc.length > 160) fail(where, `description is ${desc.length} characters (70–160)`);
   if (noindex) continue;

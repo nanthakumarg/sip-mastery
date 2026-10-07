@@ -1,6 +1,5 @@
 /**
- * Call-flow ladder (sequence diagram), ported from the ladder() renderer in
- * presentations/. Time runs down; lanes keep the course order (caller left).
+ * Call-flow ladder (sequence diagram). Time runs down; lanes keep the course order (caller left).
  * Controlled diagram language: colour = protocol, dashed = media,
  * white outline = what the current step is about (COURSE_STRUCTURE §5.2).
  */

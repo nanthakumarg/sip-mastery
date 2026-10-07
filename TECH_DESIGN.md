@@ -14,7 +14,7 @@ This document turns [COURSE_STRUCTURE.md](COURSE_STRUCTURE.md) into a buildable 
 | One author (plus Claude as writing assistant), so content lives in the repo as files | Product decision |
 | Interactive, data-driven diagrams that follow the controlled diagram language (COURSE_STRUCTURE §5) | Course design |
 | RFC quotes are exact and linked | Course design |
-| Visual language of `presentations/` (dark console, protocol colours, Bricolage Grotesque + Martian Mono) | Course design |
+| Visual language: a signalling console, protocol colours, Bricolage Grotesque + Martian Mono (light and dark themes) | Course design |
 
 ## 2. Stack
 
@@ -24,7 +24,7 @@ This document turns [COURSE_STRUCTURE.md](COURSE_STRUCTURE.md) into a buildable 
 | Site framework | Astro (static output) | 7.x |
 | Content | MDX + Astro content collections (Zod schemas) | `@astrojs/mdx` 8.x |
 | Interactive islands | React + TypeScript | React 19, TS 6 |
-| Diagrams | Custom SVG renderer (ported from `presentations/`) | in repo |
+| Diagrams | Custom SVG renderer | in repo |
 | Data files | YAML (`yaml` package) | 2.x |
 | Styling | Plain CSS + design tokens | in repo |
 | Fonts | Self-hosted via Fontsource (Bricolage Grotesque variable, Martian Mono) | – |
@@ -108,7 +108,6 @@ sip-course/
 │  ├─ check-content.ts           # runs both linters over every flow, and every combination of every generator
 │  └─ verify-rfc-quotes.ts       # verifies quotes against rfc-editor.org text
 ├─ tests/                        # Vitest
-├─ presentations/                # original decks (design reference)
 ├─ COURSE_STRUCTURE.md
 └─ TECH_DESIGN.md
 ```
@@ -208,7 +207,7 @@ All diagrams are React islands that render SVG. They share one design-token file
 | `BrokenFixed` | 1 | One switch between two flows; the steps that differ are marked |
 | `ScrollyFlow` | 1 | Pinned FlowStage; each text step scrolls the diagram to a flow step (IntersectionObserver) |
 | `DigestCalculator` | 1 | Live HA1/HA2/response for MD5 and SHA-256 |
-| `Topology` | 2 | Port of `graph()` + packet animation from `scaled-architecture.html` |
+| `Topology` | 2 | Network graph with packet animation |
 | `HeroLadder` | 1 | Home page: the INVITE flow plays itself in a loop |
 | `StateMachine`, `Timeline`, `BitMap` | 2–3 | |
 | `TraceViewer`, `DecisionTree` | 3 | |
