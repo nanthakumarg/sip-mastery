@@ -49,6 +49,8 @@ const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
           delete document.documentElement.dataset.theme;
           document.querySelector('meta[name=theme-color]').content = '#0E1013';
         }
+        // And the collapsed module sidebar (wide screens only; see site.css).
+        if (localStorage.getItem('sidebar') === 'collapsed') document.documentElement.classList.add('sb-collapsed');
       } catch {}
     </script>
     {noindex && <meta name="robots" content="noindex" />}
@@ -78,7 +80,14 @@ const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
     <a class="sr-only" href="#content">Skip to content</a>
     <div class="nav-loader" aria-hidden="true"><div class="nav-bar"></div><div class="nav-chip"><span class="nav-spin"></span>Loading…</div></div>
     <header class="site-head">
-      <a class="brand" href={url()}><BrandMark />SIP <em>Mastery</em></a>
+      <div class="head-left">
+        {withSidebar && (
+          <button class="sb-btn" type="button" id="sb-btn" aria-controls="sidebar" aria-expanded="true" aria-label="Hide the module list" title="Hide the module list">
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" /><path class="sb-pane" d="M2.25 3.25h3.5v9.5h-3.5z" /><path d="M6.5 2.5v11" stroke="currentColor" stroke-width="1.5" /></svg>
+          </button>
+        )}
+        <a class="brand" href={url()}><BrandMark />SIP <em>Mastery</em></a>
+      </div>
       <div class="head-tools">
         <nav class="site-nav" aria-label="Site">
           <a href={url()} aria-current={path === url() || path === url().replace(/\/$/, '') ? 'page' : undefined}>Course map</a>
@@ -141,6 +150,32 @@ const repoUrl = import.meta.env.PUBLIC_REPO_URL as string | undefined;
         const open = document.body.classList.toggle('nav-open');
         btn.setAttribute('aria-expanded', String(open));
       });
+
+      // Wide screens: hide or show the module sidebar, and remember the choice.
+      const sbBtn = document.getElementById('sb-btn');
+      const showSidebarState = () => {
+        const collapsed = root.classList.contains('sb-collapsed');
+        const label = collapsed ? 'Show the module list' : 'Hide the module list';
+        sbBtn!.setAttribute('aria-expanded', String(!collapsed));
+        sbBtn!.setAttribute('aria-label', label);
+        sbBtn!.title = label;
+      };
+      if (sbBtn) {
+        showSidebarState();
+        sbBtn.addEventListener('click', () => {
+          // The text reflows to the new width; keep the block under the header where it was.
+          const main = document.querySelector('.main');
+          const box = main?.getBoundingClientRect();
+          const anchor = box && document.elementFromPoint(box.left + box.width / 2, 120)?.closest('.prose > *, .mod-head');
+          const before = anchor?.getBoundingClientRect().top;
+          const collapsed = root.classList.toggle('sb-collapsed');
+          if (anchor && before !== undefined) window.scrollBy(0, anchor.getBoundingClientRect().top - before);
+          try { localStorage.setItem('sidebar', collapsed ? 'collapsed' : 'open'); } catch {}
+          showSidebarState();
+          // The content changes width: let width-dependent scripts (the TOC tracker) update.
+          window.dispatchEvent(new Event('resize'));
+        });
+      }
     </script>
   </body>
 </html>

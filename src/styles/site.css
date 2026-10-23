@@ -12,6 +12,11 @@
 .site-nav a:hover, .site-nav a[aria-current=page] { color: var(--text); }
 .menu-btn { display: none; font: 400 13px var(--mono); color: var(--dim); border: 1px solid var(--line); border-radius: 5px; padding: 6px 10px; }
 .head-tools { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.head-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.sb-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; color: var(--dim); background: var(--panel); border: 1px solid var(--line); border-radius: 5px; cursor: pointer; }
+.sb-btn:hover { color: var(--text); border-color: var(--muted); }
+.sb-btn .sb-pane { fill: currentColor; opacity: .55; }
+html.sb-collapsed .sb-btn .sb-pane { opacity: 0; }
 .head-tools .site-nav { margin-right: 8px; }
 
 /* ---------- Page loader ---------- */
@@ -96,7 +101,13 @@ html.is-navigating .nav-chip { animation: nav-chip .25s var(--ease) .5s forwards
 
 .main { min-width: 0; padding: 40px var(--gutter) 120px; overflow-x: clip; }
 
+/* Wide screens: the sidebar can be collapsed with the header button (Base.astro). */
+@media (min-width: 1101px) {
+  html.sb-collapsed .shell { grid-template-columns: minmax(0, 1fr); }
+  html.sb-collapsed .sidebar { display: none; }
+}
 @media (max-width: 1100px) {
+  .sb-btn { display: none; }
   .shell { grid-template-columns: minmax(0, 1fr); }
   .sidebar { display: none; position: fixed; inset: 64px 0 0 0; z-index: 19; height: auto; background: var(--bg); border-right: 0; }
   body.nav-open .sidebar { display: block; }
