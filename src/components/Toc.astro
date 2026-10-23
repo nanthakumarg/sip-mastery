@@ -1,0 +1,97 @@
+---
+/**
+ * <Toc /> : "On this page" for a module. A list under the objectives, and a
+ * floating pill that appears once the list scrolls away. The pill names the
+ * current section and opens the same list as a popover, so it takes no space
+ * from the content or the wide diagrams.
+ */
+import type { TocEntry } from '../lib/toc.ts';
+
+interface Props { entries: TocEntry[] }
+const { entries } = Astro.props;
+const sections = entries.filter(e => e.depth === 2).length;
+---
+{entries.length > 0 && (
+  <>
+    <details class="toc" open>
+      <summary><span class="eyebrow">On this page</span><span class="toc-count">{sections} sections</span></summary>
+      <ol class="toc-list">
+        {entries.map(e => (
+          <li class={`d${e.depth}`}><a href={`#${e.slug}`} data-slug={e.slug}><span class="toc-num">{e.num}</span><span>{e.title}</span></a></li>
+        ))}
+      </ol>
+    </details>
+
+    <button type="button" class="toc-fab" popovertarget="toc-pop" aria-label="On this page" aria-hidden="true" tabindex="-1">
+      <span class="toc-fab-icon" aria-hidden="true">☰</span><span class="toc-fab-num"></span><span class="toc-fab-title"></span>
+    </button>
+    <nav id="toc-pop" class="toc-pop" popover aria-label="On this page">
+      <p class="eyebrow">On this page</p>
+      <ol class="toc-list">
+        {entries.map(e => (
+          <li class={`d${e.depth}`}><a href={`#${e.slug}`} data-slug={e.slug}><span class="toc-num">{e.num}</span><span>{e.title}</span></a></li>
+        ))}
+      </ol>
+    </nav>
+  </>
+)}
+
+<script>
+  const top = document.querySelector<HTMLElement>('.toc');
+  const fab = document.querySelector<HTMLButtonElement>('.toc-fab');
+  const pop = document.getElementById('toc-pop');
+  if (top && fab && pop) {
+    const links = [...document.querySelectorAll<HTMLAnchorElement>('.toc-list a')];
+    const heads = [...new Set(links.map(a => a.dataset.slug!))]
+      .map(slug => document.getElementById(slug))
+      .filter((h): h is HTMLElement => !!h);
+    const numEl = fab.querySelector('.toc-fab-num')!;
+    const titleEl = fab.querySelector('.toc-fab-title')!;
+
+    // The pill shows only while the list at the top is out of view.
+    new IntersectionObserver(([e]) => {
+      const shown = !e!.isIntersecting && e!.boundingClientRect.top < 0;
+      fab.classList.toggle('is-shown', shown);
+      fab.setAttribute('aria-hidden', String(!shown));
+      fab.tabIndex = shown ? 0 : -1;
+      if (!shown && pop.matches(':popover-open')) pop.hidePopover();
+    }).observe(top);
+
+    // The current section: the last heading near the top of the window. A jump to
+    // #heading stops it at scroll-padding-top + scroll-margin-top (168 px), so allow more.
+    let current = '';
+    const update = () => {
+      let at: HTMLElement | undefined;
+      for (const h of heads) { if (h.getBoundingClientRect().top < 200) at = h; else break; }
+      const slug = at?.id ?? '';
+      if (slug === current) return;
+      current = slug;
+      for (const a of links) {
+        if (a.dataset.slug === slug) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      }
+      const link = links.find(a => a.dataset.slug === slug);
+      const num = link?.querySelector('.toc-num')?.textContent ?? '';
+      const title = link?.querySelector('span:last-child')?.textContent ?? 'On this page';
+      numEl.textContent = num;
+      titleEl.textContent = title;
+      fab.title = slug ? `On this page: ${num ? `${num} ` : ''}${title}` : 'On this page';
+      fab.setAttribute('aria-label', fab.title);
+    };
+    let queued = false;
+    addEventListener('scroll', () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; update(); });
+    }, { passive: true });
+    addEventListener('resize', update);
+    update();
+
+    pop.addEventListener('toggle', e => {
+      if ((e as ToggleEvent).newState === 'open') pop.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest' });
+    });
+    pop.addEventListener('click', e => {
+      if ((e.target as Element).closest('a')) pop.hidePopover();
+    });
+  }
+</script>

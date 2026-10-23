@@ -74,8 +74,10 @@ import ImsMap from '../../components/ImsMap.astro';
 import PassportDecoder from '../../components/PassportDecoder.astro';
 import QualityBudget from '../../components/QualityBudget.astro';
 import DscpExplorer from '../../components/DscpExplorer.astro';
+import Toc from '../../components/Toc.astro';
 import { LEVEL_LABEL, OUTLINE, pad2 } from '../../lib/outline.ts';
 import { moduleJsonLd, moduleTitle } from '../../lib/seo.ts';
+import { tocEntries } from '../../lib/toc.ts';
 import { url } from '../../lib/url.ts';
 
 export async function getStaticPaths() {
@@ -84,7 +86,7 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 const d = entry.data;
 const part = OUTLINE.find(p => p.n === d.part)!;
 
@@ -134,6 +136,7 @@ const components = { Flow, BrokenFixedFlow, Scrolly, Step, RfcQuote, Note, Mista
           <p class="eyebrow">After this module, you can</p>
           <ul>{d.objectives.map(o => <li>{o}</li>)}</ul>
         </section>
+        <Toc entries={tocEntries(headings)} />
       </header>
 
       <article class="prose">
