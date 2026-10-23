@@ -1,13 +1,11 @@
 ---
-/** <RoutingLab /> : Record-Route on or off for each proxy, and the path of later requests (Module 10.4) */
+/** <RoutingLab /> : Record-Route and lr for each proxy, and the path of later requests (Module 10.4) */
 import Island from '../diagrams/RoutingLab.tsx';
 import { clientRefData, quoteMap } from '../lib/bundle.ts';
-import { trapezoidCall, type LaterRequest } from '../sip/routing.ts';
+import { trapezoidCall, trapezoidOptions } from '../sip/routing.ts';
 
 // Every quote that any combination of the visualiser can show.
 const ids = new Set<string>();
-for (const rrA of [false, true]) for (const rrB of [false, true]) for (const later of ['ack', 'bye', 'reinvite'] as LaterRequest[]) {
-  for (const s of trapezoidCall({ rrA, rrB, later }).flow.steps) if (s.rfc) ids.add(s.rfc);
-}
+for (const o of trapezoidOptions()) for (const s of trapezoidCall(o).flow.steps) if (s.rfc) ids.add(s.rfc);
 ---
 <div class="wide"><Island client:visible quotes={quoteMap([...ids])} refData={clientRefData()} /></div>

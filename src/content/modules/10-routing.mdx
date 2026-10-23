@@ -9,11 +9,11 @@ description: "How SIP routes messages: Via for responses, Route and the Request-
 objectives:
   - Say which headers decide where a request goes, and which decide where a response goes.
   - Follow the Via stack through a call, and find where each response is sent, with received and rport.
-  - Explain why a proxy adds Record-Route, and predict which proxies see the ACK, BYE, and re-INVITE.
+  - Explain why a proxy adds Record-Route, and predict which proxies see the ACK, BYE, re-INVITE, and CANCEL.
   - Build the route set on both sides, and the Request-URI and Route of a request inside the dialog.
   - Tell loose routing from strict routing, and spot a missing lr.
   - Explain the outbound proxy, the pre-loaded Route, and why Request-URI and To differ.
-  - Tell a loop from a spiral, and explain 482 and 483.
+  - Tell a loop from a spiral and from a merged request, and explain 482 and 483.
   - Explain double Record-Route on a proxy with two interfaces.
 status: draft
 ---
@@ -68,12 +68,14 @@ The server then picks the response address from the top Via, in this order:
 
 | The top Via has… | The response goes to… |
 |---|---|
-| TCP or TLS transport | The same connection the request came on |
+| TCP or TLS transport | The same connection the request came on; if it has closed, a new connection to `received` (or sent-by) at the sent-by port |
 | UDP, `received` and `rport` | `received` address : `rport` port |
 | UDP, `received` only | `received` address : sent-by port (5060 if none) |
 | UDP, neither | The sent-by address and port |
 
 <RfcQuote id="rfc3261-18.2.2-reliable" />
+
+<RfcQuote id="rfc3261-18.2.2-reconnect" />
 
 <RfcQuote id="rfc3261-18.2.2-received" />
 
@@ -97,7 +99,11 @@ Record-Route has a cost. Every request in the dialog passes through the proxy, a
 
 <RfcQuote id="rfc3261-16.6-rr-cost" />
 
-Turn Record-Route on and off for each proxy below, and choose a later request. The INVITE and its 200 OK always pass both proxies. Only the later request changes its path.
+A Record-Route URI also keeps the security of the request. If the request uses a SIPS URI, the proxy must record-route with a SIPS URI, so that the later requests also use TLS:
+
+<RfcQuote id="rfc3261-16.6-rr-sips" />
+
+Turn Record-Route on and off for each proxy below, and choose a later request and who sends it. The INVITE and its 200 OK always pass both proxies. Only the later request changes its path.
 
 <RoutingLab />
 
@@ -106,6 +112,23 @@ Try these:
 - **Both off.** The BYE goes straight from Alice to Bob. Neither proxy knows that the call ended.
 - **Only Proxy B on.** Alice's ACK and BYE skip Proxy A — her own outbound proxy — and go straight to Proxy B.
 - **Both on, re-INVITE from Bob.** Bob's request visits Proxy B first, then Proxy A: his route set is in the other order.
+- **Only Proxy B on, BYE from Bob.** Bob's BYE goes to Proxy B, then straight to Alice's Contact.
+- **Both off, CANCEL.** The CANCEL still passes both proxies. It follows the INVITE, not the route set.
+- **Target refresh, Bob moves.** Bob's re-INVITE carries a new Contact. Alice's BYE goes to the new address, through the same proxies as before.
+
+Not every later request follows the route set. A CANCEL and the ACK for a non-2xx response belong to the INVITE transaction (Module 8), so they go hop by hop along the INVITE's path, with the same Request-URI and Route as the INVITE on each hop:
+
+| Request | Path | Request-URI and Route |
+|---|---|---|
+| ACK for a 2xx, BYE, re-INVITE, UPDATE, INFO, REFER, NOTIFY | The route set, end to end | The remote target; the route set |
+| CANCEL | The INVITE's path, hop by hop; each proxy answers it and sends its own | The same as the INVITE on that hop |
+| ACK for a non-2xx | The INVITE's path, hop by hop; each proxy ACKs its own hop | The same as the INVITE on that hop |
+
+<RfcQuote id="rfc3261-9.1-cancel-route" />
+
+<RfcQuote id="rfc3261-9.1-cancel-via" />
+
+So a proxy that does not record-route still sees the CANCEL, but not the BYE.
 
 ## 10.5 Building the route set
 
@@ -130,6 +153,10 @@ Each side wants its **nearest** proxy first. Bob's nearest proxy is Proxy B, alr
 The route set is fixed once the dialog is confirmed. A re-INVITE can change the remote target, but not the route set:
 
 <RfcQuote id="rfc3261-12.2-route-set-fixed" />
+
+The route set can exist before the call is answered. A 180 or 183 with a To tag creates an **early dialog** (Module 9), and Alice builds a route set from its Record-Route. PRACK and UPDATE before the answer use it. With forking, each early dialog has its own route set, because each branch can pass different proxies after the fork. When the 2xx arrives, Alice builds the route set again from the 2xx:
+
+<RfcQuote id="rfc3261-13.2.2.4-recompute" />
 
 To send a request in the dialog, the UA puts the remote target in the Request-URI and the route set in Route:
 
@@ -165,6 +192,10 @@ An RFC 3261 proxy that receives a request with its own Record-Route URI in the R
 <RfcQuote id="rfc3261-16.4-strict" />
 
 So every modern proxy must put `lr` in its Record-Route URI. A missing `lr` makes every UA use strict routing for the whole dialog (see Common mistakes).
+
+Go back to the routing visualiser in 10.4 and turn off `;lr` for Proxy B. In the hop table, Proxy A puts Proxy B's URI in the Request-URI and Bob's Contact at the end of Route. Proxy B then moves the Contact back:
+
+<RfcQuote id="rfc3261-16.6-strict-next" />
 
 <RfcQuote id="rfc3261-16.6-lr" />
 
@@ -229,6 +260,20 @@ Loop detection is optional. The safety net that always works is **Max-Forwards**
 A low Max-Forwards also works like traceroute: a request with Max-Forwards 1 is stopped at the second hop. A B2BUA starts new requests with only its own Via, so Via-based loop detection cannot see through it. It should carry Max-Forwards across, one lower (RFC 7332). If it resets Max-Forwards to 70, a loop through two B2BUAs does not stop (Module 25).
 
 <CompareFlows a="loop-482" b="max-forwards-483" labels={['Loop: 482', 'Max-Forwards 0: 483']} />
+
+A 482 can also come from a phone, not a proxy. A proxy forks the INVITE to two other proxies, and both route it to the same phone. The phone gets two copies with the same From tag, Call-ID, and CSeq, but a different branch. This is a **merged request**. The phone answers the second copy with 482, and the call goes on with the first:
+
+<RfcQuote id="rfc3261-8.2.2.2-merged" />
+
+<RfcQuote id="rfc3261-16.3-merged" />
+
+| | Loop | Spiral | Merged request |
+|---|---|---|---|
+| What arrives again | The same request at a proxy, with nothing changed | The same request at a proxy, with a new Request-URI | Two copies of one request at a UA, by two paths |
+| Who finds it | A proxy: its own address is in the Via headers | Nobody: it is normal | The UA: same From tag, Call-ID, and CSeq, different branch |
+| Result | 482 (optional), or 483 when Max-Forwards reaches 0 | Routed again | 482 to the second copy; the first copy goes on |
+
+So a 482 in a trace is not always a routing fault. Look at who sent it: a proxy found a loop, but a phone found a merged request.
 
 ## 10.10 Double Record-Route on multi-homed proxies
 
@@ -297,5 +342,6 @@ Open-source proxies such as Kamailio and OpenSIPS add the second Record-Route va
 - Every Record-Route URI needs **`;lr`**. Without it, the UAs use **strict routing**, and the request works only if the proxy repairs it.
 - An **outbound proxy** is best set as a **pre-loaded Route**. It stays in the dialog only if it record-routes.
 - **To** keeps the user the caller wanted; the **Request-URI** is where the request goes now. Route on the Request-URI.
-- A **spiral** is normal; a **loop** is a fault. Loop detection gives **482**; Max-Forwards at 0 gives **483**.
+- A **CANCEL** and the ACK for a non-2xx follow the INVITE's path, hop by hop, with the INVITE's Route. They do not use the route set.
+- A **spiral** is normal; a **loop** is a fault. Loop detection gives **482**; Max-Forwards at 0 gives **483**. A 482 from a phone is usually a **merged request** after forking.
 - A **multi-homed proxy** adds **two Record-Route values**, one for each interface, so each side can reach it.

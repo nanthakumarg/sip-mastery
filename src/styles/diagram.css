@@ -1194,6 +1194,9 @@ svg.ft-svg { display: block; width: 100%; min-width: 540px; height: auto; backgr
 .rl-toggle[aria-pressed=true] span { color: var(--sip); }
 .rl-toggle:hover { color: var(--text); }
 .rlab .seg { flex-wrap: wrap; }
+.rlab .rl-toggle:disabled, .rlab .seg button:disabled { opacity: .45; cursor: not-allowed; }
+.rlab .rl-toggle:disabled:hover { color: var(--dim); }
+.rl-note { font: 400 11.5px var(--mono); color: var(--muted); }
 .rl-top { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); gap: 18px; margin-top: 16px; align-items: start; }
 @media (max-width: 1100px) { .rl-top { grid-template-columns: minmax(0, 1fr); } }
 .rl-mapwrap { min-width: 0; overflow-x: auto; border: 1px solid var(--line-2); border-radius: 8px; scrollbar-color: var(--line) transparent; }

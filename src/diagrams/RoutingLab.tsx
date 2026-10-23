@@ -1,7 +1,8 @@
 /**
- * Routing visualiser (Module 10.4): turn Record-Route on or off for each proxy
- * and watch the path of the INVITE, of its 200 OK, and of a later request in
- * the dialog. The call is built by src/sip/routing.ts, so every message on
+ * Routing visualiser (Module 10.4): turn Record-Route and its lr on or off for
+ * each proxy, and watch the path of the INVITE, of its 200 OK, and of a later
+ * request: an ACK, a re-INVITE or BYE from either side, a CANCEL, or a BYE
+ * after a target refresh. The call is built by src/sip/routing.ts, so every message on
  * screen follows RFC 3261 §12 and §16; tests/routing.test.ts lints all of them.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -11,16 +12,19 @@ import { PlayerControls, usePlayer } from './player.tsx';
 import { comparableIndex, safeParse } from './diff.ts';
 import { toWire } from '../sip/flow.ts';
 import { getHeaders } from '../sip/parse.ts';
-import { trapezoidCall, type LaterRequest } from '../sip/routing.ts';
+import { callerOnly, trapezoidCall, type LaterRequest, type Party } from '../sip/routing.ts';
 import type { ClientFlow, ClientQuote, ClientRef } from './types.ts';
 
 interface Props { quotes: Record<string, ClientQuote>; refData: ClientRef }
 
-const LATER: { id: LaterRequest; label: string; strip: string }[] = [
-  { id: 'ack', label: 'ACK', strip: 'ACK' },
-  { id: 'bye', label: 'BYE from Alice', strip: 'BYE from Alice' },
-  { id: 'reinvite', label: 're-INVITE from Bob', strip: 're-INVITE from Bob' },
+const LATER: { id: LaterRequest; label: string }[] = [
+  { id: 'ack', label: 'ACK' },
+  { id: 'reinvite', label: 're-INVITE' },
+  { id: 'bye', label: 'BYE' },
+  { id: 'cancel', label: 'CANCEL' },
+  { id: 'refresh', label: 'Target refresh' },
 ];
+const PARTIES: { id: Party; label: string }[] = [{ id: 'alice', label: 'Alice' }, { id: 'bob', label: 'Bob' }];
 
 const NODE_X: Record<string, number> = { alice: 90, proxyA: 320, proxyB: 550, bob: 780 };
 const ORDER = ['alice', 'proxyA', 'proxyB', 'bob'];
@@ -33,9 +37,14 @@ interface Strip { key: string; title: string; rule: string; steps: number[] }
 export default function RoutingLab({ quotes, refData }: Props) {
   const [rrA, setRrA] = useState(true);
   const [rrB, setRrB] = useState(true);
+  const [lrA, setLrA] = useState(true);
+  const [lrB, setLrB] = useState(true);
   const [later, setLater] = useState<LaterRequest>('bye');
+  const [sender, setSender] = useState<Party>('alice');
+  const fixedSender = callerOnly(later);
+  const by: Party = fixedSender ? 'alice' : sender;
 
-  const call = useMemo(() => trapezoidCall({ rrA, rrB, later }), [rrA, rrB, later]);
+  const call = useMemo(() => trapezoidCall({ rrA, rrB, lrA, lrB, later, by }), [rrA, rrB, lrA, lrB, later, by]);
   const flow: ClientFlow = useMemo(() => ({
     id: call.flow.id, title: call.flow.title, lanes: call.flow.lanes,
     steps: call.flow.steps.map((s, index) => ({
@@ -57,15 +66,13 @@ export default function RoutingLab({ quotes, refData }: Props) {
   const prevIndex = comparableIndex(wires, cur);
   const laneLabel = (id: string) => flow.lanes.find(l => l.id === id)?.label ?? id;
 
-  const laterMethod = later === 'reinvite' ? 'INVITE' : later.toUpperCase();
-  const laterReq = call.parts.later.filter(i => flow.steps[i]!.label === laterMethod);
   const strips: Strip[] = [
     { key: 'invite', title: 'INVITE', rule: 'Route, then Request-URI', steps: call.parts.invite },
-    { key: 'ok', title: '200 OK', rule: 'Via, top first', steps: call.parts.ok },
-    { key: 'later', title: LATER.find(l => l.id === later)!.strip, rule: later === 'reinvite' ? "Bob's route set" : "Alice's route set", steps: laterReq },
+    { key: 'answer', title: flow.steps[call.parts.answer[0]!]!.label, rule: 'Via, top first', steps: call.parts.answer },
+    { key: 'later', title: call.focusTitle, rule: call.focusRule, steps: call.parts.focus },
   ];
 
-  const hops = laterReq.map(i => {
+  const hops = call.parts.focus.map(i => {
     const m = safeParse(flow.steps[i]!.wire)!;
     return { i, s: flow.steps[i]!, ruri: m.requestUri ?? '', route: getHeaders(m, 'Route').map(h => short(h.value.replace(/[<>]/g, ''))) };
   });
@@ -85,11 +92,23 @@ export default function RoutingLab({ quotes, refData }: Props) {
           <button type="button" className="rl-toggle" aria-pressed={rrA} onClick={() => setRrA(v => !v)}><span aria-hidden="true">{rrA ? '●' : '○'}</span>Proxy A</button>
           <button type="button" className="rl-toggle" aria-pressed={rrB} onClick={() => setRrB(v => !v)}><span aria-hidden="true">{rrB ? '●' : '○'}</span>Proxy B</button>
         </div>
+        <div className="rl-group" role="group" aria-label="Record-Route has lr">
+          <span className="rl-glabel">Record-Route has ;lr</span>
+          <button type="button" className="rl-toggle" aria-pressed={lrA} disabled={!rrA} title={rrA ? undefined : 'Proxy A adds no Record-Route'} onClick={() => setLrA(v => !v)}><span aria-hidden="true">{lrA ? '●' : '○'}</span>Proxy A</button>
+          <button type="button" className="rl-toggle" aria-pressed={lrB} disabled={!rrB} title={rrB ? undefined : 'Proxy B adds no Record-Route'} onClick={() => setLrB(v => !v)}><span aria-hidden="true">{lrB ? '●' : '○'}</span>Proxy B</button>
+        </div>
         <div className="rl-group">
           <span className="rl-glabel">Later request</span>
           <div className="seg" role="group" aria-label="Later request">
             {LATER.map(l => <button key={l.id} type="button" aria-pressed={later === l.id} onClick={() => setLater(l.id)}>{l.label}</button>)}
           </div>
+        </div>
+        <div className="rl-group">
+          <span className="rl-glabel">{later === 'refresh' ? 'Moves' : 'Sent by'}</span>
+          <div className="seg" role="group" aria-label={later === 'refresh' ? 'Moves' : 'Sent by'}>
+            {PARTIES.map(pt => <button key={pt.id} type="button" aria-pressed={by === pt.id} disabled={fixedSender} onClick={() => setSender(pt.id)}>{pt.label}</button>)}
+          </div>
+          {fixedSender && <span className="rl-note">only the caller sends it</span>}
         </div>
       </div>
 
@@ -147,15 +166,16 @@ export default function RoutingLab({ quotes, refData }: Props) {
           <div className="rl-sets">
             {(['alice', 'bob'] as const).map(ua => (
               <div key={ua} className="rl-set">
-                <p className="rl-sname">{ua === 'alice' ? "Alice's route set" : "Bob's route set"}<span>{ua === 'alice' ? 'Record-Route, reversed' : 'Record-Route, in order'}</span></p>
+                <p className="rl-sname">{ua === 'alice' ? "Alice's route set" : "Bob's route set"}<span>{ua === 'alice' ? 'Record-Route, reversed' : 'Record-Route, in order'}{later === 'cancel' ? ', from the 180' : ''}</span></p>
                 {call.routeSets[ua].length
                   ? <ol>{call.routeSets[ua].map(u => <li key={u}><code>{u}</code></li>)}</ol>
                   : <p className="rl-empty">empty: requests go straight to the remote target</p>}
               </div>
             ))}
           </div>
+          {later === 'cancel' && <p className="rl-empty">The CANCEL does not use the route set of the early dialog.</p>}
           <table className="rl-hops">
-            <caption>{LATER.find(l => l.id === later)!.label}, hop by hop</caption>
+            <caption>{call.focusTitle}, hop by hop</caption>
             <thead><tr><th scope="col">Hop</th><th scope="col">Request-URI</th><th scope="col">Route</th></tr></thead>
             <tbody>
               {hops.map(h => (

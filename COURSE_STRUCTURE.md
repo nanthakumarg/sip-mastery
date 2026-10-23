@@ -268,7 +268,7 @@ Every module uses the same layout:
 - 10.9 Loops, spirals, Max-Forwards, 482, 483
 - 10.10 Double Record-Route on multi-homed proxies
 
-**Diagrams:** 🧭 *Routing visualiser*: turn Record-Route on or off for each proxy and see how ACK, BYE, and re-INVITE travel. 📚 *Via stack animation*: Via headers stack up on the request and come off on the response.
+**Diagrams:** 🧭 *Routing visualiser*: turn Record-Route and its `;lr` on or off for each proxy, and see how the ACK, a re-INVITE or BYE from either side, a CANCEL, and a BYE after a target refresh travel. 📚 *Via stack animation*: Via headers stack up on the request and come off on the response.
 
 **Common mistakes**
 - Confusing Via (response path) with Record-Route (path for later requests).

@@ -1852,6 +1852,74 @@
     If a loop is detected, the element MAY return a 482 (Loop Detected)
     response.
 
+- id: rfc3261-16.3-merged
+  rfc: 3261
+  section: "16.3"
+  title: Request Validation
+  text: >-
+    Notice that a proxy is not required to detect merged requests and MUST NOT
+    treat merged requests as an error condition.  The endpoints receiving the
+    requests will resolve the merge as described in Section 8.2.2.2.
+
+- id: rfc3261-8.2.2.2-merged
+  rfc: 3261
+  section: "8.2.2.2"
+  title: Merged Requests
+  text: >-
+    If the request has no tag in the To header field, the UAS core MUST check
+    the request against ongoing transactions.  If the From tag, Call-ID, and
+    CSeq exactly match those associated with an ongoing transaction, but the
+    request does not match that transaction (based on the matching rules in
+    Section 17.2.3), the UAS core SHOULD generate a 482 (Loop Detected)
+    response and pass it to the server transaction.
+
+- id: rfc3261-9.1-cancel-route
+  rfc: 3261
+  section: "9.1"
+  title: Client Behavior
+  text: >-
+    If the request being cancelled contains a Route header field, the CANCEL
+    request MUST include that Route header field's values.
+
+- id: rfc3261-13.2.2.4-recompute
+  rfc: 3261
+  section: "13.2.2.4"
+  title: 2xx Responses
+  text: >-
+    If the dialog identifier in the 2xx response matches the dialog identifier
+    of an existing dialog, the dialog MUST be transitioned to the "confirmed"
+    state, and the route set for the dialog MUST be recomputed based on the 2xx
+    response using the procedures of Section 12.2.1.2.
+
+- id: rfc3261-16.6-rr-sips
+  rfc: 3261
+  section: "16.6"
+  title: Request Forwarding
+  text: >-
+    If the Request-URI contains a SIPS URI, or the topmost Route header field
+    value (after the post processing of bullet 6) contains a SIPS URI, the URI
+    placed into the Record-Route header field MUST be a SIPS URI.
+
+- id: rfc3261-16.6-strict-next
+  rfc: 3261
+  section: "16.6"
+  title: Request Forwarding
+  text: >-
+    "Popping" the first Route header field value into the Request-URI formats
+    the message the way a strict-routing element expects to receive it (with
+    its own URI in the Request-URI and the next location to visit in the first
+    Route header field value).
+
+- id: rfc3261-18.2.2-reconnect
+  rfc: 3261
+  section: "18.2.2"
+  title: Sending Responses
+  text: >-
+    If that connection is no longer open, the server SHOULD open a connection
+    to the IP address in the "received" parameter, if present, using the port
+    in the "sent-by" value, or the default port for that transport, if no port
+    is specified.
+
 - id: rfc3261-16.6-max-forwards
   rfc: 3261
   section: "16.6"
